@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import { CheckCircle2, Copy, Package, Store, UserCheck } from "lucide-react";
+import { CheckCircle2, Copy, CreditCard, Package, Store, UserCheck } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 import { formatCurrency } from "@/lib/currency";
@@ -9,6 +9,7 @@ import { formatDate, ORDER_STATUS_LABEL, ORDER_STATUS_STYLE, PAYMENT_LABEL } fro
 import { LinkButton } from "@/components/ui";
 import { ClearCartOnSuccess } from "@/components/shop/clear-cart";
 import { CopyButton } from "@/components/shop/copy-button";
+import { MidtransPayButton } from "@/components/shop/midtrans-pay-button";
 
 export const metadata = {
   title: "Terima Kasih Atas Pesanan Anda",
@@ -107,6 +108,70 @@ export default async function CheckoutSuccessPage({
                   *Anda dapat mengganti password ini kapan saja di menu Akun Saya.
                 </span>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Kartu Pembayaran Midtrans jika memilih Midtrans */}
+      {order.paymentMethod === "midtrans" && order.status === "PENDING" && (
+        <div className="mt-8 rounded-2xl border-2 border-caramel-300 bg-gradient-to-br from-caramel-50/90 via-white to-cream p-6 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-caramel-200/80 pb-5">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-caramel-600 text-white shadow-xs">
+                <CreditCard className="h-6 w-6" />
+              </div>
+              <div>
+                <span className="inline-block rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-bold text-amber-800 uppercase tracking-wider">
+                  Menunggu Pembayaran
+                </span>
+                <h2 className="mt-0.5 text-lg font-bold text-espresso-900">
+                  Pembayaran Online Midtrans
+                </h2>
+              </div>
+            </div>
+            <div className="text-left sm:text-right">
+              <span className="text-[11px] font-semibold text-espresso-400 uppercase tracking-wider block">
+                Total Tagihan
+              </span>
+              <p className="font-display text-xl font-bold text-espresso-900">
+                {formatCurrency(order.total, settings.currency)}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <p className="text-xs text-espresso-600 leading-relaxed max-w-md">
+              Selesaikan pembayaran Anda menggunakan QRIS (GoPay, OVO, ShopeePay, DANA), Virtual Account Bank (BCA, Mandiri, BNI, BRI, Permata), atau Kartu Kredit.
+            </p>
+            <MidtransPayButton
+              orderNo={order.orderNo}
+              buttonLabel="Bayar Sekarang"
+              autoOpen={true}
+              variant="secondary"
+              className="px-6 py-3 text-sm font-bold shadow-md"
+            />
+          </div>
+
+          <p className="mt-3 text-[11px] text-espresso-400 border-t border-latte/60 pt-3">
+            *Pop-up pembayaran Midtrans akan terbuka secara otomatis. Jika pop-up tertutup atau Anda ingin membayar nanti, Anda cukup menekan tombol <strong>Bayar Sekarang</strong> di atas kapan saja.
+          </p>
+        </div>
+      )}
+
+      {order.paymentMethod === "midtrans" && order.status === "PAID" && (
+        <div className="mt-8 rounded-xl border border-emerald-200 bg-emerald-50/60 p-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+              <CheckCircle2 className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-base font-semibold text-emerald-950">
+                Pembayaran Midtrans Berhasil Dikonfirmasi
+              </h2>
+              <p className="text-xs text-emerald-700 mt-0.5">
+                Terima kasih, pembayaran pesanan Anda telah kami terima secara otomatis. Kami akan segera memproses pengiriman pesanan Anda.
+              </p>
             </div>
           </div>
         </div>

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
+import { ExternalLink, LogOut, Package, Settings, User } from "lucide-react";
 import Link from "next/link";
-import { LogOut, Package, Settings, User } from "lucide-react";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
@@ -9,6 +9,7 @@ import { formatDate, ORDER_STATUS_LABEL, ORDER_STATUS_STYLE } from "@/lib/utils"
 import { logout } from "@/actions/auth";
 import { AccountProfileForm } from "@/components/shop/account-profile-form";
 import { AccountPasswordForm } from "@/components/shop/account-password-form";
+import { MidtransPayButton } from "@/components/shop/midtrans-pay-button";
 
 export const metadata = {
   title: "Member Area",
@@ -115,6 +116,33 @@ export default async function AccountPage() {
                           {formatCurrency(order.total, settings.currency)}
                         </span>
                       </div>
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-latte/60 pt-3">
+                      <Link
+                        href={`/checkout/success/${order.orderNo}`}
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-espresso-600 hover:text-caramel-600 hover:underline"
+                      >
+                        Lihat Rincian Pesanan &rarr;
+                      </Link>
+
+                      {order.paymentMethod === "midtrans" && order.status === "PENDING" && (
+                        <MidtransPayButton
+                          orderNo={order.orderNo}
+                          buttonLabel="Lanjutkan Pembayaran"
+                          variant="secondary"
+                          className="py-1.5 px-3 text-xs"
+                        />
+                      )}
+
+                      {order.paymentMethod === "bank_transfer" && order.status === "PENDING" && (
+                        <Link
+                          href={`/checkout/success/${order.orderNo}`}
+                          className="inline-flex items-center gap-1 rounded-md bg-caramel-50 px-2.5 py-1 text-xs font-semibold text-caramel-700 border border-caramel-200 hover:bg-caramel-100"
+                        >
+                          Petunjuk Transfer Bank &rarr;
+                        </Link>
+                      )}
                     </div>
                   </div>
                 ))}
