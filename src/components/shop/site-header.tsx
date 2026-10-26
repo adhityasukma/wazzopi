@@ -65,6 +65,7 @@ export function SiteHeader({ user, categories, announcement }: Props) {
               <Link
                 key={n.href}
                 href={n.href}
+                data-loading-message={`Membuka ${n.label}...`}
                 className={cn(
                   "text-sm font-medium transition-colors hover:text-caramel-500",
                   pathname === n.href ? "text-caramel-500" : "text-espresso-700",
@@ -80,7 +81,12 @@ export function SiteHeader({ user, categories, announcement }: Props) {
               <div className="invisible absolute left-1/2 top-full w-56 -translate-x-1/2 pt-3 opacity-0 transition-all group-hover:visible group-hover:opacity-100">
                 <div className="rounded-xl border border-latte bg-white p-2 shadow-lg shadow-espresso-900/5">
                   {categories.map((c) => (
-                    <Link key={c.slug} href={`/products?category=${c.slug}`} className="block rounded-lg px-3 py-2 text-sm text-espresso-700 hover:bg-cream">
+                    <Link
+                      key={c.slug}
+                      href={`/products?category=${c.slug}`}
+                      data-loading-message={`Memuat produk ${c.name}...`}
+                      className="block rounded-lg px-3 py-2 text-sm text-espresso-700 hover:bg-cream"
+                    >
                       {c.name}
                     </Link>
                   ))}
@@ -94,16 +100,31 @@ export function SiteHeader({ user, categories, announcement }: Props) {
               <Search className="h-5 w-5" />
             </button>
             {user && user.role !== "CUSTOMER" ? (
-              <Link href="/admin" className="rounded-lg p-2.5 text-espresso-700 hover:bg-latte" aria-label="Admin panel">
+              <Link
+                href="/admin"
+                data-loading-message="Membuka Dashboard Admin..."
+                className="rounded-lg p-2.5 text-espresso-700 hover:bg-latte"
+                aria-label="Admin panel"
+              >
                 <LayoutDashboard className="h-5 w-5" />
               </Link>
             ) : (
-              <Link href={user ? "/account" : "/login"} className="flex items-center gap-2 rounded-lg p-2.5 text-espresso-700 hover:bg-latte" aria-label="Akun">
+              <Link
+                href={user ? "/account" : "/login"}
+                data-loading-message={user ? "Membuka Akun Saya..." : "Membuka Halaman Masuk..."}
+                className="flex items-center gap-2 rounded-lg p-2.5 text-espresso-700 hover:bg-latte"
+                aria-label="Akun"
+              >
                 <User className="h-5 w-5" />
                 <span className="hidden max-w-28 truncate text-sm font-medium xl:inline">{user ? user.name.split(" ")[0] : "Masuk"}</span>
               </Link>
             )}
-            <Link href="/cart" className="relative rounded-lg p-2.5 text-espresso-700 hover:bg-latte" aria-label="Keranjang">
+            <Link
+              href="/cart"
+              data-loading-message="Membuka Keranjang Belanja..."
+              className="relative rounded-lg p-2.5 text-espresso-700 hover:bg-latte"
+              aria-label="Keranjang"
+            >
               <ShoppingBag className="h-5 w-5" />
               {count > 0 && (
                 <span className="absolute right-0.5 top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-caramel-500 px-1 text-[10px] font-semibold text-white">
@@ -144,13 +165,25 @@ export function SiteHeader({ user, categories, announcement }: Props) {
             </div>
             <nav className="space-y-1">
               {nav.map((n) => (
-                <Link key={n.href} href={n.href} onClick={() => setOpen(false)} className="block rounded-lg px-3 py-2.5 font-medium text-espresso-800 hover:bg-latte">
+                <Link
+                  key={n.href}
+                  href={n.href}
+                  data-loading-message={`Membuka ${n.label}...`}
+                  onClick={() => setOpen(false)}
+                  className="block rounded-lg px-3 py-2.5 font-medium text-espresso-800 hover:bg-latte"
+                >
                   {n.label}
                 </Link>
               ))}
               <p className="px-3 pb-1 pt-4 text-xs font-semibold uppercase tracking-wider text-espresso-400">Kategori</p>
               {categories.map((c) => (
-                <Link key={c.slug} href={`/products?category=${c.slug}`} onClick={() => setOpen(false)} className="block rounded-lg px-3 py-2 text-sm text-espresso-700 hover:bg-latte">
+                <Link
+                  key={c.slug}
+                  href={`/products?category=${c.slug}`}
+                  data-loading-message={`Memuat produk ${c.name}...`}
+                  onClick={() => setOpen(false)}
+                  className="block rounded-lg px-3 py-2 text-sm text-espresso-700 hover:bg-latte"
+                >
                   {c.name}
                 </Link>
               ))}

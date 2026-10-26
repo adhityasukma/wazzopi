@@ -31,19 +31,80 @@ const LoadingContext = createContext<LoadingContextType>({
   startTransitionLoading: () => {},
 });
 
+// Pemetaan cerdas URL ke pesan preloader informatif
+function getLoadingMessageForHref(href: string, elementText?: string): string {
+  try {
+    const url = new URL(href, window.location.href);
+    const pathname = url.pathname;
+    const searchParams = url.searchParams;
+
+    // Rute Administrator
+    if (pathname === "/admin") return "Membuka Dashboard Admin...";
+    if (pathname === "/admin/hero-slides") return "Membuka Kelola Hero Slide (Banner)...";
+    if (pathname === "/admin/products/new") return "Membuka Form Tambah Produk...";
+    if (pathname.startsWith("/admin/products/") && pathname !== "/admin/products") {
+      return "Membuka Form Edit Produk...";
+    }
+    if (pathname === "/admin/products") {
+      if (searchParams.has("category")) return "Menyaring produk admin...";
+      if (searchParams.has("q")) return `Mencari "${searchParams.get("q")}"...`;
+      return "Membuka Kelola Produk...";
+    }
+    if (pathname.startsWith("/admin/categories")) return "Membuka Kelola Kategori...";
+    if (pathname.startsWith("/admin/orders/") && pathname !== "/admin/orders") {
+      return "Membuka Rincian Pesanan...";
+    }
+    if (pathname === "/admin/orders") {
+      if (searchParams.has("status")) return "Menyaring daftar pesanan...";
+      if (searchParams.has("q")) return `Mencari pesanan "${searchParams.get("q")}"...`;
+      return "Membuka Kelola Pesanan...";
+    }
+    if (pathname.startsWith("/admin/customers")) return "Membuka Data Pelanggan...";
+    if (pathname.startsWith("/admin/reports")) return "Membuka Laporan Penjualan...";
+    if (pathname.startsWith("/admin/settings")) return "Membuka Pengaturan Toko...";
+    if (pathname.startsWith("/admin/login")) return "Membuka Halaman Masuk Admin...";
+
+    // Rute Publik Toko
+    if (pathname === "/") return "Membuka Beranda Wazzopi...";
+    if (pathname === "/cerita-kami") return "Membuka Cerita Kami...";
+    if (pathname === "/cart") return "Membuka Keranjang Belanja...";
+    if (pathname === "/checkout") return "Membuka Halaman Pembayaran...";
+    if (pathname.startsWith("/checkout/success")) return "Memuat konfirmasi pesanan...";
+    if (pathname.startsWith("/products/")) return "Membuka Detail Produk...";
+    if (pathname === "/products") {
+      if (searchParams.has("sort")) return "Menyaring katalog produk...";
+      if (searchParams.has("category")) return "Memuat kategori produk...";
+      if (searchParams.has("q")) return `Mencari "${searchParams.get("q")}"...`;
+      return "Membuka Katalog Produk...";
+    }
+    if (pathname === "/account") return "Membuka Akun Saya...";
+    if (pathname === "/login") return "Membuka Halaman Masuk...";
+    if (pathname === "/register") return "Membuka Halaman Registrasi...";
+
+    // Jika ada teks singkat pada elemen link
+    const cleanText = elementText?.replace(/\s+/g, " ").trim();
+    if (cleanText && cleanText.length > 1 && cleanText.length <= 35) {
+      return `Membuka ${cleanText}...`;
+    }
+
+    return "Memuat halaman...";
+  } catch {
+    return "Memuat halaman...";
+  }
+}
+
 function RouteWatcher({ onNavigate }: { onNavigate: () => void }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const isFirstRender = useRef(true);
+  const currentKey = `${pathname}?${searchParams.toString()}`;
+  const prevKeyRef = useRef<string>(currentKey);
 
   useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
+    if (prevKeyRef.current !== currentKey) {
+      prevKeyRef.current = currentKey;
+      onNavigate();
     }
-    // Route atau query berubah, tutup modal loading
-    onNavigate();
-  }, [pathname, searchParams, onNavigate]);
+  }, [currentKey, onNavigate]);
 
   return null;
 }
@@ -59,14 +120,17 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
-    setIsLoading(false);
+    // Delay 120ms agar penutupan modal terasa mulus
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 120);
   }, []);
 
   const showLoading = useCallback((customMessage = "Sedang memproses...") => {
     setMessage(customMessage);
     setIsLoading(true);
 
-    // Timeout pengaman maksimal 12 detik agar modal tidak menggantung jika koneksi bermasalah
+    // Timeout pengaman maksimal 12 detik agar tidak terkunci jika server timeout
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(() => {
       setIsLoading(false);
@@ -88,39 +152,113 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
     if (!isPending && isLoading) {
       const timer = setTimeout(() => {
         setIsLoading(false);
-      }, 150);
+      }, 120);
       return () => clearTimeout(timer);
     }
   }, [isPending, isLoading]);
 
-  // Listener global untuk elemen dengan atribut `data-loading-message`
+  // Listener universal untuk klik navigasi rute/menu & form submit
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
-      const target = (e.target as HTMLElement | null)?.closest("[data-loading-message]");
-      if (target) {
-        const msg = target.getAttribute("data-loading-message");
+      // Abaikan jika bukan klik kiri biasa atau ditekan bersama tombol modifier
+      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+
+      // 1. Cek elemen eksplisit data-loading-message
+      const explicitElement = target.closest("[data-loading-message]");
+      if (explicitElement) {
+        const msg = explicitElement.getAttribute("data-loading-message");
         if (msg) {
           showLoading(msg);
+          return;
         }
       }
+
+      // 2. Cek apakah elemen yang diklik adalah link <a> (navigasi halaman/menu)
+      const anchor = target.closest("a");
+      if (!anchor) return;
+
+      // Abaikan target="_blank" atau link download
+      if (anchor.target === "_blank" || anchor.hasAttribute("download")) return;
+
+      const rawHref = anchor.getAttribute("href");
+      if (
+        !rawHref ||
+        rawHref === "#" ||
+        rawHref.startsWith("#") ||
+        rawHref.startsWith("mailto:") ||
+        rawHref.startsWith("tel:") ||
+        rawHref.startsWith("javascript:")
+      ) {
+        return;
+      }
+
+      // Pastikan URL internal satu origin
+      let targetUrl: URL;
+      try {
+        targetUrl = new URL(rawHref, window.location.href);
+      } catch {
+        return;
+      }
+
+      if (targetUrl.origin !== window.location.origin) {
+        return;
+      }
+
+      // Jika URL tujuan sama persis dengan halaman saat ini, jangan munculkan modal
+      const currentFull = window.location.pathname + window.location.search;
+      const targetFull = targetUrl.pathname + targetUrl.search;
+      if (currentFull === targetFull) {
+        return;
+      }
+
+      // Tampilkan preloader dengan pesan cerdas
+      const linkText = anchor.innerText?.trim();
+      const msg = getLoadingMessageForHref(rawHref, linkText);
+      showLoading(msg);
     };
 
     const handleSubmit = (e: SubmitEvent) => {
-      const target = (e.target as HTMLElement | null)?.closest("form[data-loading-message]");
-      if (target) {
-        const msg = target.getAttribute("data-loading-message");
-        if (msg) {
-          showLoading(msg);
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+
+      const form = target.closest("form");
+      if (!form) return;
+
+      // Cek data-loading-message di form
+      const formMsg = form.getAttribute("data-loading-message");
+      if (formMsg) {
+        showLoading(formMsg);
+        return;
+      }
+
+      // Cek data-loading-message di tombol submit
+      const submitter = e.submitter as HTMLElement | null;
+      if (submitter) {
+        const btnMsg = submitter.getAttribute("data-loading-message");
+        if (btnMsg) {
+          showLoading(btnMsg);
+          return;
         }
       }
+
+      showLoading("Sedang memproses permintaan...");
+    };
+
+    const handlePopState = () => {
+      showLoading("Memuat halaman...");
     };
 
     document.addEventListener("click", handleClick, { capture: true });
     document.addEventListener("submit", handleSubmit, { capture: true });
+    window.addEventListener("popstate", handlePopState);
 
     return () => {
       document.removeEventListener("click", handleClick, { capture: true });
       document.removeEventListener("submit", handleSubmit, { capture: true });
+      window.removeEventListener("popstate", handlePopState);
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, [showLoading]);
@@ -155,7 +293,7 @@ function PreloaderModal({ isOpen, message }: { isOpen: boolean; message: string 
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-espresso-950/65 backdrop-blur-xs transition-opacity duration-200 animate-fade-in"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-espresso-950/65 backdrop-blur-xs transition-opacity duration-200 animate-fade-in pointer-events-auto"
       role="dialog"
       aria-modal="true"
     >

@@ -19,7 +19,12 @@ export function Logo({
   const mark = light ? "/logo-mark-light.png" : "/logo-mark.png";
   const word = light ? "/logo-wordmark-light.png" : "/logo-wordmark.png";
   return (
-    <Link href={href} className={cn("inline-flex items-center gap-2", className)} aria-label="Wazzopi">
+    <Link
+      href={href}
+      data-loading-message={href === "/admin" ? "Membuka Dashboard Admin..." : "Membuka Beranda..."}
+      className={cn("inline-flex items-center gap-2", className)}
+      aria-label="Wazzopi"
+    >
       <Image src={mark} alt="" width={Math.round((h * 430) / 380)} height={h} priority />
       {showWordmark && (
         <Image

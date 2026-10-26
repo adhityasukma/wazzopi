@@ -66,6 +66,7 @@ export function AdminSidebar({ role }: Props) {
               <Link
                 key={item.href}
                 href={item.href}
+                data-loading-message={`Membuka ${item.label}...`}
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                   active
@@ -82,7 +83,7 @@ export function AdminSidebar({ role }: Props) {
       </div>
 
       <div className="border-t border-espresso-800 p-4">
-        <form action={adminLogout}>
+        <form action={adminLogout} data-loading-message="Sedang keluar dari panel admin...">
           <button
             type="submit"
             className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-rose-300 hover:bg-espresso-800 hover:text-rose-200"
