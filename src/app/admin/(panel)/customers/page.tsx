@@ -1,9 +1,8 @@
-import { Search, UserCheck } from "lucide-react";
+import { Search } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
-import { formatCurrency } from "@/lib/currency";
-import { formatDate } from "@/lib/utils";
 import { requireAdmin } from "@/lib/auth";
+import { CustomersTable } from "@/components/admin/customers-table";
 
 export const metadata = {
   title: "Kelola Customers",
@@ -16,7 +15,7 @@ export default async function AdminCustomersPage({
   const sp = await searchParams;
   const q = typeof sp.q === "string" ? sp.q.trim() : "";
 
-  const [settings, customers] = await Promise.all([
+  const [settings, customers, totalAllCustomers] = await Promise.all([
     getSettings(),
     prisma.user.findMany({
       where: {
@@ -38,14 +37,19 @@ export default async function AdminCustomersPage({
       },
       orderBy: { createdAt: "desc" },
     }),
+    prisma.user.count({
+      where: { role: "CUSTOMER" },
+    }),
   ]);
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-espresso-900 md:text-3xl">Daftar Pelanggan (Customers)</h1>
+        <h1 className="text-2xl font-bold text-espresso-900 md:text-3xl">
+          Daftar Pelanggan (Customers)
+        </h1>
         <p className="mt-1 text-sm text-espresso-500">
-          Total {customers.length} customer terdaftar di Wazzopi
+          Total {totalAllCustomers} customer terdaftar di Wazzopi
         </p>
       </div>
 
@@ -67,55 +71,24 @@ export default async function AdminCustomersPage({
           >
             Cari
           </button>
+          {q && (
+            <a
+              href="/admin/customers"
+              className="rounded-lg border border-espresso-200 px-3 py-2 text-xs font-semibold text-espresso-600 hover:bg-espresso-50"
+            >
+              Reset
+            </a>
+          )}
         </form>
       </div>
 
-      {/* Tabel Customers */}
-      <div className="overflow-hidden rounded-xl border border-latte bg-white shadow-xs">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-espresso-50/70 text-xs uppercase text-espresso-500">
-              <tr>
-                <th className="px-4 py-3">Nama Pelanggan</th>
-                <th className="px-4 py-3">Kontak</th>
-                <th className="px-4 py-3">Kota & Alamat</th>
-                <th className="px-4 py-3">Total Pesanan</th>
-                <th className="px-4 py-3">Total Belanja (LTV)</th>
-                <th className="px-4 py-3">Terdaftar Sejak</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-latte">
-              {customers.map((c) => {
-                const totalSpent = c.orders.reduce((sum, o) => sum + o.total, 0);
-
-                return (
-                  <tr key={c.id} className="hover:bg-cream/30">
-                    <td className="px-4 py-3 font-semibold text-espresso-900">{c.name}</td>
-                    <td className="px-4 py-3 text-xs">
-                      <p className="text-espresso-800">{c.email}</p>
-                      <p className="text-espresso-400">{c.phone || "-"}</p>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-espresso-600">
-                      {c.city ? `${c.city}, ${c.province}` : "-"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="inline-flex rounded-full bg-latte px-2.5 py-0.5 text-xs font-semibold text-espresso-800">
-                        {c.orders.length} pesanan
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 font-semibold text-espresso-900">
-                      {formatCurrency(totalSpent, settings.currency)}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-espresso-400">
-                      {formatDate(c.createdAt)}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {/* Komponen Tabel dengan Multi-Select, Bulk Delete & Delete ALL */}
+      <CustomersTable
+        customers={customers}
+        currency={settings.currency}
+        totalAllCustomers={totalAllCustomers}
+        searchQuery={q}
+      />
     </div>
   );
 }
