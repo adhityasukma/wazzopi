@@ -42,6 +42,16 @@ export function SiteFooter({ settings, categories }: { settings: AllSettings; ca
                 <Link href={`/products?category=${c.slug}`} className="hover:text-white">{c.name}</Link>
               </li>
             ))}
+            <li className="pt-2 border-t border-espresso-700">
+              <Link href="/syarat-ketentuan" className="text-espresso-300 hover:text-white text-xs">
+                Syarat & Ketentuan
+              </Link>
+            </li>
+            <li>
+              <Link href="/kebijakan-pengembalian" className="text-espresso-300 hover:text-white text-xs">
+                Kebijakan Pengembalian
+              </Link>
+            </li>
           </ul>
         </div>
         <div>
@@ -64,8 +74,17 @@ export function SiteFooter({ settings, categories }: { settings: AllSettings; ca
         </div>
       </div>
       <div className="border-t border-espresso-700">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-4 py-6 text-xs text-espresso-300 sm:flex-row">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-6 text-xs text-espresso-300 sm:flex-row">
           <p>&copy; {new Date().getFullYear()} {g.storeName}. Hak cipta dilindungi.</p>
+          <div className="flex flex-wrap items-center gap-3 text-[11px]">
+            <Link href="/syarat-ketentuan" className="hover:text-cream transition-colors underline-offset-2 hover:underline">
+              Syarat & Ketentuan
+            </Link>
+            <span>&bull;</span>
+            <Link href="/kebijakan-pengembalian" className="hover:text-cream transition-colors underline-offset-2 hover:underline">
+              Kebijakan Pengembalian Dana & Produk
+            </Link>
+          </div>
           <p>{g.tagline}</p>
         </div>
       </div>
