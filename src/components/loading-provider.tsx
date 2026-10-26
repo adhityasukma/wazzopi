@@ -164,10 +164,14 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
       const target = e.target as HTMLElement | null;
       if (!target) return;
 
-      const explicitElement = target.closest("[data-loading-message]");
+      // JANGAN PERNAH picu preloader jika klik terjadi pada elemen input form (input, textarea, select, dsb.)
+      if (target.closest("input, textarea, select, option, label")) {
+        return;
+      }
+
       const anchor = target.closest("a");
 
-      // Jika yang diklik adalah link <a> (navigasi halaman/menu)
+      // 1. Jika yang diklik adalah link <a> (navigasi perpindahan rute)
       if (anchor) {
         // Abaikan target="_blank" atau link download
         if (anchor.target === "_blank" || anchor.hasAttribute("download")) return;
@@ -204,6 +208,7 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
         }
 
         // Ambil pesan dari data-loading-message atau pemetaan URL otomatis
+        const explicitElement = target.closest("[data-loading-message]");
         const msg =
           explicitElement?.getAttribute("data-loading-message") ||
           getLoadingMessageForHref(rawHref, anchor.innerText?.trim());
@@ -212,9 +217,16 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // Jika bukan link <a> tapi elemen aksi dengan data-loading-message (misal button aksi)
-      if (explicitElement) {
-        const msg = explicitElement.getAttribute("data-loading-message");
+      // 2. Jika bukan link <a>, HANYA proses tombol non-submit mandiri yang memiliki data-loading-message
+      // (Catatan: Form dan tombol submit form HANYA ditangani oleh event listener `submit`, bukan `click`)
+      const explicitBtn = target.closest("button[data-loading-message]");
+      if (explicitBtn) {
+        const btnType = (explicitBtn as HTMLButtonElement).type;
+        // Jika tombol berada di dalam form dan bertipe "submit", biarkan event handleSubmit yang mengeksekusi
+        if (btnType === "submit" && explicitBtn.closest("form")) {
+          return;
+        }
+        const msg = explicitBtn.getAttribute("data-loading-message");
         if (msg) {
           showLoading(msg);
         }
@@ -222,6 +234,9 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
     };
 
     const handleSubmit = (e: SubmitEvent) => {
+      // Jika event submit dibatalkan (misal oleh confirm dialog user), jangan tampilkan preloader
+      if (e.defaultPrevented) return;
+
       const target = e.target as HTMLElement | null;
       if (!target) return;
 
