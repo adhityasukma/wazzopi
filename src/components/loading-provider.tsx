@@ -93,6 +93,7 @@ function getLoadingMessageForHref(href: string, elementText?: string): string {
   }
 }
 
+// Memantau perubahan rute aktual dan menutup preloader saat halaman tujuan sudah dirender
 function RouteWatcher({ onNavigate }: { onNavigate: () => void }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -114,16 +115,14 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
   const [message, setMessage] = useState("Memuat data...");
   const [isPending, startTransition] = useTransition();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const transitionActiveRef = useRef(false);
 
   const hideLoading = useCallback(() => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
-    // Delay 120ms agar penutupan modal terasa mulus
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 120);
+    setIsLoading(false);
   }, []);
 
   const showLoading = useCallback((customMessage = "Sedang memproses...") => {
@@ -139,6 +138,7 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
 
   const startTransitionLoading = useCallback(
     (action: () => void, customMessage = "Sedang memuat data...") => {
+      transitionActiveRef.current = true;
       showLoading(customMessage);
       startTransition(() => {
         action();
@@ -147,15 +147,13 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
     [showLoading]
   );
 
-  // Pantau useTransition selesai
+  // Pantau useTransition selesai HANYA jika dipicu secara eksplisit oleh startTransitionLoading
   useEffect(() => {
-    if (!isPending && isLoading) {
-      const timer = setTimeout(() => {
-        setIsLoading(false);
-      }, 120);
-      return () => clearTimeout(timer);
+    if (transitionActiveRef.current && !isPending) {
+      transitionActiveRef.current = false;
+      hideLoading();
     }
-  }, [isPending, isLoading]);
+  }, [isPending, hideLoading]);
 
   // Listener universal untuk klik navigasi rute/menu & form submit
   useEffect(() => {
@@ -166,58 +164,61 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
       const target = e.target as HTMLElement | null;
       if (!target) return;
 
-      // 1. Cek elemen eksplisit data-loading-message
       const explicitElement = target.closest("[data-loading-message]");
+      const anchor = target.closest("a");
+
+      // Jika yang diklik adalah link <a> (navigasi halaman/menu)
+      if (anchor) {
+        // Abaikan target="_blank" atau link download
+        if (anchor.target === "_blank" || anchor.hasAttribute("download")) return;
+
+        const rawHref = anchor.getAttribute("href");
+        if (
+          !rawHref ||
+          rawHref === "#" ||
+          rawHref.startsWith("#") ||
+          rawHref.startsWith("mailto:") ||
+          rawHref.startsWith("tel:") ||
+          rawHref.startsWith("javascript:")
+        ) {
+          return;
+        }
+
+        // Pastikan URL internal satu origin
+        let targetUrl: URL;
+        try {
+          targetUrl = new URL(rawHref, window.location.href);
+        } catch {
+          return;
+        }
+
+        if (targetUrl.origin !== window.location.origin) {
+          return;
+        }
+
+        // Jika URL tujuan sama persis dengan halaman saat ini, jangan munculkan modal
+        const currentFull = window.location.pathname + window.location.search;
+        const targetFull = targetUrl.pathname + targetUrl.search;
+        if (currentFull === targetFull) {
+          return;
+        }
+
+        // Ambil pesan dari data-loading-message atau pemetaan URL otomatis
+        const msg =
+          explicitElement?.getAttribute("data-loading-message") ||
+          getLoadingMessageForHref(rawHref, anchor.innerText?.trim());
+
+        showLoading(msg);
+        return;
+      }
+
+      // Jika bukan link <a> tapi elemen aksi dengan data-loading-message (misal button aksi)
       if (explicitElement) {
         const msg = explicitElement.getAttribute("data-loading-message");
         if (msg) {
           showLoading(msg);
-          return;
         }
       }
-
-      // 2. Cek apakah elemen yang diklik adalah link <a> (navigasi halaman/menu)
-      const anchor = target.closest("a");
-      if (!anchor) return;
-
-      // Abaikan target="_blank" atau link download
-      if (anchor.target === "_blank" || anchor.hasAttribute("download")) return;
-
-      const rawHref = anchor.getAttribute("href");
-      if (
-        !rawHref ||
-        rawHref === "#" ||
-        rawHref.startsWith("#") ||
-        rawHref.startsWith("mailto:") ||
-        rawHref.startsWith("tel:") ||
-        rawHref.startsWith("javascript:")
-      ) {
-        return;
-      }
-
-      // Pastikan URL internal satu origin
-      let targetUrl: URL;
-      try {
-        targetUrl = new URL(rawHref, window.location.href);
-      } catch {
-        return;
-      }
-
-      if (targetUrl.origin !== window.location.origin) {
-        return;
-      }
-
-      // Jika URL tujuan sama persis dengan halaman saat ini, jangan munculkan modal
-      const currentFull = window.location.pathname + window.location.search;
-      const targetFull = targetUrl.pathname + targetUrl.search;
-      if (currentFull === targetFull) {
-        return;
-      }
-
-      // Tampilkan preloader dengan pesan cerdas
-      const linkText = anchor.innerText?.trim();
-      const msg = getLoadingMessageForHref(rawHref, linkText);
-      showLoading(msg);
     };
 
     const handleSubmit = (e: SubmitEvent) => {
