@@ -1,11 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getSession, requireAdmin } from "@/lib/auth";
+import { createSession, getSession, requireAdmin } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
+import { sendOrderCreatedEmail } from "@/lib/email";
 import { generateOrderNo, ORDER_STATUSES } from "@/lib/utils";
 import type { FormState } from "./auth";
 
@@ -101,11 +104,59 @@ export async function placeOrder(_: FormState, formData: FormData): Promise<Form
   const orderNo = generateOrderNo(settings.other.orderPrefix || "WZ");
   const extraNotes = [d.notes, codFee ? `Biaya COD: ${codFee}` : "", tax ? `Pajak: ${tax}` : ""].filter(Boolean).join(" | ");
 
+  let assignedUserId: string | null = session?.id || null;
+  let newAccountInfo: { email: string; tempPassword: string } | null = null;
+
+  // Jika pembeli belum login, cek akun yang ada atau buatkan akun Member baru secara otomatis
+  if (!assignedUserId) {
+    const cleanEmail = d.customerEmail.toLowerCase().trim();
+    const existingUser = await prisma.user.findUnique({
+      where: { email: cleanEmail },
+    });
+
+    if (existingUser) {
+      assignedUserId = existingUser.id;
+    } else {
+      // Generate password acak sementara yang aman dan mudah diingat (misal: Waz-482910)
+      const randomDigits = Math.floor(100000 + Math.random() * 900000);
+      const tempPassword = `Waz-${randomDigits}`;
+      const hashedPassword = await bcrypt.hash(tempPassword, 10);
+
+      const createdUser = await prisma.user.create({
+        data: {
+          name: d.customerName,
+          email: cleanEmail,
+          password: hashedPassword,
+          role: "CUSTOMER",
+          phone: d.customerPhone,
+          address: d.address,
+          city: d.city,
+          province: d.province,
+          postalCode: d.postalCode,
+        },
+      });
+
+      assignedUserId = createdUser.id;
+      newAccountInfo = {
+        email: createdUser.email,
+        tempPassword,
+      };
+
+      // Otomatis buat session login sehingga pembeli langsung berstatus login di Member Area
+      await createSession({
+        id: createdUser.id,
+        name: createdUser.name,
+        email: createdUser.email,
+        role: "CUSTOMER",
+      });
+    }
+  }
+
   await prisma.$transaction(async (tx) => {
     await tx.order.create({
       data: {
         orderNo,
-        userId: session?.id,
+        userId: assignedUserId,
         customerName: d.customerName,
         customerEmail: d.customerEmail,
         customerPhone: d.customerPhone,
@@ -132,17 +183,55 @@ export async function placeOrder(_: FormState, formData: FormData): Promise<Form
   });
 
   // Simpan alamat ke profil customer jika belum ada
-  if (session?.role === "CUSTOMER") {
-    const user = await prisma.user.findUnique({ where: { id: session.id } });
+  if (assignedUserId) {
+    const user = await prisma.user.findUnique({ where: { id: assignedUserId } });
     if (user && !user.address) {
       await prisma.user.update({
         where: { id: user.id },
-        data: { address: d.address, city: d.city, province: d.province, postalCode: d.postalCode, phone: user.phone || d.customerPhone },
+        data: {
+          address: d.address,
+          city: d.city,
+          province: d.province,
+          postalCode: d.postalCode,
+          phone: user.phone || d.customerPhone,
+        },
       });
     }
   }
 
+  // Kirim email rincian pesanan & akses akun member
+  await sendOrderCreatedEmail({
+    customerName: d.customerName,
+    customerEmail: d.customerEmail,
+    orderNo,
+    items: lines.map((l) => ({
+      productName: l.productName,
+      variantName: l.variantName,
+      quantity: l.quantity,
+      price: l.price,
+      total: l.total,
+    })),
+    totalAmount: total,
+    shippingAddress: `${d.address}, ${d.city}, ${d.province} ${d.postalCode}`,
+    shippingMethod: shippingName,
+    paymentMethod: d.paymentMethod,
+    newAccount: newAccountInfo,
+    storeName: settings.general.storeName,
+    whatsappContact: settings.other.whatsapp || settings.general.phone,
+  });
+
+  // Simpan info akun baru di cookie singkat untuk ditampilkan langsung di halaman /checkout/success/[orderNo]
+  if (newAccountInfo) {
+    const cookieStore = await cookies();
+    cookieStore.set("wz_new_account", JSON.stringify(newAccountInfo), {
+      httpOnly: false,
+      maxAge: 300,
+      path: "/",
+    });
+  }
+
   revalidatePath("/admin/orders");
+  revalidatePath("/account");
   redirect(`/checkout/success/${orderNo}`);
 }
 

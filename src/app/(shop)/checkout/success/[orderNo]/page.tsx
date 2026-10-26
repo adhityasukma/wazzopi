@@ -1,12 +1,14 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import { CheckCircle2, ChevronRight, Copy, Package, Store } from "lucide-react";
+import { CheckCircle2, Copy, Package, Store, UserCheck } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 import { formatCurrency } from "@/lib/currency";
 import { formatDate, ORDER_STATUS_LABEL, ORDER_STATUS_STYLE, PAYMENT_LABEL } from "@/lib/utils";
 import { LinkButton } from "@/components/ui";
 import { ClearCartOnSuccess } from "@/components/shop/clear-cart";
+import { CopyButton } from "@/components/shop/copy-button";
 
 export const metadata = {
   title: "Terima Kasih Atas Pesanan Anda",
@@ -16,6 +18,7 @@ export default async function CheckoutSuccessPage({
   params,
 }: PageProps<"/checkout/success/[orderNo]">) {
   const { orderNo } = await params;
+  const cookieStore = await cookies();
 
   const [order, settings] = await Promise.all([
     prisma.order.findUnique({
@@ -26,6 +29,17 @@ export default async function CheckoutSuccessPage({
   ]);
 
   if (!order) notFound();
+
+  // Ambil info akun baru jika dibuat otomatis saat checkout
+  const newAccountCookie = cookieStore.get("wz_new_account")?.value;
+  let newAccount: { email: string; tempPassword: string } | null = null;
+  if (newAccountCookie) {
+    try {
+      newAccount = JSON.parse(newAccountCookie);
+    } catch {
+      // noop
+    }
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-16">
@@ -41,6 +55,62 @@ export default async function CheckoutSuccessPage({
           Nomor Pesanan: <span className="text-caramel-600">{order.orderNo}</span>
         </p>
       </div>
+
+      {/* Kartu Informasi Akun Member Baru (jika otomatis dibuatkan akun) */}
+      {newAccount && (
+        <div className="mt-8 rounded-2xl border-2 border-caramel-300 bg-gradient-to-br from-caramel-50/80 via-white to-cream p-6 shadow-xs">
+          <div className="flex items-start gap-3.5">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-caramel-500 text-white shadow-xs">
+              <UserCheck className="h-6 w-6" />
+            </div>
+            <div className="flex-1">
+              <span className="inline-block rounded-full bg-caramel-100 px-2.5 py-0.5 text-[10px] font-bold text-caramel-800 uppercase tracking-wider">
+                Akun Member Baru Dibuat
+              </span>
+              <h2 className="mt-1 text-lg font-bold text-espresso-900">
+                Akses Login Member Area Anda
+              </h2>
+              <p className="mt-1 text-xs text-espresso-600 leading-relaxed">
+                Kami telah otomatis membuatkan akun Member agar Anda dapat melacak paket pengiriman dan melihat riwayat belanja. Anda saat ini sudah otomatis masuk (login).
+              </p>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 rounded-xl border border-latte bg-cream/50 p-4">
+                <div>
+                  <span className="text-[11px] font-semibold text-espresso-400 uppercase tracking-wider block">
+                    Email Akun
+                  </span>
+                  <p className="mt-0.5 text-sm font-semibold text-espresso-900 font-mono select-all">
+                    {newAccount.email}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-[11px] font-semibold text-espresso-400 uppercase tracking-wider block">
+                    Password Sementara
+                  </span>
+                  <div className="mt-0.5 flex items-center gap-2">
+                    <p className="text-sm font-bold text-caramel-700 font-mono tracking-wider bg-white px-2.5 py-1 rounded-md border border-latte select-all">
+                      {newAccount.tempPassword}
+                    </p>
+                    <CopyButton text={newAccount.tempPassword} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 pt-1">
+                <Link
+                  href="/account"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-espresso-700 px-4 py-2 text-xs font-semibold text-cream hover:bg-espresso-800 transition-colors"
+                >
+                  Buka Member Area &rarr;
+                </Link>
+                <span className="text-xs text-espresso-400">
+                  *Anda dapat mengganti password ini kapan saja di menu Akun Saya.
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Instruksi Transfer Bank jika memilih Transfer */}
       {order.paymentMethod === "bank_transfer" && (
@@ -109,14 +179,16 @@ export default async function CheckoutSuccessPage({
         </div>
 
         <div className="mt-6 border-t border-latte pt-4">
-          <h3 className="mb-3 font-semibold text-espresso-900 text-sm">Item Produk:</h3>
+          <h3 className="mb-3 text-sm font-semibold text-espresso-900">Produk yang Dibeli</h3>
           <div className="divide-y divide-latte">
             {order.items.map((it) => (
-              <div key={it.id} className="flex justify-between py-2 text-sm">
+              <div key={it.id} className="flex items-center justify-between py-2 text-sm">
                 <div>
                   <p className="font-medium text-espresso-900">{it.productName}</p>
-                  {it.variantName && <p className="text-xs text-espresso-400">Varian: {it.variantName}</p>}
-                  <p className="text-xs text-espresso-500">
+                  {it.variantName && (
+                    <p className="text-xs text-espresso-500">Varian: {it.variantName}</p>
+                  )}
+                  <p className="text-xs text-espresso-400">
                     {it.quantity} x {formatCurrency(it.price, settings.currency)}
                   </p>
                 </div>
