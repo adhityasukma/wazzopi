@@ -1,0 +1,75 @@
+@import "tailwindcss";
+
+@theme {
+  --color-espresso-50: #f8f1ec;
+  --color-espresso-100: #ecdcd1;
+  --color-espresso-200: #d6b6a4;
+  --color-espresso-300: #b98a72;
+  --color-espresso-400: #8f5a43;
+  --color-espresso-500: #6e3a28;
+  --color-espresso-600: #5a2c1e;
+  --color-espresso-700: #4a2117;
+  --color-espresso-800: #3a1911;
+  --color-espresso-900: #2a120c;
+
+  --color-caramel-50: #faf2ea;
+  --color-caramel-100: #f2e0cd;
+  --color-caramel-200: #e4c09d;
+  --color-caramel-300: #d39f6f;
+  --color-caramel-400: #bf834f;
+  --color-caramel-500: #a8673c;
+  --color-caramel-600: #8c5230;
+  --color-caramel-700: #6f4027;
+
+  --color-cream: #fbf5ea;
+  --color-latte: #efe3d0;
+  --color-foam: #fffdf9;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-outfit), var(--font-inter), ui-sans-serif, sans-serif;
+}
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  background: var(--color-cream);
+  color: var(--color-espresso-800);
+  font-family: var(--font-sans);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+}
+
+::selection {
+  background: var(--color-caramel-200);
+  color: var(--color-espresso-900);
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: var(--color-latte);
+  border-radius: 999px;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-up {
+  animation: fade-up 0.7s ease-out both;
+}
