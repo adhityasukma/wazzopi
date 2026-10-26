@@ -11,6 +11,7 @@ import {
   Trash2,
   Truck,
 } from "lucide-react";
+import { useAppLoading } from "@/components/loading-provider";
 import {
   saveCurrency,
   saveGeneral,
@@ -36,6 +37,31 @@ export function SettingsForm({
   const [paymentState, paymentAction, paymentPending] = useActionState(savePayment, undefined);
   const [shippingState, shippingAction, shippingPending] = useActionState(saveShipping, undefined);
   const [otherState, otherAction, otherPending] = useActionState(saveOther, undefined);
+  const { showLoading, hideLoading } = useAppLoading();
+
+  useEffect(() => {
+    if (generalPending) {
+      showLoading("Menyimpan informasi umum toko...");
+    } else if (currencyPending) {
+      showLoading("Menyimpan format mata uang...");
+    } else if (paymentPending) {
+      showLoading("Menyimpan metode pembayaran...");
+    } else if (shippingPending) {
+      showLoading("Menyimpan kurir & pengiriman...");
+    } else if (otherPending) {
+      showLoading("Menyimpan pengaturan sistem & SEO...");
+    } else {
+      hideLoading();
+    }
+  }, [
+    generalPending,
+    currencyPending,
+    paymentPending,
+    shippingPending,
+    otherPending,
+    showLoading,
+    hideLoading,
+  ]);
 
   // Currency live preview state
   const [currencyConfig, setCurrencyConfig] = useState<CurrencySettings>(initialSettings.currency);

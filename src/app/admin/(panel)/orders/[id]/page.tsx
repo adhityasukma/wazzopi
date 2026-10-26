@@ -138,7 +138,7 @@ export default async function AdminOrderDetailPage({
             <h2 className="text-base font-bold text-espresso-900 border-b border-latte pb-3">
               Ubah Status Pesanan
             </h2>
-            <form action={updateOrderStatus} className="mt-4 space-y-3">
+            <form action={updateOrderStatus} data-loading-message="Memperbarui status pesanan..." className="mt-4 space-y-3">
               <input type="hidden" name="id" value={order.id} />
               <label className="text-xs font-semibold text-espresso-600 block">Status Saat Ini</label>
               <select

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, CheckCircle2, CreditCard, ShieldCheck, Truck } from "lucide-react";
 import { placeOrder } from "@/actions/orders";
 import { useMoney, useHydrated } from "@/components/currency-provider";
+import { useAppLoading } from "@/components/loading-provider";
 import { Alert, Button, Field, Input, Textarea } from "@/components/ui";
 import { cartSubtotal, useCart } from "@/store/cart";
 import type { AllSettings } from "@/lib/settings-types";
@@ -29,9 +30,18 @@ export function CheckoutForm({
   customer: CustomerInitial;
 }) {
   const [state, formAction, isPending] = useActionState(placeOrder, undefined);
+  const { showLoading, hideLoading } = useAppLoading();
   const { items, clear } = useCart();
   const hydrated = useHydrated();
   const money = useMoney();
+
+  useEffect(() => {
+    if (isPending) {
+      showLoading("Sedang memproses pesanan Anda...");
+    } else {
+      hideLoading();
+    }
+  }, [isPending, showLoading, hideLoading]);
 
   const enabledShippings = settings.shipping.methods.filter((m) => m.enabled);
   const [selectedShipping, setSelectedShipping] = useState<string>(

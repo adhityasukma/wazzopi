@@ -1,11 +1,12 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import Image from "next/image";
 import { Check, Edit2, Eye, EyeOff, ImagePlus, Plus, Power, Trash2, X } from "lucide-react";
 import { saveHeroSlide, toggleHeroSlide, deleteHeroSlide } from "@/actions/hero-slides";
 import { ImageUpload } from "@/components/admin/image-upload";
 import { Alert, Button, Field, Input, Textarea } from "@/components/ui";
+import { useAppLoading } from "@/components/loading-provider";
 
 type HeroSlideItem = {
   id: string;
@@ -21,6 +22,19 @@ type HeroSlideItem = {
 export function HeroSlidesManager({ slides }: { slides: HeroSlideItem[] }) {
   const [editingSlide, setEditingSlide] = useState<HeroSlideItem | null>(null);
   const [state, formAction, isPending] = useActionState(saveHeroSlide, undefined);
+  const { showLoading, hideLoading } = useAppLoading();
+
+  useEffect(() => {
+    if (isPending) {
+      showLoading(
+        editingSlide
+          ? "Menyimpan perubahan slide..."
+          : "Menambahkan slide baru..."
+      );
+    } else {
+      hideLoading();
+    }
+  }, [isPending, editingSlide, showLoading, hideLoading]);
 
   function handleEdit(s: HeroSlideItem) {
     setEditingSlide(s);
@@ -99,7 +113,7 @@ export function HeroSlidesManager({ slides }: { slides: HeroSlideItem[] }) {
 
                   <div className="flex items-center gap-1.5 sm:self-center">
                     {/* Toggle Aktif / Nonaktif */}
-                    <form action={toggleHeroSlide}>
+                    <form action={toggleHeroSlide} data-loading-message="Mengubah status slide...">
                       <input type="hidden" name="id" value={s.id} />
                       <button
                         type="submit"
@@ -124,7 +138,7 @@ export function HeroSlidesManager({ slides }: { slides: HeroSlideItem[] }) {
                     </button>
 
                     {/* Tombol Hapus */}
-                    <form action={deleteHeroSlide}>
+                    <form action={deleteHeroSlide} data-loading-message={`Menghapus slide "${s.title}"...`}>
                       <input type="hidden" name="id" value={s.id} />
                       <button
                         type="submit"

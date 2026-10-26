@@ -51,7 +51,7 @@ export default async function AdminOrdersPage({
 
       {/* Filter & Search */}
       <div className="rounded-xl border border-latte bg-white p-4 shadow-xs flex flex-wrap gap-3 items-center justify-between">
-        <form className="flex flex-1 items-center gap-2 max-w-md">
+        <form data-loading-message="Mencari pesanan..." className="flex flex-1 items-center gap-2 max-w-md">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-3 h-4 w-4 text-espresso-400" />
             <input
@@ -72,6 +72,7 @@ export default async function AdminOrdersPage({
         <div className="flex flex-wrap gap-1.5">
           <Link
             href="/admin/orders"
+            data-loading-message="Memuat semua pesanan..."
             className={`rounded-lg px-2.5 py-1 text-xs font-medium ${
               !status ? "bg-espresso-700 text-cream" : "bg-latte text-espresso-800"
             }`}
@@ -82,6 +83,7 @@ export default async function AdminOrdersPage({
             <Link
               key={st}
               href={`/admin/orders?status=${st}`}
+              data-loading-message={`Menyaring pesanan (${ORDER_STATUS_LABEL[st]})...`}
               className={`rounded-lg px-2.5 py-1 text-xs font-medium ${
                 status === st ? "bg-espresso-700 text-cream" : "bg-latte text-espresso-800"
               }`}

@@ -73,3 +73,27 @@ h4 {
 .animate-fade-up {
   animation: fade-up 0.7s ease-out both;
 }
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out both;
+}
+
+@keyframes progress-anim {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+.animate-progress {
+  animation: progress-anim 1.4s ease-in-out infinite;
+}

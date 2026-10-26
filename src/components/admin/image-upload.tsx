@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import Image from "next/image";
 import { Upload, X, Loader2, Image as ImageIcon } from "lucide-react";
+import { useAppLoading } from "@/components/loading-provider";
 
 type ImageUploadProps = {
   name: string;
@@ -21,6 +22,7 @@ export function ImageUpload({
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { showLoading, hideLoading } = useAppLoading();
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -28,6 +30,7 @@ export function ImageUpload({
 
     setError(null);
     setUploading(true);
+    showLoading("Sedang mengunggah gambar...");
 
     try {
       const formData = new FormData();
@@ -48,6 +51,7 @@ export function ImageUpload({
       setError(err.message || "Terjadi kesalahan upload");
     } finally {
       setUploading(false);
+      hideLoading();
     }
   }
 

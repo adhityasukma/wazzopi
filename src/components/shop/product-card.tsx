@@ -43,7 +43,11 @@ export function ProductCard({ product }: { product: ProductCardData }) {
 
   return (
     <div className="group flex flex-col">
-      <Link href={`/products/${product.slug}`} className="relative block aspect-square overflow-hidden rounded-xl bg-latte">
+      <Link
+        href={`/products/${product.slug}`}
+        data-loading-message={`Membuka ${product.name}...`}
+        className="relative block aspect-square overflow-hidden rounded-xl bg-latte"
+      >
         {product.image && (
           <Image
             src={product.image}
@@ -64,7 +68,11 @@ export function ProductCard({ product }: { product: ProductCardData }) {
       </Link>
       <div className="mt-4 flex flex-1 flex-col">
         {product.category && <p className="text-xs font-medium uppercase tracking-wider text-caramel-500">{product.category}</p>}
-        <Link href={`/products/${product.slug}`} className="mt-1 line-clamp-2 font-display text-base font-medium text-espresso-900 hover:text-caramel-600">
+        <Link
+          href={`/products/${product.slug}`}
+          data-loading-message={`Membuka ${product.name}...`}
+          className="mt-1 line-clamp-2 font-display text-base font-medium text-espresso-900 hover:text-caramel-600"
+        >
           {product.name}
         </Link>
         <div className="mt-2 flex items-baseline gap-2">
@@ -79,6 +87,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
           {product.hasVariants ? (
             <Link
               href={`/products/${product.slug}`}
+              data-loading-message={`Membuka varian ${product.name}...`}
               className="flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-espresso-200 text-sm font-medium text-espresso-800 transition-colors hover:border-espresso-700 hover:bg-espresso-700 hover:text-cream"
             >
               <SlidersHorizontal className="h-4 w-4" /> Pilih Varian

@@ -1,10 +1,11 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { Edit2, FolderPlus, Trash2 } from "lucide-react";
 import { saveCategory, deleteCategory } from "@/actions/categories";
 import { Alert, Button, Field, Input, Textarea } from "@/components/ui";
 import { ImageUpload } from "@/components/admin/image-upload";
+import { useAppLoading } from "@/components/loading-provider";
 
 type CategoryItem = {
   id: string;
@@ -22,6 +23,19 @@ export function CategoriesManager({
 }) {
   const [editingCategory, setEditingCategory] = useState<CategoryItem | null>(null);
   const [state, formAction, isPending] = useActionState(saveCategory, undefined);
+  const { showLoading, hideLoading } = useAppLoading();
+
+  useEffect(() => {
+    if (isPending) {
+      showLoading(
+        editingCategory
+          ? "Menyimpan perubahan kategori..."
+          : "Menambahkan kategori baru..."
+      );
+    } else {
+      hideLoading();
+    }
+  }, [isPending, editingCategory, showLoading, hideLoading]);
 
   function handleEdit(cat: CategoryItem) {
     setEditingCategory(cat);
@@ -69,7 +83,7 @@ export function CategoriesManager({
                       >
                         <Edit2 className="h-4 w-4" />
                       </button>
-                      <form action={deleteCategory}>
+                      <form action={deleteCategory} data-loading-message={`Menghapus kategori "${c.name}"...`}>
                         <input type="hidden" name="id" value={c.id} />
                         <button
                           type="submit"

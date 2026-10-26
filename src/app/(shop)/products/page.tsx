@@ -1,11 +1,14 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { PackageSearch, X } from "lucide-react";
+import { PackageSearch } from "lucide-react";
 import { ProductCard } from "@/components/shop/product-card";
+import {
+  ProductCategoryFilter,
+  ProductSortFilter,
+} from "@/components/shop/product-filters";
 import { EmptyState, LinkButton } from "@/components/ui";
 import { getProductCards } from "@/lib/catalog";
 import { prisma } from "@/lib/prisma";
-import { cn } from "@/lib/utils";
 import type { Prisma } from "@prisma/client";
 
 export const metadata: Metadata = { title: "Semua Produk" };
@@ -24,7 +27,10 @@ export default async function ProductsPage({ searchParams }: PageProps<"/product
   const sort = typeof sp.sort === "string" && SORTS[sp.sort] ? sp.sort : "newest";
 
   const [categories, products] = await Promise.all([
-    prisma.category.findMany({ orderBy: { name: "asc" } }),
+    prisma.category.findMany({
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, slug: true, description: true },
+    }),
     getProductCards({
       where: {
         ...(category ? { category: { slug: category } } : {}),
@@ -33,15 +39,8 @@ export default async function ProductsPage({ searchParams }: PageProps<"/product
       orderBy: SORTS[sort].orderBy,
     }),
   ]);
-  const activeCat = categories.find((c) => c.slug === category);
 
-  const href = (params: Record<string, string | undefined>) => {
-    const u = new URLSearchParams();
-    const merged = { category, q: q || undefined, sort: sort === "newest" ? undefined : sort, ...params };
-    Object.entries(merged).forEach(([k, v]) => v && u.set(k, v));
-    const s = u.toString();
-    return `/products${s ? `?${s}` : ""}`;
-  };
+  const activeCat = categories.find((c) => c.slug === category);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12">
@@ -49,65 +48,34 @@ export default async function ProductsPage({ searchParams }: PageProps<"/product
         <nav className="text-xs text-espresso-400">
           <Link href="/" className="hover:text-caramel-500">Beranda</Link> / <span className="text-espresso-700">Produk</span>
         </nav>
-        <h1 className="mt-3 text-3xl font-semibold text-espresso-900 md:text-4xl">{activeCat ? activeCat.name : "Semua Produk"}</h1>
+        <h1 className="mt-3 text-3xl font-semibold text-espresso-900 md:text-4xl">
+          {activeCat ? activeCat.name : "Semua Produk"}
+        </h1>
         <p className="mt-2 max-w-2xl text-espresso-400">
           {activeCat?.description || "Jelajahi koleksi kopi Nusantara, alat seduh, dan merchandise Wazzopi."}
         </p>
       </div>
 
       <div className="mt-8 flex flex-col gap-8 lg:flex-row">
+        {/* Sidebar Filter Kategori */}
         <aside className="lg:w-60 lg:shrink-0">
           <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-espresso-400">Kategori</h3>
-          <div className="flex flex-wrap gap-2 lg:flex-col lg:gap-1">
-            <Link
-              href={href({ category: undefined })}
-              className={cn(
-                "rounded-lg px-3 py-2 text-sm transition-colors",
-                !category ? "bg-espresso-700 text-cream" : "bg-white text-espresso-700 hover:bg-latte lg:bg-transparent",
-              )}
-            >
-              Semua Produk
-            </Link>
-            {categories.map((c) => (
-              <Link
-                key={c.id}
-                href={href({ category: c.slug })}
-                className={cn(
-                  "rounded-lg px-3 py-2 text-sm transition-colors",
-                  category === c.slug ? "bg-espresso-700 text-cream" : "bg-white text-espresso-700 hover:bg-latte lg:bg-transparent",
-                )}
-              >
-                {c.name}
-              </Link>
-            ))}
-          </div>
+          <ProductCategoryFilter
+            categories={categories}
+            activeCategory={category}
+            currentSort={sort}
+            currentQuery={q}
+          />
         </aside>
 
+        {/* Daftar Produk & Toolbar Sorting */}
         <div className="flex-1">
-          <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-sm text-espresso-500">
-              <span>{products.length} produk</span>
-              {q && (
-                <Link href={href({ q: undefined })} className="inline-flex items-center gap-1 rounded-full bg-latte px-3 py-1 text-xs text-espresso-700">
-                  &ldquo;{q}&rdquo; <X className="h-3 w-3" />
-                </Link>
-              )}
-            </div>
-            <div className="flex flex-wrap gap-1">
-              {Object.entries(SORTS).map(([key, s]) => (
-                <Link
-                  key={key}
-                  href={href({ sort: key === "newest" ? undefined : key })}
-                  className={cn(
-                    "rounded-lg px-3 py-1.5 text-xs font-medium",
-                    sort === key ? "bg-latte text-espresso-900" : "text-espresso-500 hover:text-espresso-800",
-                  )}
-                >
-                  {s.label}
-                </Link>
-              ))}
-            </div>
-          </div>
+          <ProductSortFilter
+            totalCount={products.length}
+            activeSort={sort}
+            activeCategory={category}
+            currentQuery={q}
+          />
 
           {products.length === 0 ? (
             <EmptyState

@@ -1,11 +1,12 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
 import { Plus, Trash2 } from "lucide-react";
 import { createProduct, updateProduct } from "@/actions/products";
 import { Alert, Button, Field, Input, Select, Switch, Textarea } from "@/components/ui";
 import { ImageUpload } from "@/components/admin/image-upload";
+import { useAppLoading } from "@/components/loading-provider";
 
 type VariantItem = {
   id?: string;
@@ -44,6 +45,15 @@ export function ProductForm({ product, categories, isStaffKaryawan }: Props) {
     : createProduct;
 
   const [state, formAction, isPending] = useActionState(action, undefined);
+  const { showLoading, hideLoading } = useAppLoading();
+
+  useEffect(() => {
+    if (isPending) {
+      showLoading(isEditing ? "Menyimpan perubahan produk..." : "Menyimpan produk baru...");
+    } else {
+      hideLoading();
+    }
+  }, [isPending, isEditing, showLoading, hideLoading]);
 
   const [hasVariants, setHasVariants] = useState(product?.hasVariants ?? false);
   const [variants, setVariants] = useState<VariantItem[]>(

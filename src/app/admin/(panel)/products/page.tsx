@@ -51,7 +51,7 @@ export default async function AdminProductsPage({
 
       {/* Filter & Search */}
       <div className="rounded-xl border border-latte bg-white p-4 shadow-xs flex flex-wrap gap-3 items-center justify-between">
-        <form className="flex flex-1 items-center gap-2 max-w-md">
+        <form data-loading-message="Mencari produk..." className="flex flex-1 items-center gap-2 max-w-md">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-3 h-4 w-4 text-espresso-400" />
             <input
@@ -72,6 +72,7 @@ export default async function AdminProductsPage({
         <div className="flex gap-2">
           <Link
             href="/admin/products"
+            data-loading-message="Memuat semua produk..."
             className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
               !cat ? "bg-espresso-700 text-cream" : "bg-latte text-espresso-800"
             }`}
@@ -82,6 +83,7 @@ export default async function AdminProductsPage({
             <Link
               key={c.id}
               href={`/admin/products?category=${c.id}`}
+              data-loading-message={`Menyaring kategori ${c.name}...`}
               className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
                 cat === c.id ? "bg-espresso-700 text-cream" : "bg-latte text-espresso-800"
               }`}

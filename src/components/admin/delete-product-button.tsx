@@ -5,7 +5,7 @@ import { deleteProduct } from "@/actions/products";
 
 export function DeleteProductButton({ id, name }: { id: string; name: string }) {
   return (
-    <form action={deleteProduct}>
+    <form action={deleteProduct} data-loading-message={`Menghapus produk "${name}"...`}>
       <input type="hidden" name="id" value={id} />
       <button
         type="submit"

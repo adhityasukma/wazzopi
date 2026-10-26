@@ -1,13 +1,23 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import Image from "next/image";
 import { Lock, Mail, ShieldAlert } from "lucide-react";
 import { adminLogin } from "@/actions/auth";
 import { Alert, Button, Field, Input } from "@/components/ui";
+import { useAppLoading } from "@/components/loading-provider";
 
 export default function AdminLoginPage() {
   const [state, formAction, isPending] = useActionState(adminLogin, undefined);
+  const { showLoading, hideLoading } = useAppLoading();
+
+  useEffect(() => {
+    if (isPending) {
+      showLoading("Memverifikasi akun admin...");
+    } else {
+      hideLoading();
+    }
+  }, [isPending, showLoading, hideLoading]);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-espresso-900 px-4 py-12">

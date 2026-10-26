@@ -6,6 +6,7 @@ import { useState } from "react";
 import { ChevronDown, LayoutDashboard, Menu, Search, ShoppingBag, Truck, User, X } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { useHydrated } from "@/components/currency-provider";
+import { useAppLoading } from "@/components/loading-provider";
 import { cartCount, useCart } from "@/store/cart";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +25,8 @@ export function SiteHeader({ user, categories, announcement }: Props) {
   const hydrated = useHydrated();
   const count = hydrated ? cartCount(items) : 0;
 
+  const { startTransitionLoading } = useAppLoading();
+
   const nav = [
     { href: "/", label: "Beranda" },
     { href: "/products", label: "Semua Produk" },
@@ -32,9 +35,12 @@ export function SiteHeader({ user, categories, announcement }: Props) {
 
   function onSearch(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const q = new FormData(e.currentTarget).get("q");
+    const val = new FormData(e.currentTarget).get("q");
+    const query = String(val || "").trim();
     setSearchOpen(false);
-    router.push(`/products?q=${encodeURIComponent(String(q || ""))}`);
+    startTransitionLoading(() => {
+      router.push(`/products?q=${encodeURIComponent(query)}`);
+    }, query ? `Mencari "${query}"...` : "Memuat semua produk...");
   }
 
   return (
