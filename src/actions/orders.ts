@@ -254,3 +254,50 @@ export async function updateOrderStatus(formData: FormData) {
   revalidatePath(`/admin/orders/${id}`);
   revalidatePath("/admin/orders");
 }
+
+export async function deleteOrder(id: string) {
+  await requireAdmin();
+  if (!id) return { success: false, error: "ID pesanan tidak valid" };
+
+  try {
+    await prisma.order.delete({
+      where: { id },
+    });
+    revalidatePath("/admin/orders");
+    return { success: true };
+  } catch (error: any) {
+    console.error("[deleteOrder error]:", error);
+    return { success: false, error: error.message || "Gagal menghapus pesanan" };
+  }
+}
+
+export async function deleteSelectedOrders(ids: string[]) {
+  await requireAdmin();
+  if (!ids || ids.length === 0) {
+    return { success: false, error: "Pilih minimal 1 pesanan untuk dihapus" };
+  }
+
+  try {
+    const res = await prisma.order.deleteMany({
+      where: { id: { in: ids } },
+    });
+    revalidatePath("/admin/orders");
+    return { success: true, count: res.count };
+  } catch (error: any) {
+    console.error("[deleteSelectedOrders error]:", error);
+    return { success: false, error: error.message || "Gagal menghapus pesanan terpilih" };
+  }
+}
+
+export async function deleteAllOrders() {
+  await requireAdmin();
+
+  try {
+    const res = await prisma.order.deleteMany({});
+    revalidatePath("/admin/orders");
+    return { success: true, count: res.count };
+  } catch (error: any) {
+    console.error("[deleteAllOrders error]:", error);
+    return { success: false, error: error.message || "Gagal menghapus seluruh pesanan" };
+  }
+}
