@@ -59,6 +59,15 @@ export default async function AdminOrdersPage({
     take,
   });
 
+  // Helper untuk reset pencarian q (mengosongkan kata kunci pencarian, tetap menjaga status & limit jika ada)
+  function getResetSearchHref() {
+    const params = new URLSearchParams();
+    if (status) params.set("status", status);
+    if (currentLimit !== "20") params.set("limit", currentLimit);
+    const qs = params.toString();
+    return `/admin/orders${qs ? `?${qs}` : ""}`;
+  }
+
   // Helper untuk URL filter status yang mempertahankan query parameter limit & q
   function getStatusFilterHref(st?: string) {
     const params = new URLSearchParams();
@@ -108,8 +117,10 @@ export default async function AdminOrdersPage({
           </button>
           {q && (
             <Link
-              href={getStatusFilterHref(status)}
-              className="rounded-lg border border-espresso-200 px-3 py-2 text-xs font-semibold text-espresso-600 hover:bg-espresso-50"
+              href={getResetSearchHref()}
+              data-loading-message="Mereset kata kunci pencarian..."
+              className="rounded-lg border border-espresso-200 px-3 py-2 text-xs font-semibold text-espresso-600 hover:bg-espresso-50 transition"
+              title="Kosongkan pencarian"
             >
               Reset
             </Link>
@@ -138,6 +149,17 @@ export default async function AdminOrdersPage({
               {ORDER_STATUS_LABEL[st]}
             </Link>
           ))}
+
+          {(q || status) && (
+            <Link
+              href={currentLimit !== "20" ? `/admin/orders?limit=${currentLimit}` : "/admin/orders"}
+              data-loading-message="Mereset semua filter..."
+              className="rounded-lg border border-dashed border-espresso-300 px-2.5 py-1 text-xs font-medium text-espresso-500 hover:bg-espresso-50 hover:text-espresso-800 transition"
+              title="Kembali ke tampilan awal semua pesanan"
+            >
+              Reset Semua Filter
+            </Link>
+          )}
         </div>
       </div>
 
