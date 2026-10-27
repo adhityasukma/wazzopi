@@ -1,11 +1,14 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import {
   AlertTriangle,
   Check,
   CheckSquare,
+  ChevronLeft,
+  ChevronRight,
   Loader2,
   MinusSquare,
   Square,
@@ -38,17 +41,30 @@ type CustomerItem = {
 type Props = {
   customers: CustomerItem[];
   currency: CurrencySettings;
+  totalMatching: number;
   totalAllCustomers: number;
+  currentPage: number;
+  totalPages: number;
+  pageSize: number | null; // null jika "all"
+  currentLimit: string; // "20" | "50" | "100" | "all"
   searchQuery?: string;
 };
 
 export function CustomersTable({
   customers,
   currency,
+  totalMatching,
   totalAllCustomers,
+  currentPage,
+  totalPages,
+  pageSize,
+  currentLimit,
   searchQuery = "",
 }: Props) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isPending, startTransition] = useTransition();
 
@@ -148,6 +164,134 @@ export function CustomersTable({
     });
   }
 
+  // URL generator untuk limit data dan pagination
+  function getLimitUrl(newLimit: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("page"); // Reset ke halaman 1 saat mengubah batas per halaman
+    if (newLimit === "20") {
+      params.delete("limit");
+    } else {
+      params.set("limit", newLimit);
+    }
+    const qs = params.toString();
+    return `${pathname}${qs ? `?${qs}` : ""}`;
+  }
+
+  function getPageUrl(page: number) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (page > 1) {
+      params.set("page", page.toString());
+    } else {
+      params.delete("page");
+    }
+    const qs = params.toString();
+    return `${pathname}${qs ? `?${qs}` : ""}`;
+  }
+
+  // Hitung rentang data yang sedang ditampilkan
+  const startIndex = pageSize ? (currentPage - 1) * pageSize + 1 : 1;
+  const endIndex = pageSize ? Math.min(currentPage * pageSize, totalMatching) : totalMatching;
+
+  // Render nomor halaman dengan elipsis jika halaman banyak
+  function renderPaginationButtons() {
+    if (totalPages <= 1) return null;
+
+    const pages: (number | string)[] = [];
+    const maxButtons = 7;
+
+    if (totalPages <= maxButtons) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (currentPage > 3) pages.push("...");
+
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+
+      for (let i = start; i <= end; i++) {
+        if (!pages.includes(i)) pages.push(i);
+      }
+
+      if (currentPage < totalPages - 2) pages.push("...");
+      if (!pages.includes(totalPages)) pages.push(totalPages);
+    }
+
+    return (
+      <div className="flex items-center gap-1">
+        {currentPage <= 1 ? (
+          <span
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-latte bg-white text-espresso-300 opacity-50 cursor-not-allowed"
+            title="Halaman Sebelumnya"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </span>
+        ) : (
+          <Link
+            href={getPageUrl(currentPage - 1)}
+            data-loading-message={`Memuat pelanggan halaman ${currentPage - 1}...`}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-latte bg-white text-espresso-600 hover:bg-latte/50 transition"
+            title="Halaman Sebelumnya"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Link>
+        )}
+
+        {pages.map((p, idx) => {
+          if (typeof p !== "number") {
+            return (
+              <span
+                key={idx}
+                className="inline-flex h-8 w-8 items-center justify-center text-xs text-espresso-400 select-none"
+              >
+                ...
+              </span>
+            );
+          }
+
+          if (currentPage === p) {
+            return (
+              <span
+                key={idx}
+                className="inline-flex h-8 min-w-8 items-center justify-center rounded-lg px-2 text-xs font-semibold bg-espresso-700 text-cream shadow-xs cursor-default"
+              >
+                {p}
+              </span>
+            );
+          }
+
+          return (
+            <Link
+              key={idx}
+              href={getPageUrl(p)}
+              data-loading-message={`Memuat pelanggan halaman ${p}...`}
+              className="inline-flex h-8 min-w-8 items-center justify-center rounded-lg border border-latte bg-white px-2 text-xs font-semibold text-espresso-700 hover:bg-latte/50 transition"
+            >
+              {p}
+            </Link>
+          );
+        })}
+
+        {currentPage >= totalPages ? (
+          <span
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-latte bg-white text-espresso-300 opacity-50 cursor-not-allowed"
+            title="Halaman Selanjutnya"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </span>
+        ) : (
+          <Link
+            href={getPageUrl(currentPage + 1)}
+            data-loading-message={`Memuat pelanggan halaman ${currentPage + 1}...`}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-latte bg-white text-espresso-600 hover:bg-latte/50 transition"
+            title="Halaman Selanjutnya"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Link>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {/* Feedback Banner */}
@@ -177,17 +321,22 @@ export function CustomersTable({
         </div>
       )}
 
-      {/* Toolbar Atas: Aksi Massal */}
+      {/* Toolbar Atas: Aksi Massal & Show Data */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-latte bg-white p-3.5 shadow-xs">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2.5">
           {selectedIds.length > 0 ? (
             <span className="inline-flex items-center gap-1.5 rounded-lg bg-caramel-100 px-3 py-1.5 text-xs font-bold text-caramel-900">
               <CheckSquare className="h-4 w-4 text-caramel-700" />
               {selectedIds.length} pelanggan dipilih
             </span>
           ) : (
-            <span className="text-xs font-medium text-espresso-500">
-              Menampilkan {customers.length} dari total {totalAllCustomers} pelanggan
+            <span className="text-xs font-medium text-espresso-600">
+              {totalMatching === 0
+                ? "Tidak ada pelanggan ditemukan"
+                : pageSize
+                ? `Menampilkan ${startIndex} - ${endIndex} dari ${totalMatching} pelanggan`
+                : `Menampilkan semua ${totalMatching} pelanggan`}
+              {totalAllCustomers !== totalMatching && ` (total ${totalAllCustomers} di sistem)`}
               {searchQuery && ` (filter: "${searchQuery}")`}
             </span>
           )}
@@ -203,30 +352,65 @@ export function CustomersTable({
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Tombol Bulk Delete Selected */}
-          {selectedIds.length > 0 && (
-            <button
-              type="button"
-              onClick={openSelectedDelete}
-              className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-rose-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-rose-700 active:scale-95"
-            >
-              <Trash2 className="h-4 w-4" />
-              Hapus Terpilih ({selectedIds.length})
-            </button>
-          )}
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Show Data Selector (20, 50, 100, All) */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-semibold text-espresso-500">Tampilkan:</span>
+            <div className="inline-flex rounded-lg border border-latte bg-latte/30 p-0.5 text-xs">
+              {(["20", "50", "100", "all"] as const).map((opt) => {
+                const isActive = currentLimit === opt;
+                const label = opt === "all" ? "All" : opt;
 
-          {/* Tombol Delete ALL */}
-          {totalAllCustomers > 0 && (
-            <button
-              type="button"
-              onClick={openDeleteAll}
-              className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-rose-300 bg-rose-50/60 px-3.5 py-2 text-xs font-bold text-rose-700 transition hover:bg-rose-100 hover:border-rose-400 active:scale-95"
-            >
-              <UserX className="h-4 w-4 text-rose-600" />
-              Hapus Semua Pelanggan
-            </button>
-          )}
+                if (isActive) {
+                  return (
+                    <span
+                      key={opt}
+                      className="rounded-md bg-white px-2.5 py-1 font-semibold text-espresso-900 shadow-xs cursor-default"
+                    >
+                      {label}
+                    </span>
+                  );
+                }
+
+                return (
+                  <Link
+                    key={opt}
+                    href={getLimitUrl(opt)}
+                    data-loading-message={`Menampilkan ${opt === "all" ? "semua" : opt} pelanggan per halaman...`}
+                    className="rounded-md px-2.5 py-1 font-semibold text-espresso-600 hover:text-espresso-900 transition"
+                  >
+                    {label}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 border-l border-latte pl-3">
+            {/* Tombol Bulk Delete Selected */}
+            {selectedIds.length > 0 && (
+              <button
+                type="button"
+                onClick={openSelectedDelete}
+                className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-rose-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-rose-700 active:scale-95"
+              >
+                <Trash2 className="h-4 w-4" />
+                Hapus Terpilih ({selectedIds.length})
+              </button>
+            )}
+
+            {/* Tombol Delete ALL */}
+            {totalAllCustomers > 0 && (
+              <button
+                type="button"
+                onClick={openDeleteAll}
+                className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-rose-300 bg-rose-50/60 px-3.5 py-2 text-xs font-bold text-rose-700 transition hover:bg-rose-100 hover:border-rose-400 active:scale-95"
+              >
+                <UserX className="h-4 w-4 text-rose-600" />
+                Hapus Semua Pelanggan
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -331,6 +515,22 @@ export function CustomersTable({
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Footer Tabel: Pagination */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-latte bg-espresso-50/30 px-4 py-3">
+          <div className="text-xs text-espresso-500">
+            {pageSize ? (
+              <>
+                Halaman <strong className="text-espresso-900">{currentPage}</strong> dari{" "}
+                <strong className="text-espresso-900">{totalPages}</strong> ({totalMatching} pelanggan)
+              </>
+            ) : (
+              <>Semua {totalMatching} pelanggan ditampilkan dalam 1 halaman</>
+            )}
+          </div>
+
+          <div>{renderPaginationButtons()}</div>
         </div>
       </div>
 
