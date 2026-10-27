@@ -172,26 +172,28 @@ export function OrdersTable({
     });
   }
 
-  // Navigasi URL untuk limit dan pagination
-  function changeLimit(newLimit: string) {
+  // URL generator untuk limit data dan pagination
+  function getLimitUrl(newLimit: string) {
     const params = new URLSearchParams(searchParams.toString());
-    params.delete("page"); // Reset ke halaman 1 saat mengubah limit
+    params.delete("page"); // Reset ke halaman 1 saat mengubah batas per halaman
     if (newLimit === "20") {
       params.delete("limit");
     } else {
       params.set("limit", newLimit);
     }
-    router.push(`${pathname}?${params.toString()}`);
+    const qs = params.toString();
+    return `${pathname}${qs ? `?${qs}` : ""}`;
   }
 
-  function goToPage(page: number) {
+  function getPageUrl(page: number) {
     const params = new URLSearchParams(searchParams.toString());
     if (page > 1) {
       params.set("page", page.toString());
     } else {
       params.delete("page");
     }
-    router.push(`${pathname}?${params.toString()}`);
+    const qs = params.toString();
+    return `${pathname}${qs ? `?${qs}` : ""}`;
   }
 
   // Hitung rentang data yang sedang ditampilkan
@@ -224,49 +226,76 @@ export function OrdersTable({
 
     return (
       <div className="flex items-center gap-1">
-        <button
-          type="button"
-          disabled={currentPage <= 1}
-          onClick={() => goToPage(currentPage - 1)}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-latte bg-white text-espresso-600 hover:bg-latte/50 disabled:opacity-40 disabled:cursor-not-allowed"
-          title="Halaman Sebelumnya"
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </button>
-
-        {pages.map((p, idx) =>
-          typeof p === "number" ? (
-            <button
-              key={idx}
-              type="button"
-              onClick={() => goToPage(p)}
-              className={`inline-flex h-8 min-w-8 items-center justify-center rounded-lg px-2 text-xs font-semibold transition ${
-                currentPage === p
-                  ? "bg-espresso-700 text-cream shadow-xs"
-                  : "border border-latte bg-white text-espresso-700 hover:bg-latte/50"
-              }`}
-            >
-              {p}
-            </button>
-          ) : (
-            <span
-              key={idx}
-              className="inline-flex h-8 w-8 items-center justify-center text-xs text-espresso-400 select-none"
-            >
-              ...
-            </span>
-          )
+        {currentPage <= 1 ? (
+          <span
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-latte bg-white text-espresso-300 opacity-50 cursor-not-allowed"
+            title="Halaman Sebelumnya"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </span>
+        ) : (
+          <Link
+            href={getPageUrl(currentPage - 1)}
+            data-loading-message={`Memuat pesanan halaman ${currentPage - 1}...`}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-latte bg-white text-espresso-600 hover:bg-latte/50 transition"
+            title="Halaman Sebelumnya"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Link>
         )}
 
-        <button
-          type="button"
-          disabled={currentPage >= totalPages}
-          onClick={() => goToPage(currentPage + 1)}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-latte bg-white text-espresso-600 hover:bg-latte/50 disabled:opacity-40 disabled:cursor-not-allowed"
-          title="Halaman Selanjutnya"
-        >
-          <ChevronRight className="h-4 w-4" />
-        </button>
+        {pages.map((p, idx) => {
+          if (typeof p !== "number") {
+            return (
+              <span
+                key={idx}
+                className="inline-flex h-8 w-8 items-center justify-center text-xs text-espresso-400 select-none"
+              >
+                ...
+              </span>
+            );
+          }
+
+          if (currentPage === p) {
+            return (
+              <span
+                key={idx}
+                className="inline-flex h-8 min-w-8 items-center justify-center rounded-lg px-2 text-xs font-semibold bg-espresso-700 text-cream shadow-xs cursor-default"
+              >
+                {p}
+              </span>
+            );
+          }
+
+          return (
+            <Link
+              key={idx}
+              href={getPageUrl(p)}
+              data-loading-message={`Memuat pesanan halaman ${p}...`}
+              className="inline-flex h-8 min-w-8 items-center justify-center rounded-lg border border-latte bg-white px-2 text-xs font-semibold text-espresso-700 hover:bg-latte/50 transition"
+            >
+              {p}
+            </Link>
+          );
+        })}
+
+        {currentPage >= totalPages ? (
+          <span
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-latte bg-white text-espresso-300 opacity-50 cursor-not-allowed"
+            title="Halaman Selanjutnya"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </span>
+        ) : (
+          <Link
+            href={getPageUrl(currentPage + 1)}
+            data-loading-message={`Memuat pesanan halaman ${currentPage + 1}...`}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-latte bg-white text-espresso-600 hover:bg-latte/50 transition"
+            title="Halaman Selanjutnya"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Link>
+        )}
       </div>
     );
   }
@@ -335,20 +364,32 @@ export function OrdersTable({
           <div className="flex items-center gap-1.5">
             <span className="text-xs font-semibold text-espresso-500">Tampilkan:</span>
             <div className="inline-flex rounded-lg border border-latte bg-latte/30 p-0.5 text-xs">
-              {(["20", "50", "100", "all"] as const).map((opt) => (
-                <button
-                  key={opt}
-                  type="button"
-                  onClick={() => changeLimit(opt)}
-                  className={`rounded-md px-2.5 py-1 font-semibold transition ${
-                    currentLimit === opt
-                      ? "bg-white text-espresso-900 shadow-xs"
-                      : "text-espresso-600 hover:text-espresso-900"
-                  }`}
-                >
-                  {opt === "all" ? "All" : opt}
-                </button>
-              ))}
+              {(["20", "50", "100", "all"] as const).map((opt) => {
+                const isActive = currentLimit === opt;
+                const label = opt === "all" ? "All" : opt;
+
+                if (isActive) {
+                  return (
+                    <span
+                      key={opt}
+                      className="rounded-md bg-white px-2.5 py-1 font-semibold text-espresso-900 shadow-xs cursor-default"
+                    >
+                      {label}
+                    </span>
+                  );
+                }
+
+                return (
+                  <Link
+                    key={opt}
+                    href={getLimitUrl(opt)}
+                    data-loading-message={`Menampilkan ${opt === "all" ? "semua" : opt} pesanan per halaman...`}
+                    className="rounded-md px-2.5 py-1 font-semibold text-espresso-600 hover:text-espresso-900 transition"
+                  >
+                    {label}
+                  </Link>
+                );
+              })}
             </div>
           </div>
 
