@@ -161,3 +161,51 @@ export async function deleteProduct(formData: FormData) {
   revalidatePath("/admin/products");
   revalidatePath("/");
 }
+
+export async function deleteSingleProduct(id: string) {
+  await requireAdmin();
+  if (!id) return { success: false, error: "ID produk tidak valid" };
+
+  try {
+    await prisma.product.delete({ where: { id } });
+    revalidatePath("/admin/products");
+    revalidatePath("/");
+    return { success: true };
+  } catch (error: any) {
+    console.error("[deleteSingleProduct error]:", error);
+    return { success: false, error: error.message || "Gagal menghapus produk" };
+  }
+}
+
+export async function deleteSelectedProducts(ids: string[]) {
+  await requireAdmin();
+  if (!ids || ids.length === 0) {
+    return { success: false, error: "Pilih minimal 1 produk untuk dihapus" };
+  }
+
+  try {
+    const res = await prisma.product.deleteMany({
+      where: { id: { in: ids } },
+    });
+    revalidatePath("/admin/products");
+    revalidatePath("/");
+    return { success: true, count: res.count };
+  } catch (error: any) {
+    console.error("[deleteSelectedProducts error]:", error);
+    return { success: false, error: error.message || "Gagal menghapus produk terpilih" };
+  }
+}
+
+export async function deleteAllProducts() {
+  await requireAdmin();
+
+  try {
+    const res = await prisma.product.deleteMany({});
+    revalidatePath("/admin/products");
+    revalidatePath("/");
+    return { success: true, count: res.count };
+  } catch (error: any) {
+    console.error("[deleteAllProducts error]:", error);
+    return { success: false, error: error.message || "Gagal menghapus seluruh produk" };
+  }
+}
