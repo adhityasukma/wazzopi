@@ -73,3 +73,51 @@ export async function deleteHeroSlide(formData: FormData) {
   revalidatePath("/");
   revalidatePath("/admin/hero-slides");
 }
+
+export async function deleteSingleHeroSlide(id: string) {
+  await requireAdmin();
+  if (!id) return { success: false, error: "ID slide tidak valid" };
+
+  try {
+    await prisma.heroSlide.delete({ where: { id } });
+    revalidatePath("/");
+    revalidatePath("/admin/hero-slides");
+    return { success: true };
+  } catch (error: any) {
+    console.error("[deleteSingleHeroSlide error]:", error);
+    return { success: false, error: error.message || "Gagal menghapus slide" };
+  }
+}
+
+export async function deleteSelectedHeroSlides(ids: string[]) {
+  await requireAdmin();
+  if (!ids || ids.length === 0) {
+    return { success: false, error: "Pilih minimal 1 slide untuk dihapus" };
+  }
+
+  try {
+    const res = await prisma.heroSlide.deleteMany({
+      where: { id: { in: ids } },
+    });
+    revalidatePath("/");
+    revalidatePath("/admin/hero-slides");
+    return { success: true, count: res.count };
+  } catch (error: any) {
+    console.error("[deleteSelectedHeroSlides error]:", error);
+    return { success: false, error: error.message || "Gagal menghapus slide terpilih" };
+  }
+}
+
+export async function deleteAllHeroSlides() {
+  await requireAdmin();
+
+  try {
+    const res = await prisma.heroSlide.deleteMany({});
+    revalidatePath("/");
+    revalidatePath("/admin/hero-slides");
+    return { success: true, count: res.count };
+  } catch (error: any) {
+    console.error("[deleteAllHeroSlides error]:", error);
+    return { success: false, error: error.message || "Gagal menghapus seluruh slide" };
+  }
+}
