@@ -40,3 +40,48 @@ export async function deleteCategory(formData: FormData) {
   await prisma.category.delete({ where: { id: String(formData.get("id")) } });
   revalidatePath("/admin/categories");
 }
+
+export async function deleteSingleCategory(id: string) {
+  await requireAdmin();
+  if (!id) return { success: false, error: "ID kategori tidak valid" };
+
+  try {
+    await prisma.category.delete({ where: { id } });
+    revalidatePath("/admin/categories");
+    return { success: true };
+  } catch (error: any) {
+    console.error("[deleteCategory error]:", error);
+    return { success: false, error: error.message || "Gagal menghapus kategori" };
+  }
+}
+
+export async function deleteSelectedCategories(ids: string[]) {
+  await requireAdmin();
+  if (!ids || ids.length === 0) {
+    return { success: false, error: "Pilih minimal 1 kategori untuk dihapus" };
+  }
+
+  try {
+    const res = await prisma.category.deleteMany({
+      where: { id: { in: ids } },
+    });
+    revalidatePath("/admin/categories");
+    return { success: true, count: res.count };
+  } catch (error: any) {
+    console.error("[deleteSelectedCategories error]:", error);
+    return { success: false, error: error.message || "Gagal menghapus kategori terpilih" };
+  }
+}
+
+export async function deleteAllCategories() {
+  await requireAdmin();
+
+  try {
+    const res = await prisma.category.deleteMany({});
+    revalidatePath("/admin/categories");
+    return { success: true, count: res.count };
+  } catch (error: any) {
+    console.error("[deleteAllCategories error]:", error);
+    return { success: false, error: error.message || "Gagal menghapus seluruh kategori" };
+  }
+}
