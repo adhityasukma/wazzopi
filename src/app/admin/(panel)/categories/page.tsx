@@ -6,11 +6,44 @@ export const metadata = {
   title: "Kelola Kategori Produk",
 };
 
-export default async function AdminCategoriesPage() {
+export default async function AdminCategoriesPage({
+  searchParams,
+}: PageProps<"/admin/categories">) {
   await requireAdmin();
+  const sp = await searchParams;
+  const q = typeof sp.q === "string" ? sp.q.trim() : "";
+  const rawLimit = typeof sp.limit === "string" ? sp.limit : "20";
+  const currentLimit = ["20", "50", "100", "all"].includes(rawLimit) ? rawLimit : "20";
+  const rawPage = typeof sp.page === "string" ? parseInt(sp.page, 10) : 1;
+
+  const where = {
+    ...(q
+      ? {
+          OR: [
+            { name: { contains: q } },
+            { description: { contains: q } },
+            { slug: { contains: q } },
+          ],
+        }
+      : {}),
+  };
+
+  const [totalAllCategories, totalMatching] = await Promise.all([
+    prisma.category.count(),
+    prisma.category.count({ where }),
+  ]);
+
+  const pageSize = currentLimit === "all" ? null : parseInt(currentLimit, 10);
+  const totalPages = pageSize ? Math.max(1, Math.ceil(totalMatching / pageSize)) : 1;
+  const currentPage = Math.min(Math.max(1, isNaN(rawPage) ? 1 : rawPage), totalPages);
+  const skip = pageSize ? (currentPage - 1) * pageSize : undefined;
+  const take = pageSize || undefined;
 
   const categories = await prisma.category.findMany({
+    where,
     orderBy: { name: "asc" },
+    skip,
+    take,
     include: {
       _count: {
         select: { products: true },
@@ -23,11 +56,20 @@ export default async function AdminCategoriesPage() {
       <div>
         <h1 className="text-2xl font-bold text-espresso-900 md:text-3xl">Kategori Produk</h1>
         <p className="mt-1 text-sm text-espresso-500">
-          Atur pengelompokan produk seperti Biji Kopi, Kopi Bubuk, Cold Brew, dsb.
+          Total {totalAllCategories} kategori produk terdaftar di Wazzopi
         </p>
       </div>
 
-      <CategoriesManager categories={categories} />
+      <CategoriesManager
+        categories={categories}
+        totalMatching={totalMatching}
+        totalAllCategories={totalAllCategories}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        pageSize={pageSize}
+        currentLimit={currentLimit}
+        searchQuery={q}
+      />
     </div>
   );
 }
