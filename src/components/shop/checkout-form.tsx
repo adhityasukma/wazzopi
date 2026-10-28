@@ -8,6 +8,7 @@ import { placeOrder } from "@/actions/orders";
 import { useMoney, useHydrated } from "@/components/currency-provider";
 import { useAppLoading } from "@/components/loading-provider";
 import { Alert, Button, Field, Input, Textarea } from "@/components/ui";
+import { CityProvinceSelector } from "@/components/shop/city-province-selector";
 import { cartSubtotal, useCart } from "@/store/cart";
 import type { AllSettings } from "@/lib/settings-types";
 import { cn } from "@/lib/utils";
@@ -167,22 +168,13 @@ export function CheckoutForm({
                   placeholder="Nama jalan, nomor rumah, RT/RW, kelurahan/kecamatan"
                 />
               </Field>
-              <Field label="Kota / Kabupaten">
-                <Input
-                  name="city"
+              <div className="sm:col-span-2">
+                <CityProvinceSelector
+                  defaultCity={customer?.city || ""}
+                  defaultProvince={customer?.province || ""}
                   required
-                  defaultValue={customer?.city || ""}
-                  placeholder="Contoh: Bandung"
                 />
-              </Field>
-              <Field label="Provinsi">
-                <Input
-                  name="province"
-                  required
-                  defaultValue={customer?.province || ""}
-                  placeholder="Contoh: Jawa Barat"
-                />
-              </Field>
+              </div>
               <Field label="Kode Pos" className="sm:col-span-2">
                 <Input
                   name="postalCode"

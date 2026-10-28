@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { updateProfile } from "@/actions/account";
 import { Alert, Button, Field, Input, Textarea } from "@/components/ui";
+import { CityProvinceSelector } from "@/components/shop/city-province-selector";
 
 type UserProps = {
   name: string;
@@ -33,13 +34,12 @@ export function AccountProfileForm({ user }: { user: UserProps }) {
         <Textarea name="address" defaultValue={user.address || ""} placeholder="Alamat rumah..." />
       </Field>
 
-      <div className="grid grid-cols-2 gap-2">
-        <Field label="Kota">
-          <Input name="city" defaultValue={user.city || ""} />
-        </Field>
-        <Field label="Provinsi">
-          <Input name="province" defaultValue={user.province || ""} />
-        </Field>
+      <div>
+        <CityProvinceSelector
+          defaultCity={user.city || ""}
+          defaultProvince={user.province || ""}
+          required={false}
+        />
       </div>
 
       <Field label="Kode Pos">
