@@ -64,7 +64,7 @@ export function OrderTrackingForm({
       <div className="flex items-center justify-between border-b border-latte pb-3">
         <h2 className="flex items-center gap-2 text-base font-bold text-espresso-900">
           <Truck className="h-5 w-5 text-caramel-600" />
-          Pengiriman &amp; Nomor Resi
+          Pengiriman & Nomor Resi
         </h2>
         {currentTrackingNumber && (
           <span className="rounded-full bg-caramel-50 px-2.5 py-0.5 text-xs font-bold text-caramel-700 border border-caramel-200">
@@ -137,10 +137,10 @@ export function OrderTrackingForm({
             {isPending ? (
               <>
                 <RotateCw className="h-3.5 w-3.5 animate-spin" />
-                Menyimpan &amp; Melacak Kurir...
+                Menyimpan & Melacak Kurir...
               </>
             ) : (
-              "Simpan Resi &amp; Lacak Otomatis"
+              "Simpan Resi & Lacak Otomatis"
             )}
           </button>
 

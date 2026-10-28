@@ -732,7 +732,7 @@ export function SettingsForm({
                     Integrasi API Pelacak Resi Otomatis (Binderbyte)
                   </h3>
                   <p className="text-xs text-espresso-500">
-                    Otomatis melacak posisi kurir (JNE, J&amp;T, SiCepat, Anteraja, POS, TIKI) ke server ekspedisi resmi.
+                    Otomatis melacak posisi kurir (JNE, J&T, SiCepat, Anteraja, POS, TIKI) ke server ekspedisi resmi.
                   </p>
                 </div>
 
@@ -938,7 +938,7 @@ export function SettingsForm({
               <div className="flex items-center gap-2 border-b border-latte pb-3">
                 <Send className="h-4 w-4 text-caramel-600" />
                 <h3 className="font-bold text-espresso-900 text-sm">
-                  Send Test Email &amp; Verify Connection
+                  Send Test Email & Verify Connection
                 </h3>
               </div>
               <p className="text-xs text-espresso-500 leading-relaxed">
@@ -970,7 +970,7 @@ export function SettingsForm({
                   ) : (
                     <>
                       <Send className="h-3.5 w-3.5 text-caramel-600 mr-1.5" />
-                      <span>Kirim Email Tes &amp; Verifikasi Koneksi</span>
+                      <span>Kirim Email Tes & Verifikasi Koneksi</span>
                     </>
                   )}
                 </Button>
