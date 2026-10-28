@@ -17,9 +17,9 @@ export {
 
 function cleanCityName(raw?: string): string {
   if (!raw) return "Cimahi";
-  return raw
-    .replace(/^(kota|kabupaten|kab\.)\s+/i, "")
-    .trim();
+  const cleaned = raw.replace(/^(kota|kabupaten|kab\.)\s+/i, "").trim();
+  if (cleaned.toLowerCase() === "bandung") return "Cimahi";
+  return cleaned;
 }
 
 function formatDateStr(d: Date): string {
@@ -112,11 +112,9 @@ export async function trackShipment(
     }
   }
 
-  // 3. Fallback Cerdas Berbasis Rute Geografis Asal & Tujuan Toko
-  const settings = await getSettings();
-  const originCity = cleanCityName(
-    settings.shipping?.originCity || settings.general?.city || "Cimahi"
-  );
+  // 3. Fallback Cerdas Berbasis Kronologi E-commerce Standar
+  // Alamat pengirim toko Wazzopi berlokasi di Cimahi
+  const originCity = "Cimahi";
   const destCity = cleanCityName(orderContext?.city || originCity);
   const isSameCity = originCity.toLowerCase() === destCity.toLowerCase();
 
@@ -140,59 +138,57 @@ export async function trackShipment(
   // Milestone 1: Pesanan Dibuat
   rawCheckpoints.push({
     date: formatDateStr(created),
-    desc: "Pesanan berhasil dibuat dan pembayaran telah terkonfirmasi sistem.",
+    desc: "Pesanan telah berhasil dibuat dan terkonfirmasi di sistem toko.",
     location: originCity,
     status: "PENDING",
   });
 
-  // Milestone 2: Pengemasan Selesai di Fasilitas Asal
+  // Milestone 2: Pengemasan oleh Penjual
   const t1 = t0 + Math.min(25 * 60 * 1000, Math.max(5 * 60 * 1000, totalElapsed * 0.2));
   rawCheckpoints.push({
     date: formatDateStr(clampDate(t1)),
-    desc: `Pesanan selesai dipacking rapi dan disegel aman di fasilitas pengiriman ${originCity}.`,
+    desc: `Pesanan telah selesai disiapkan dan dikemas rapi oleh penjual Wazzopi ${originCity}.`,
     location: originCity,
     status: "PROCESSING",
   });
 
-  // Milestone 3: Diserahkan ke Drop Point / Agen Kurir di Kota Asal
-  const t2 = t0 + Math.min(60 * 60 * 1000, Math.max(15 * 60 * 1000, totalElapsed * 0.4));
+  // Milestone 3: Penjual Mengatur Pengiriman & Menerbitkan Nomor Resi
+  const t2 = t0 + Math.min(50 * 60 * 1000, Math.max(12 * 60 * 1000, totalElapsed * 0.35));
   rawCheckpoints.push({
     date: formatDateStr(clampDate(t2)),
-    desc: `Paket telah diserahterimakan ke kurir ${courierName} di Drop Point ${originCity}. No. Resi: ${awb}.`,
+    desc: `Penjual telah mengatur pengiriman dengan ${courierName}. Nomor resi terbit: ${awb}. Menunggu penyerahan paket ke kurir.`,
     location: originCity,
     status: "ON_PROCESS",
   });
 
-  // Milestone 4: Fasilitas Sortir Kota Asal (jika waktu berjalan >= 30 menit atau pesanan selesai)
+  // Milestone 4: Paket Diserahkan ke Drop Point / Agen Kurir
+  const t3 = t0 + Math.min(80 * 60 * 1000, Math.max(20 * 60 * 1000, totalElapsed * 0.5));
+  rawCheckpoints.push({
+    date: formatDateStr(clampDate(t3)),
+    desc: `Paket telah diserahterimakan dan diterima oleh kurir ${courierName} di Agen/Drop Point ${originCity}.`,
+    location: originCity,
+    status: "ON_PROCESS",
+  });
+
+  // Milestone 5: Fasilitas Sortir Logistik
   if (totalElapsed >= 30 * 60 * 1000 || isCompleted) {
-    const t3 = t0 + Math.min(2.5 * 3600 * 1000, Math.max(45 * 60 * 1000, totalElapsed * 0.65));
+    const t4 = t0 + Math.min(2.5 * 3600 * 1000, Math.max(45 * 60 * 1000, totalElapsed * 0.7));
     rawCheckpoints.push({
-      date: formatDateStr(clampDate(t3)),
+      date: formatDateStr(clampDate(t4)),
       desc: isSameCity
-        ? `Paket telah diproses di Fasilitas Sortir logistik ${originCity}. Mempersiapkan rute pengantaran lokal.`
-        : `Paket telah diproses di Sorting Center ${originCity} dan diberangkatkan menuju ${destCity}.`,
+        ? `Paket telah diproses di Pusat Sortir logistik ${originCity}. Mempersiapkan rute pengantaran langsung.`
+        : `Paket telah diproses di Pusat Sortir logistik ${originCity} dan diberangkatkan menuju ${destCity}.`,
       location: originCity,
       status: "ON_PROCESS",
     });
   }
 
-  // Milestone 5: Hub Pengantaran Tujuan (jika waktu berjalan >= 2 jam atau pesanan selesai)
+  // Milestone 6: Kurir Membawa Paket Menuju Alamat Penerima
   if (totalElapsed >= 2 * 3600 * 1000 || isCompleted) {
-    const t4 = t0 + Math.min(5 * 3600 * 1000, Math.max(1.5 * 3600 * 1000, totalElapsed * 0.85));
-    rawCheckpoints.push({
-      date: formatDateStr(clampDate(t4)),
-      desc: `Paket telah tiba di Hub Pengantaran logistik ${destCity}. Menunggu jadwal keberangkatan kurir.`,
-      location: destCity,
-      status: "ON_PROCESS",
-    });
-  }
-
-  // Milestone 6: Kurir Membawa Paket Menuju Alamat Penerima (jika waktu berjalan >= 4 jam atau pesanan selesai)
-  if (totalElapsed >= 4 * 3600 * 1000 || isCompleted) {
-    const t5 = Math.min(now.getTime() - (isCompleted ? 30 * 60 * 1000 : 5 * 60 * 1000), t0 + 6.5 * 3600 * 1000);
+    const t5 = Math.min(now.getTime() - (isCompleted ? 25 * 60 * 1000 : 5 * 60 * 1000), t0 + 5.5 * 3600 * 1000);
     rawCheckpoints.push({
       date: formatDateStr(clampDate(t5)),
-      desc: `Paket sedang dibawa oleh kurir ${courierName} menuju alamat penerima di ${destCity}.`,
+      desc: `Paket sedang dibawa oleh kurir ${courierName} menuju ke alamat penerima di ${destCity}.`,
       location: destCity,
       status: "ON_PROCESS",
     });
@@ -202,7 +198,7 @@ export async function trackShipment(
   if (isCompleted) {
     rawCheckpoints.push({
       date: formatDateStr(now),
-      desc: `Paket telah diterima di alamat tujuan oleh [${customer} (Penerima Sendiri)]. Terima kasih telah berbelanja di Wazzopi.`,
+      desc: `Paket telah diterima dengan baik di alamat tujuan oleh [${customer} (Penerima Sendiri)]. Transaksi selesai.`,
       location: destCity,
       status: "DELIVERED",
     });

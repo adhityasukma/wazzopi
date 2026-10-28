@@ -54,13 +54,32 @@ export function OrderTrackingModal({
     return (items || []).map((cp) => {
       let loc = cp.location;
       if (
+        !loc ||
+        loc === "Bandung" ||
         loc === "Bandung Hub" ||
         loc === "Gudang Wazzopi Roastery" ||
         loc === "Sistem Wazzopi"
       ) {
         loc = "Cimahi";
       }
-      return { ...cp, location: loc };
+
+      let desc = cp.desc || "";
+      desc = desc
+        .replace(/di fasilitas pengiriman Bandung/gi, "oleh penjual Wazzopi Cimahi")
+        .replace(/di fasilitas pengiriman Cimahi/gi, "oleh penjual Wazzopi Cimahi")
+        .replace(
+          /Sorting Center Bandung dan diberangkatkan menuju Cimahi/gi,
+          "Pusat Sortir logistik Cimahi untuk pengantaran langsung"
+        )
+        .replace(
+          /Sorting Center Cimahi dan diberangkatkan menuju Cimahi/gi,
+          "Pusat Sortir logistik Cimahi untuk pengantaran langsung"
+        )
+        .replace(/Drop Point Bandung/gi, "Drop Point Cimahi")
+        .replace(/Sorting Center Bandung/gi, "Pusat Sortir Cimahi")
+        .replace(/Bandung Hub/gi, "Hub Cimahi");
+
+      return { ...cp, location: loc, desc };
     });
   };
 

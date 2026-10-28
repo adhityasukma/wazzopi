@@ -28,6 +28,15 @@ export async function getSettings(): Promise<AllSettings> {
       /* abaikan nilai rusak */
     }
   }
+
+  // Normalisasi kota asal toko ke Cimahi jika masih menggunakan default lama (Bandung)
+  if (!result.shipping?.originCity || result.shipping.originCity.toLowerCase() === "bandung") {
+    result.shipping.originCity = "Cimahi";
+  }
+  if (!result.general?.city || result.general.city.toLowerCase() === "bandung") {
+    result.general.city = "Cimahi";
+  }
+
   return result;
 }
 
