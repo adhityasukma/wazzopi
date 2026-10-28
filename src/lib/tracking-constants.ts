@@ -59,9 +59,18 @@ export function detectCourierByAwb(awbRaw: string): { code: string; name: string
     return { code: "ninja", name: "Ninja Xpress", reason: "Awalan " + awb.slice(0, 4) + " adalah format khas Ninja Xpress" };
   }
 
-  // Lion Parcel: awalan LP
-  if (awb.startsWith("LP") && awb.length >= 8) {
-    return { code: "lion", name: "Lion Parcel", reason: "Awalan LP adalah format khas Lion Parcel" };
+  // Lion Parcel: awalan LP atau 11 digit angka diawali 98, 99, 11, 12, dll.
+  if (
+    (awb.startsWith("LP") && awb.length >= 8) ||
+    (/^\d{11}$/.test(awb) && (awb.startsWith("98") || awb.startsWith("99") || awb.startsWith("11") || awb.startsWith("12") || awb.startsWith("10")))
+  ) {
+    return {
+      code: "lion",
+      name: "Lion Parcel",
+      reason: /^\d{11}$/.test(awb)
+        ? `Nomor resi 11 digit diawali '${awb.slice(0, 2)}' adalah format khas Lion Parcel`
+        : "Awalan LP adalah format khas Lion Parcel",
+    };
   }
 
   // ID Express: awalan IDE atau IDS
@@ -130,11 +139,23 @@ export function validateAwbForCourier(
   }
 
   // 4. Validasi spesifik per kurir
+  if (courier === "jne") {
+    // Nomor resi numerik JNE minimal 13 digit (standar 15-16 digit)
+    if (/^\d+$/.test(awb) && awb.length < 13) {
+      return {
+        valid: false,
+        error: `Nomor resi numerik JNE Express umumnya terdiri dari 15–16 digit (minimal 13 digit). Nomor yang dimasukkan hanya ${awb.length} digit.`,
+        detectedCourier: detected ? { code: detected.code, name: detected.name } : undefined,
+      };
+    }
+  }
+
   if (courier === "sicepat") {
     if (/^\d+$/.test(awb) && awb.length !== 12) {
       return {
         valid: false,
         error: `Resi numerik SiCepat umumnya terdiri dari 12 digit angka (nomor yang dimasukkan memiliki ${awb.length} digit).`,
+        detectedCourier: detected ? { code: detected.code, name: detected.name } : undefined,
       };
     }
   }
@@ -144,6 +165,17 @@ export function validateAwbForCourier(
       return {
         valid: false,
         error: `Resi numerik Anteraja umumnya terdiri dari 13-14 digit angka (nomor yang dimasukkan memiliki ${awb.length} digit).`,
+        detectedCourier: detected ? { code: detected.code, name: detected.name } : undefined,
+      };
+    }
+  }
+
+  if (courier === "lion") {
+    if (/^\d+$/.test(awb) && awb.length !== 11) {
+      return {
+        valid: false,
+        error: `Nomor resi numerik Lion Parcel umumnya terdiri dari 11 digit angka (nomor yang dimasukkan memiliki ${awb.length} digit).`,
+        detectedCourier: detected ? { code: detected.code, name: detected.name } : undefined,
       };
     }
   }

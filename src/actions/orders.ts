@@ -369,6 +369,7 @@ export async function updateOrderTracking(formData: FormData) {
   const id = String(formData.get("id") || "").trim();
   const courierCode = String(formData.get("courierCode") || "").trim().toLowerCase();
   const trackingNumber = String(formData.get("trackingNumber") || "").trim().toUpperCase();
+  const force = formData.get("force") === "true";
 
   if (!id) return { success: false, error: "ID pesanan tidak valid" };
 
@@ -376,11 +377,18 @@ export async function updateOrderTracking(formData: FormData) {
     const { getCourierName, trackShipment, validateAwbForCourier } = await import("@/lib/tracking");
     const courierName = getCourierName(courierCode);
 
-    // Validasi format nomor resi dan kesesuaian kurir
-    if (trackingNumber) {
+    // Validasi format nomor resi dan kesesuaian kurir (jika tidak dipaksa simpan)
+    if (trackingNumber && !force) {
       const validation = validateAwbForCourier(courierCode, trackingNumber);
       if (!validation.valid) {
-        return { success: false, error: validation.error || "Nomor resi tidak valid untuk kurir yang dipilih" };
+        return {
+          success: false,
+          isValidationMismatch: true,
+          error: validation.error || "Nomor resi tidak valid untuk kurir yang dipilih",
+          detectedCourier: validation.detectedCourier,
+          selectedCourierName: courierName,
+          trackingNumber,
+        };
       }
     }
 

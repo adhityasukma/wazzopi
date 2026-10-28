@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState, useTransition } from "react";
-import { Truck, Check, AlertCircle, RotateCw, Info } from "lucide-react";
+import { Truck, Check, AlertCircle, RotateCw, Info, AlertTriangle, X } from "lucide-react";
 import { updateOrderTracking } from "@/actions/orders";
 import {
   SUPPORTED_COURIERS,
+  getCourierName,
   detectCourierByAwb,
   validateAwbForCourier,
 } from "@/lib/tracking-constants";
@@ -35,6 +36,15 @@ export function OrderTrackingForm({
   const [trackingNumber, setTrackingNumber] = useState(currentTrackingNumber || "");
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [validationModal, setValidationModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    trackingNumber: string;
+    selectedCourierCode: string;
+    selectedCourierName: string;
+    detectedCourier?: { code: string; name: string } | null;
+  } | null>(null);
 
   let historyList: TrackingCheckpoint[] = [];
   try {
@@ -56,7 +66,15 @@ export function OrderTrackingForm({
     if (trimmedAwb) {
       const validation = validateAwbForCourier(courierCode, trimmedAwb);
       if (!validation.valid) {
-        setMessage({ type: "error", text: validation.error || "Nomor resi tidak valid" });
+        setValidationModal({
+          isOpen: true,
+          title: "Peringatan Kesesuaian Kurir & Nomor Resi",
+          message: validation.error || "Nomor resi tidak sesuai dengan ekspedisi yang dipilih.",
+          trackingNumber: trimmedAwb,
+          selectedCourierCode: courierCode,
+          selectedCourierName: getCourierName(courierCode),
+          detectedCourier: validation.detectedCourier || null,
+        });
         return;
       }
     }
@@ -72,6 +90,62 @@ export function OrderTrackingForm({
             (trackingNumber
               ? "Nomor resi disimpan! Riwayat pelacakan kurir telah diperbarui otomatis."
               : "Nomor resi telah dihapus."),
+        });
+      } else {
+        if ((res as any).isValidationMismatch) {
+          setValidationModal({
+            isOpen: true,
+            title: "Peringatan Kesesuaian Kurir & Nomor Resi",
+            message: res.error || "Nomor resi tidak sesuai dengan ekspedisi.",
+            trackingNumber: trimmedAwb,
+            selectedCourierCode: courierCode,
+            selectedCourierName: getCourierName(courierCode),
+            detectedCourier: (res as any).detectedCourier || null,
+          });
+        } else {
+          setMessage({ type: "error", text: res.error || "Gagal menyimpan nomor resi" });
+        }
+      }
+    });
+  };
+
+  const handleSwitchCourierAndSave = (targetCourierCode: string) => {
+    setCourierCode(targetCourierCode);
+    setValidationModal(null);
+    setMessage(null);
+    startTransition(async () => {
+      const fd = new FormData();
+      fd.append("id", orderId);
+      fd.append("courierCode", targetCourierCode);
+      fd.append("trackingNumber", trackingNumber.trim());
+      const res = await updateOrderTracking(fd);
+      if (res.success) {
+        setMessage({
+          type: "success",
+          text:
+            (res as any).message ||
+            `Nomor resi berhasil disimpan untuk ekspedisi ${getCourierName(targetCourierCode)}!`,
+        });
+      } else {
+        setMessage({ type: "error", text: res.error || "Gagal menyimpan nomor resi" });
+      }
+    });
+  };
+
+  const handleForceSave = () => {
+    setValidationModal(null);
+    setMessage(null);
+    startTransition(async () => {
+      const fd = new FormData();
+      fd.append("id", orderId);
+      fd.append("courierCode", courierCode);
+      fd.append("trackingNumber", trackingNumber.trim());
+      fd.append("force", "true");
+      const res = await updateOrderTracking(fd);
+      if (res.success) {
+        setMessage({
+          type: "success",
+          text: (res as any).message || "Nomor resi disimpan (mode estimasi toko).",
         });
       } else {
         setMessage({ type: "error", text: res.error || "Gagal menyimpan nomor resi" });
@@ -212,6 +286,106 @@ export function OrderTrackingForm({
           )}
         </div>
       </form>
+
+      {/* Custom Modal Pesan Informasi Validasi */}
+      {validationModal?.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl border border-latte overflow-hidden flex flex-col animate-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-latte px-5 py-4 bg-amber-50/70">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-100 border border-amber-200 text-amber-800">
+                  <AlertTriangle className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-espresso-900">
+                    {validationModal.title}
+                  </h3>
+                  <p className="text-[11px] text-espresso-500">
+                    Pemeriksaan kesesuaian kurir ekspedisi
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setValidationModal(null)}
+                className="rounded-lg p-1.5 text-espresso-400 hover:bg-espresso-100 hover:text-espresso-700 transition"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-5 space-y-4">
+              <div className="rounded-xl bg-latte/30 p-3.5 border border-latte text-xs space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-espresso-500 font-medium">Nomor Resi:</span>
+                  <span className="font-mono font-bold text-espresso-950 bg-white px-2 py-0.5 rounded border border-latte">
+                    {validationModal.trackingNumber}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-espresso-500 font-medium">Ekspedisi Dipilih:</span>
+                  <span className="font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                    {validationModal.selectedCourierName}
+                  </span>
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-rose-50 p-3.5 text-xs text-rose-900 border border-rose-200 leading-relaxed font-medium">
+                {validationModal.message}
+              </div>
+
+              {validationModal.detectedCourier && (
+                <div className="rounded-xl bg-emerald-50 p-3.5 text-xs text-emerald-950 border border-emerald-200 space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold text-emerald-900">
+                    <Check className="h-4 w-4 text-emerald-600" />
+                    <span>Saran Ekspedisi Otomatis:</span>
+                  </div>
+                  <p className="text-[11px] text-emerald-800 leading-relaxed">
+                    Karakteristik nomor resi ini teridentifikasi sebagai format pengiriman resmi{" "}
+                    <strong>{validationModal.detectedCourier.name}</strong>.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer / Actions */}
+            <div className="border-t border-latte px-5 py-4 bg-cream/40 flex flex-col gap-2">
+              {validationModal.detectedCourier && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleSwitchCourierAndSave(validationModal.detectedCourier!.code)
+                  }
+                  disabled={isPending}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-caramel-600 hover:bg-caramel-700 text-white py-2.5 text-xs font-bold transition shadow-xs cursor-pointer disabled:opacity-50"
+                >
+                  <Check className="h-4 w-4" />
+                  Ganti ke {validationModal.detectedCourier.name} & Simpan
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setValidationModal(null)}
+                className="inline-flex w-full items-center justify-center rounded-xl border border-espresso-200 bg-white hover:bg-espresso-50 text-espresso-700 py-2.5 text-xs font-semibold transition cursor-pointer"
+              >
+                Periksa Kembali Nomor Resi
+              </button>
+
+              <button
+                type="button"
+                onClick={handleForceSave}
+                disabled={isPending}
+                className="text-center text-[11px] text-espresso-400 hover:text-espresso-700 hover:underline pt-1 cursor-pointer"
+              >
+                Tetap Simpan sebagai {validationModal.selectedCourierName} (Mode Estimasi Toko)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
