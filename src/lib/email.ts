@@ -1,4 +1,6 @@
 import "server-only";
+import { getSettings } from "@/lib/settings";
+import { sendSmtpMail } from "@/lib/smtp";
 
 export type OrderEmailItem = {
   productName: string;
@@ -201,6 +203,29 @@ export async function sendOrderCreatedEmail(
 ): Promise<{ success: boolean; id?: string; error?: string }> {
   try {
     const htmlContent = generateOrderEmailHtml(params);
+    const settings = await getSettings();
+
+    // 1. Prioritas Utama: Jika Custom Mail Server (SMTP) diaktifkan di Admin
+    if (settings.smtp?.enabled && settings.smtp?.host) {
+      console.log(
+        `[Email] Mengirim pesanan #${params.orderNo} via Custom SMTP (${settings.smtp.host}) ke ${params.customerEmail}`
+      );
+      const smtpRes = await sendSmtpMail(settings.smtp, {
+        to: params.customerEmail,
+        subject: params.newAccount
+          ? `Pesanan Diterima & Akses Akun Member Wazzopi (#${params.orderNo})`
+          : `Konfirmasi Pesanan Wazzopi (#${params.orderNo})`,
+        html: htmlContent,
+      });
+
+      if (smtpRes.success) {
+        return { success: true, id: smtpRes.messageId };
+      } else {
+        return { success: false, error: `SMTP Error: ${smtpRes.error}` };
+      }
+    }
+
+    // 2. Alternatif: Jika SMTP tidak aktif, gunakan Resend API jika API Key tersedia
     const resendApiKey = process.env.RESEND_API_KEY?.trim();
 
     if (resendApiKey) {

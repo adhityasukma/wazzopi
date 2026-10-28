@@ -43,12 +43,25 @@ export type OtherSettings = {
   lowStockThreshold: number;
 };
 
+export type SmtpSettings = {
+  enabled: boolean;
+  host: string;
+  port: number;
+  encryption: "tls" | "ssl" | "none";
+  authRequired: boolean;
+  username: string;
+  password: string;
+  fromEmail: string;
+  fromName: string;
+};
+
 export type AllSettings = {
   general: GeneralSettings;
   currency: CurrencySettings;
   payment: PaymentSettings;
   shipping: ShippingSettings;
   other: OtherSettings;
+  smtp: SmtpSettings;
 };
 
 export const DEFAULT_SETTINGS: AllSettings = {
@@ -97,6 +110,17 @@ export const DEFAULT_SETTINGS: AllSettings = {
     taxPercent: 0,
     orderPrefix: "WZ",
     lowStockThreshold: 10,
+  },
+  smtp: {
+    enabled: false,
+    host: "",
+    port: 587,
+    encryption: "tls",
+    authRequired: true,
+    username: "",
+    password: "",
+    fromEmail: "",
+    fromName: "Wazzopi Coffee",
   },
 };
 

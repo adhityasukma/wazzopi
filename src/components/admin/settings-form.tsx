@@ -2,10 +2,17 @@
 
 import { useActionState, useEffect, useState } from "react";
 import {
+  AlertCircle,
   Banknote,
+  CheckCircle2,
   Coins,
   CreditCard,
+  Eye,
+  EyeOff,
+  Loader2,
+  Mail,
   Plus,
+  Send,
   Sliders,
   Store,
   Trash2,
@@ -18,10 +25,12 @@ import {
   saveOther,
   savePayment,
   saveShipping,
+  saveSmtp,
+  testSmtpAction,
 } from "@/actions/settings";
 import { Alert, Button, Field, Input, Select, Textarea } from "@/components/ui";
 import { CURRENCIES, formatCurrency, type CurrencyPosition, type CurrencySettings } from "@/lib/currency";
-import type { AllSettings, BankAccount, ShippingMethod } from "@/lib/settings-types";
+import type { AllSettings, BankAccount, ShippingMethod, SmtpSettings } from "@/lib/settings-types";
 
 export function SettingsForm({
   initialSettings,
@@ -29,13 +38,14 @@ export function SettingsForm({
   initialSettings: AllSettings;
 }) {
   const [activeTab, setActiveTab] = useState<
-    "general" | "currency" | "payment" | "shipping" | "other"
+    "general" | "currency" | "payment" | "shipping" | "smtp" | "other"
   >("general");
 
   const [generalState, generalAction, generalPending] = useActionState(saveGeneral, undefined);
   const [currencyState, currencyAction, currencyPending] = useActionState(saveCurrency, undefined);
   const [paymentState, paymentAction, paymentPending] = useActionState(savePayment, undefined);
   const [shippingState, shippingAction, shippingPending] = useActionState(saveShipping, undefined);
+  const [smtpState, smtpAction, smtpPending] = useActionState(saveSmtp, undefined);
   const [otherState, otherAction, otherPending] = useActionState(saveOther, undefined);
   const { showLoading, hideLoading } = useAppLoading();
 
@@ -48,6 +58,8 @@ export function SettingsForm({
       showLoading("Menyimpan metode pembayaran...");
     } else if (shippingPending) {
       showLoading("Menyimpan kurir & pengiriman...");
+    } else if (smtpPending) {
+      showLoading("Menyimpan pengaturan Mail Server (SMTP)...");
     } else if (otherPending) {
       showLoading("Menyimpan pengaturan sistem & SEO...");
     } else {
@@ -58,6 +70,7 @@ export function SettingsForm({
     currencyPending,
     paymentPending,
     shippingPending,
+    smtpPending,
     otherPending,
     showLoading,
     hideLoading,
@@ -120,6 +133,85 @@ export function SettingsForm({
     );
   }
 
+  // SMTP Settings State
+  const initialSmtp = initialSettings.smtp || {
+    enabled: false,
+    host: "",
+    port: 587,
+    encryption: "tls",
+    authRequired: true,
+    username: "",
+    password: "",
+    fromEmail: "",
+    fromName: "Wazzopi Coffee",
+  };
+  const [smtpEnabled, setSmtpEnabled] = useState<boolean>(Boolean(initialSmtp.enabled));
+  const [smtpEncryption, setSmtpEncryption] = useState<"tls" | "ssl" | "none">(
+    (initialSmtp.encryption as "tls" | "ssl" | "none") || "tls"
+  );
+  const [smtpPort, setSmtpPort] = useState<number>(initialSmtp.port || 587);
+  const [smtpAuthRequired, setSmtpAuthRequired] = useState<boolean>(
+    initialSmtp.authRequired ?? true
+  );
+  const [showSmtpPassword, setShowSmtpPassword] = useState<boolean>(false);
+
+  const [smtpHost, setSmtpHost] = useState(initialSmtp.host || "");
+  const [smtpUsername, setSmtpUsername] = useState(initialSmtp.username || "");
+  const [smtpPassword, setSmtpPassword] = useState(initialSmtp.password || "");
+  const [smtpFromEmail, setSmtpFromEmail] = useState(initialSmtp.fromEmail || "");
+  const [smtpFromName, setSmtpFromName] = useState(initialSmtp.fromName || "Wazzopi Coffee");
+
+  // State Test Email
+  const [testEmailTarget, setTestEmailTarget] = useState<string>("");
+  const [testingSmtp, setTestingSmtp] = useState<boolean>(false);
+  const [testSmtpResult, setTestSmtpResult] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
+
+  const handleEncryptionChange = (enc: "tls" | "ssl" | "none") => {
+    setSmtpEncryption(enc);
+    if (enc === "ssl") {
+      setSmtpPort(465);
+    } else if (enc === "tls") {
+      setSmtpPort(587);
+    } else {
+      setSmtpPort(25);
+    }
+  };
+
+  const handleTestSmtp = async () => {
+    if (!testEmailTarget.trim()) {
+      setTestSmtpResult({
+        success: false,
+        message: "Silakan masukkan alamat email penerima uji coba terlebih dahulu.",
+      });
+      return;
+    }
+    setTestingSmtp(true);
+    setTestSmtpResult(null);
+    try {
+      const res = await testSmtpAction(testEmailTarget, {
+        host: smtpHost,
+        port: smtpPort,
+        encryption: smtpEncryption,
+        authRequired: smtpAuthRequired,
+        username: smtpUsername,
+        password: smtpPassword,
+        fromEmail: smtpFromEmail,
+        fromName: smtpFromName,
+      });
+      setTestSmtpResult(res);
+    } catch (err: any) {
+      setTestSmtpResult({
+        success: false,
+        message: err.message || "Gagal menghubungkan ke server SMTP",
+      });
+    } finally {
+      setTestingSmtp(false);
+    }
+  };
+
   return (
     <div className="grid gap-8 lg:grid-cols-12">
       {/* Navigasi Tab Pengaturan */}
@@ -130,6 +222,7 @@ export function SettingsForm({
             { id: "currency", label: "Opsi Mata Uang (Currency)", icon: Coins },
             { id: "payment", label: "Metode Pembayaran", icon: CreditCard },
             { id: "shipping", label: "Kurir & Pengiriman", icon: Truck },
+            { id: "smtp", label: "Mail Server (SMTP)", icon: Mail },
             { id: "other", label: "Lainnya & SEO", icon: Sliders },
           ].map((t) => {
             const Icon = t.icon;
@@ -665,7 +758,250 @@ export function SettingsForm({
           </div>
         )}
 
-        {/* TAB 5: OTHER */}
+        {/* TAB 5: MAIL SERVER (SMTP) */}
+        {activeTab === "smtp" && (
+          <div className="rounded-xl border border-latte bg-white p-6 shadow-xs space-y-6">
+            <div>
+              <h2 className="text-base font-bold text-espresso-900 border-b border-latte pb-3">
+                Pengaturan Mail Server (SMTP)
+              </h2>
+              <p className="mt-2 text-xs text-espresso-500 leading-relaxed">
+                Konfigurasikan server email pribadi (seperti Gmail App Password, cPanel Webmail, Zoho Mail, Mailgun, atau Brevo) agar website Wazzopi dapat mengirim email rincian pesanan dan akses login ke pembeli secara bebas tanpa batasan penerima.
+              </p>
+            </div>
+
+            {smtpState?.error && <Alert tone="error">{smtpState.error}</Alert>}
+            {smtpState?.success && <Alert tone="success">{smtpState.success}</Alert>}
+
+            <form action={smtpAction} className="space-y-5">
+              {/* Checkbox Enable SMTP */}
+              <div className="rounded-xl border border-latte bg-cream/40 p-4">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="smtpEnabled"
+                    checked={smtpEnabled}
+                    onChange={(e) => setSmtpEnabled(e.target.checked)}
+                    className="rounded border-espresso-300 text-caramel-600 focus:ring-caramel-500 h-4 w-4"
+                  />
+                  <div>
+                    <span className="font-semibold text-sm text-espresso-900">
+                      Enable SMTP
+                    </span>
+                    <p className="text-xs text-espresso-500 mt-0.5">
+                      Aktifkan untuk mengirim seluruh email notifikasi toko menggunakan server SMTP kustom Anda. Jika dinonaktifkan (default), sistem akan menggunakan fallback Resend API.
+                    </p>
+                  </div>
+                </label>
+              </div>
+
+              {/* Form Input Detail SMTP */}
+              <div
+                className={`space-y-4 transition-opacity duration-200 ${
+                  smtpEnabled ? "opacity-100" : "opacity-60 pointer-events-none"
+                }`}
+              >
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="SMTP Host / Server Address *">
+                    <Input
+                      name="smtpHost"
+                      value={smtpHost}
+                      onChange={(e) => setSmtpHost(e.target.value)}
+                      placeholder="Contoh: smtp.gmail.com atau mail.domainanda.com"
+                      required={smtpEnabled}
+                    />
+                  </Field>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Encryption Type *">
+                      <Select
+                        name="smtpEncryption"
+                        value={smtpEncryption}
+                        onChange={(e) =>
+                          handleEncryptionChange(e.target.value as "tls" | "ssl" | "none")
+                        }
+                      >
+                        <option value="tls">TLS (Port 587)</option>
+                        <option value="ssl">SSL (Port 465)</option>
+                        <option value="none">None (Port 25)</option>
+                      </Select>
+                    </Field>
+
+                    <Field label="SMTP Port *">
+                      <Input
+                        name="smtpPort"
+                        type="number"
+                        value={smtpPort}
+                        onChange={(e) => setSmtpPort(Number(e.target.value))}
+                        placeholder="587"
+                        required={smtpEnabled}
+                      />
+                    </Field>
+                  </div>
+                </div>
+
+                {/* Authentication Section */}
+                <div className="rounded-xl border border-latte bg-white p-4 space-y-4">
+                  <label className="flex items-center gap-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="smtpAuthRequired"
+                      checked={smtpAuthRequired}
+                      onChange={(e) => setSmtpAuthRequired(e.target.checked)}
+                      className="rounded border-espresso-300 text-caramel-600 focus:ring-caramel-500 h-4 w-4"
+                    />
+                    <span className="text-sm font-semibold text-espresso-900">
+                      SMTP Authentication Required
+                    </span>
+                  </label>
+
+                  {smtpAuthRequired && (
+                    <div className="grid gap-4 sm:grid-cols-2 pt-1 border-t border-latte/60">
+                      <Field label="SMTP Username / Email *">
+                        <Input
+                          name="smtpUsername"
+                          value={smtpUsername}
+                          onChange={(e) => setSmtpUsername(e.target.value)}
+                          placeholder="admin@domainanda.com atau akun@gmail.com"
+                          required={smtpEnabled && smtpAuthRequired}
+                        />
+                      </Field>
+
+                      <div>
+                        <label className="mb-1.5 block text-sm font-medium text-espresso-800">
+                          SMTP Password *
+                        </label>
+                        <div className="relative">
+                          <Input
+                            name="smtpPassword"
+                            type={showSmtpPassword ? "text" : "password"}
+                            value={smtpPassword}
+                            onChange={(e) => setSmtpPassword(e.target.value)}
+                            placeholder="Password atau App Password"
+                            required={smtpEnabled && smtpAuthRequired}
+                            className="pr-10"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowSmtpPassword(!showSmtpPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-espresso-400 hover:text-espresso-700 transition"
+                            title={showSmtpPassword ? "Sembunyikan password" : "Tampilkan password"}
+                          >
+                            {showSmtpPassword ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
+                        <p className="mt-1 text-[11px] text-espresso-400">
+                          Gunakan <strong>App Password</strong> jika menggunakan akun Google Workspace / Gmail.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Sender Details */}
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="From Email Address *">
+                    <Input
+                      name="smtpFromEmail"
+                      value={smtpFromEmail}
+                      onChange={(e) => setSmtpFromEmail(e.target.value)}
+                      placeholder="Contoh: halo@wazzopi.com"
+                      required={smtpEnabled}
+                    />
+                  </Field>
+
+                  <Field label="From Name *">
+                    <Input
+                      name="smtpFromName"
+                      value={smtpFromName}
+                      onChange={(e) => setSmtpFromName(e.target.value)}
+                      placeholder="Wazzopi Coffee"
+                      required={smtpEnabled}
+                    />
+                  </Field>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-latte">
+                <Button type="submit" disabled={smtpPending} className="justify-center">
+                  {smtpPending ? "Menyimpan..." : "Simpan Pengaturan SMTP"}
+                </Button>
+              </div>
+            </form>
+
+            {/* SECTION: SEND TEST EMAIL & VERIFY CONNECTION */}
+            <div className="rounded-xl border border-espresso-200 bg-cream/40 p-5 space-y-4">
+              <div className="flex items-center gap-2 border-b border-latte pb-3">
+                <Send className="h-4 w-4 text-caramel-600" />
+                <h3 className="font-bold text-espresso-900 text-sm">
+                  Send Test Email &amp; Verify Connection
+                </h3>
+              </div>
+              <p className="text-xs text-espresso-500 leading-relaxed">
+                Uji apakah koneksi server SMTP dan kredensial autentikasi Anda sudah benar dengan mengirimkan satu email uji coba ke alamat Anda.
+              </p>
+
+              <div className="flex flex-col sm:flex-row items-center gap-3">
+                <div className="flex-1 w-full">
+                  <Input
+                    type="email"
+                    value={testEmailTarget}
+                    onChange={(e) => setTestEmailTarget(e.target.value)}
+                    placeholder="Masukkan alamat email penerima uji coba (misal: nama@gmail.com)"
+                    className="h-10 text-xs"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  onClick={handleTestSmtp}
+                  disabled={testingSmtp}
+                  variant="secondary"
+                  className="w-full sm:w-auto h-10 px-4 text-xs font-semibold whitespace-nowrap"
+                >
+                  {testingSmtp ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-caramel-600 mr-1.5" />
+                      <span>Sedang Menguji Koneksi...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-3.5 w-3.5 text-caramel-600 mr-1.5" />
+                      <span>Kirim Email Tes &amp; Verifikasi Koneksi</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {testSmtpResult && (
+                <div
+                  className={`flex items-start gap-2.5 rounded-lg p-3 text-xs leading-relaxed border ${
+                    testSmtpResult.success
+                      ? "bg-emerald-50 text-emerald-900 border-emerald-200"
+                      : "bg-rose-50 text-rose-900 border-rose-200"
+                  }`}
+                >
+                  {testSmtpResult.success ? (
+                    <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600 mt-0.5" />
+                  ) : (
+                    <AlertCircle className="h-4 w-4 shrink-0 text-rose-600 mt-0.5" />
+                  )}
+                  <div>
+                    <strong className="block font-semibold">
+                      {testSmtpResult.success ? "Verifikasi Berhasil:" : "Verifikasi Gagal:"}
+                    </strong>
+                    <span className="break-all">{testSmtpResult.message}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 6: OTHER */}
         {activeTab === "other" && (
           <div className="rounded-xl border border-latte bg-white p-6 shadow-xs space-y-6">
             <h2 className="text-base font-bold text-espresso-900 border-b border-latte pb-3">

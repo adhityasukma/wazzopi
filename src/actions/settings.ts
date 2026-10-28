@@ -5,7 +5,8 @@ import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getSettings, saveSetting } from "@/lib/settings";
 import type { CurrencyPosition } from "@/lib/currency";
-import type { BankAccount, ShippingMethod } from "@/lib/settings-types";
+import type { BankAccount, ShippingMethod, SmtpSettings } from "@/lib/settings-types";
+import { sendSmtpTestEmail } from "@/lib/smtp";
 import type { FormState } from "./auth";
 
 const str = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
@@ -153,4 +154,82 @@ export async function saveHeroSlides(_: FormState, f: FormData): Promise<FormSta
     }),
   ]);
   return done("Hero slide berhasil disimpan");
+}
+
+export async function saveSmtp(_: FormState, f: FormData): Promise<FormState> {
+  await requireAdmin();
+  const enabled = bool(f, "smtpEnabled");
+  const host = str(f, "smtpHost");
+  const port = num(f, "smtpPort") || 587;
+  const encryption = (str(f, "smtpEncryption") || "tls") as "tls" | "ssl" | "none";
+  const authRequired = bool(f, "smtpAuthRequired");
+  const username = str(f, "smtpUsername");
+  const password = str(f, "smtpPassword");
+  const fromEmail = str(f, "smtpFromEmail");
+  const fromName = str(f, "smtpFromName") || "Wazzopi Coffee";
+
+  if (enabled) {
+    if (!host) return { error: "SMTP Host / Server Address wajib diisi jika SMTP diaktifkan" };
+    if (!fromEmail) return { error: "From Email Address wajib diisi jika SMTP diaktifkan" };
+    if (authRequired && !username) {
+      return { error: "SMTP Username / Email wajib diisi jika Authentication Required dicentang" };
+    }
+  }
+
+  await saveSetting("smtp", {
+    enabled,
+    host,
+    port,
+    encryption,
+    authRequired,
+    username,
+    password,
+    fromEmail,
+    fromName,
+  });
+
+  return done("Pengaturan Mail Server (SMTP) berhasil disimpan");
+}
+
+export async function testSmtpAction(
+  targetEmail: string,
+  config: {
+    host: string;
+    port: number;
+    encryption: "tls" | "ssl" | "none";
+    authRequired: boolean;
+    username: string;
+    password: string;
+    fromEmail: string;
+    fromName: string;
+  }
+): Promise<{ success: boolean; message: string }> {
+  await requireAdmin();
+  const cleanTarget = targetEmail?.trim();
+  if (!cleanTarget || !cleanTarget.includes("@")) {
+    return { success: false, message: "Masukkan alamat email penerima tes yang valid" };
+  }
+  if (!config.host) {
+    return { success: false, message: "SMTP Host wajib diisi untuk melakukan pengujian" };
+  }
+  if (!config.fromEmail) {
+    return { success: false, message: "From Email Address wajib diisi untuk melakukan pengujian" };
+  }
+  if (config.authRequired && !config.username) {
+    return { success: false, message: "SMTP Username wajib diisi untuk autentikasi" };
+  }
+
+  const smtpSettings: SmtpSettings = {
+    enabled: true,
+    host: config.host.trim(),
+    port: Number(config.port) || 587,
+    encryption: config.encryption,
+    authRequired: config.authRequired,
+    username: config.username.trim(),
+    password: config.password,
+    fromEmail: config.fromEmail.trim(),
+    fromName: config.fromName?.trim() || "Wazzopi Coffee",
+  };
+
+  return sendSmtpTestEmail(smtpSettings, cleanTarget);
 }
