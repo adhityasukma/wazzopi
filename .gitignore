@@ -50,3 +50,7 @@ dev.db-journal
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# remotion promo video (local only, do not commit)
+/remotion-promo
+/promo-video
