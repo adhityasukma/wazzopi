@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getSettings } from "@/lib/settings";
 
 export type TrackingCheckpoint = {
   date: string;
@@ -31,6 +32,7 @@ export const SUPPORTED_COURIERS: { code: string; name: string }[] = [
   { code: "lion", name: "Lion Parcel" },
   { code: "wahana", name: "Wahana Express" },
   { code: "ide", name: "ID Express" },
+  { code: "spx", name: "Shopee Xpress" },
 ];
 
 export function getCourierName(code: string): string {
@@ -38,11 +40,30 @@ export function getCourierName(code: string): string {
   return found ? found.name : code.toUpperCase();
 }
 
+function cleanCityName(raw?: string): string {
+  if (!raw) return "Cimahi";
+  return raw
+    .replace(/^(kota|kabupaten|kab\.)\s+/i, "")
+    .trim();
+}
+
+function formatDateStr(d: Date): string {
+  return (
+    d.toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }) + " WIB"
+  );
+}
+
 /**
  * Mengambil informasi tracking resi ekspedisi.
  * Jika API Key Binderbyte tersedia, memanggil API resmi secara otomatis.
  * Jika tidak tersedia atau terjadi error (misal resi testing/dummy),
- * menyediakan milestone realistis berbasis kronologi pesanan.
+ * menyediakan milestone realistis berbasis kronologi pesanan dan rute wilayah asal-tujuan.
  */
 export async function trackShipment(
   courierCode: string,
@@ -79,7 +100,7 @@ export async function trackShipment(
     try {
       const url = `https://api.binderbyte.com/v1/track?api_key=${apiKey}&courier=${courier}&awb=${encodeURIComponent(awb)}`;
       const res = await fetch(url, {
-        next: { revalidate: 3600 }, // Cache 1 jam di Next.js fetch cache
+        next: { revalidate: 3600 },
       });
 
       if (res.ok) {
@@ -92,11 +113,10 @@ export async function trackShipment(
           const checkpoints: TrackingCheckpoint[] = rawHistory.map((h) => ({
             date: h.date,
             desc: h.desc,
-            location: h.location,
+            location: cleanCityName(h.location),
             status: isDelivered ? "DELIVERED" : "ON_PROCESS",
           }));
 
-          // Urutkan dari yang terbaru ke terlama
           checkpoints.reverse();
 
           return {
@@ -117,72 +137,104 @@ export async function trackShipment(
     }
   }
 
-  // 3. Fallback / Simulasi Cerdas Berbasis Data Pesanan
-  // Menjamin UI stepper ala Shopee selalu tampil rapi, realistis, dan informatif
+  // 3. Fallback Cerdas Berbasis Rute Geografis Asal & Tujuan Toko
+  const settings = await getSettings();
+  const originCity = cleanCityName(
+    settings.shipping?.originCity || settings.general?.city || "Cimahi"
+  );
+  const destCity = cleanCityName(orderContext?.city || originCity);
+  const isSameCity = originCity.toLowerCase() === destCity.toLowerCase();
+
   const created = orderContext?.createdAt ? new Date(orderContext.createdAt) : new Date();
   const customer = orderContext?.customerName || "Pelanggan";
-  const city = orderContext?.city || "Kota Tujuan";
   const isCompleted = orderContext?.status === "COMPLETED";
+  const now = new Date();
 
-  const formatDateStr = (d: Date) => {
-    return d.toLocaleDateString("id-ID", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }) + " WIB";
+  // Hitung selisih waktu dari pemesanan hingga saat ini
+  const totalElapsed = Math.max(0, now.getTime() - created.getTime());
+  const t0 = created.getTime();
+
+  // Helper agar timestamp tidak pernah melampaui waktu sekarang (strictly <= now)
+  const clampDate = (targetTime: number) => {
+    const clampedTime = Math.min(Math.max(t0, targetTime), now.getTime());
+    return new Date(clampedTime);
   };
 
-  const t1 = new Date(created.getTime() + 1000 * 60 * 30); // 30 menit kemudian
-  const t2 = new Date(created.getTime() + 1000 * 60 * 60 * 2); // 2 jam kemudian
-  const t3 = new Date(created.getTime() + 1000 * 60 * 60 * 6); // 6 jam kemudian
-  const t4 = new Date(created.getTime() + 1000 * 60 * 60 * 18); // 18 jam kemudian
-  const t5 = new Date(created.getTime() + 1000 * 60 * 60 * 26); // 26 jam kemudian
+  const rawCheckpoints: TrackingCheckpoint[] = [];
 
-  const checkpoints: TrackingCheckpoint[] = [];
+  // Milestone 1: Pesanan Dibuat
+  rawCheckpoints.push({
+    date: formatDateStr(created),
+    desc: "Pesanan berhasil dibuat dan pembayaran telah terkonfirmasi sistem.",
+    location: originCity,
+    status: "PENDING",
+  });
 
+  // Milestone 2: Pengemasan Selesai di Fasilitas Asal
+  const t1 = t0 + Math.min(25 * 60 * 1000, Math.max(5 * 60 * 1000, totalElapsed * 0.2));
+  rawCheckpoints.push({
+    date: formatDateStr(clampDate(t1)),
+    desc: `Pesanan selesai dipacking rapi dan disegel aman di fasilitas pengiriman ${originCity}.`,
+    location: originCity,
+    status: "PROCESSING",
+  });
+
+  // Milestone 3: Diserahkan ke Drop Point / Agen Kurir di Kota Asal
+  const t2 = t0 + Math.min(60 * 60 * 1000, Math.max(15 * 60 * 1000, totalElapsed * 0.4));
+  rawCheckpoints.push({
+    date: formatDateStr(clampDate(t2)),
+    desc: `Paket telah diserahterimakan ke kurir ${courierName} di Drop Point ${originCity}. No. Resi: ${awb}.`,
+    location: originCity,
+    status: "ON_PROCESS",
+  });
+
+  // Milestone 4: Fasilitas Sortir Kota Asal (jika waktu berjalan >= 30 menit atau pesanan selesai)
+  if (totalElapsed >= 30 * 60 * 1000 || isCompleted) {
+    const t3 = t0 + Math.min(2.5 * 3600 * 1000, Math.max(45 * 60 * 1000, totalElapsed * 0.65));
+    rawCheckpoints.push({
+      date: formatDateStr(clampDate(t3)),
+      desc: isSameCity
+        ? `Paket telah diproses di Fasilitas Sortir logistik ${originCity}. Mempersiapkan rute pengantaran lokal.`
+        : `Paket telah diproses di Sorting Center ${originCity} dan diberangkatkan menuju ${destCity}.`,
+      location: originCity,
+      status: "ON_PROCESS",
+    });
+  }
+
+  // Milestone 5: Hub Pengantaran Tujuan (jika waktu berjalan >= 2 jam atau pesanan selesai)
+  if (totalElapsed >= 2 * 3600 * 1000 || isCompleted) {
+    const t4 = t0 + Math.min(5 * 3600 * 1000, Math.max(1.5 * 3600 * 1000, totalElapsed * 0.85));
+    rawCheckpoints.push({
+      date: formatDateStr(clampDate(t4)),
+      desc: `Paket telah tiba di Hub Pengantaran logistik ${destCity}. Menunggu jadwal keberangkatan kurir.`,
+      location: destCity,
+      status: "ON_PROCESS",
+    });
+  }
+
+  // Milestone 6: Kurir Membawa Paket Menuju Alamat Penerima (jika waktu berjalan >= 4 jam atau pesanan selesai)
+  if (totalElapsed >= 4 * 3600 * 1000 || isCompleted) {
+    const t5 = Math.min(now.getTime() - (isCompleted ? 30 * 60 * 1000 : 5 * 60 * 1000), t0 + 6.5 * 3600 * 1000);
+    rawCheckpoints.push({
+      date: formatDateStr(clampDate(t5)),
+      desc: `Paket sedang dibawa oleh kurir ${courierName} menuju alamat penerima di ${destCity}.`,
+      location: destCity,
+      status: "ON_PROCESS",
+    });
+  }
+
+  // Milestone 7: Paket Diterima (Hanya jika status pesanan COMPLETED)
   if (isCompleted) {
-    checkpoints.push({
-      date: formatDateStr(t5),
+    rawCheckpoints.push({
+      date: formatDateStr(now),
       desc: `Paket telah diterima di alamat tujuan oleh [${customer} (Penerima Sendiri)]. Terima kasih telah berbelanja di Wazzopi.`,
-      location: city,
+      location: destCity,
       status: "DELIVERED",
     });
   }
 
-  checkpoints.push(
-    {
-      date: formatDateStr(t4),
-      desc: `Paket sedang dibawa oleh kurir ${courierName} menuju alamat penerima di ${city}.`,
-      location: city,
-      status: "ON_PROCESS",
-    },
-    {
-      date: formatDateStr(t3),
-      desc: `Paket telah tiba di Sorting Hub logistik ${city}. Mempersiapkan rute pengantaran akhir.`,
-      location: city,
-      status: "ON_PROCESS",
-    },
-    {
-      date: formatDateStr(t2),
-      desc: `Paket telah diserahterimakan ke kurir ${courierName} dari gudang Wazzopi Roastery. Nomor resi valid: ${awb}.`,
-      location: "Bandung Hub",
-      status: "ON_PROCESS",
-    },
-    {
-      date: formatDateStr(t1),
-      desc: "Pesanan selesai dipacking, disegel aman menggunakan bubble wrap tebal dan box kardus Wazzopi.",
-      location: "Gudang Wazzopi Roastery",
-      status: "PROCESSING",
-    },
-    {
-      date: formatDateStr(created),
-      desc: "Pesanan berhasil dibuat dan pembayaran telah terkonfirmasi sistem.",
-      location: "Sistem Wazzopi",
-      status: "PENDING",
-    }
-  );
+  // Urutkan dari yang terbaru (paling atas) ke yang terlama (paling bawah)
+  rawCheckpoints.reverse();
 
   return {
     success: true,
@@ -192,7 +244,7 @@ export async function trackShipment(
     status: isCompleted ? "DELIVERED" : "ON_PROCESS",
     statusLabel: isCompleted ? "Paket Telah Diterima" : "Sedang Dalam Pengiriman Kurir",
     receiverName: isCompleted ? customer : undefined,
-    checkpoints,
+    checkpoints: rawCheckpoints,
     isLive: false,
   };
 }

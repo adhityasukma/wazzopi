@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   Truck,
   Package,
@@ -43,10 +44,35 @@ export function OrderTrackingModal({
   history,
   isCustomerView = true,
 }: OrderTrackingModalProps) {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
+
+  const sanitizeHistory = (items: TrackingCheckpoint[]) => {
+    return (items || []).map((cp) => {
+      let loc = cp.location;
+      if (
+        loc === "Bandung Hub" ||
+        loc === "Gudang Wazzopi Roastery" ||
+        loc === "Sistem Wazzopi"
+      ) {
+        loc = "Cimahi";
+      }
+      return { ...cp, location: loc };
+    });
+  };
+
+  const [currentHistory, setCurrentHistory] = useState<TrackingCheckpoint[]>(() =>
+    sanitizeHistory(history)
+  );
+
+  useEffect(() => {
+    if (history) {
+      setCurrentHistory(sanitizeHistory(history));
+    }
+  }, [history]);
 
   const handleCopyResi = () => {
     navigator.clipboard.writeText(trackingNumber);
@@ -57,7 +83,11 @@ export function OrderTrackingModal({
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      await refreshOrderTracking(orderId);
+      const res = await refreshOrderTracking(orderId);
+      if (res?.success && res?.tracking?.checkpoints) {
+        setCurrentHistory(sanitizeHistory(res.tracking.checkpoints));
+      }
+      router.refresh();
     } catch (e) {
       console.error(e);
     } finally {
@@ -193,13 +223,13 @@ export function OrderTrackingModal({
                 Riwayat Perjalanan Paket
               </h4>
 
-              {history.length === 0 ? (
+              {currentHistory.length === 0 ? (
                 <div className="py-8 text-center text-espresso-500 text-sm">
                   Belum ada catatan riwayat perjalanan untuk nomor resi ini.
                 </div>
               ) : (
                 <div className="relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-3 before:bottom-3 before:w-0.5 before:bg-espresso-100">
-                  {history.map((cp, idx) => {
+                  {currentHistory.map((cp, idx) => {
                     const isLatest = idx === 0;
                     return (
                       <div key={idx} className="relative group">
