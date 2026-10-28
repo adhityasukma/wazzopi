@@ -43,12 +43,12 @@ export function SiteFooter({ settings, categories }: { settings: AllSettings; ca
               </li>
             ))}
             <li className="pt-2 border-t border-espresso-700">
-              <Link href="/syarat-ketentuan" className="text-espresso-300 hover:text-white text-xs">
+              <Link href="/syarat-ketentuan" className="hover:text-white">
                 Syarat & Ketentuan
               </Link>
             </li>
             <li>
-              <Link href="/kebijakan-pengembalian" className="text-espresso-300 hover:text-white text-xs">
+              <Link href="/kebijakan-pengembalian" className="hover:text-white">
                 Kebijakan Pengembalian
               </Link>
             </li>
