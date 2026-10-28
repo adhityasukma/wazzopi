@@ -503,3 +503,58 @@ export async function confirmOrderReceived(orderId: string) {
     return { success: false, error: error.message || "Gagal mengonfirmasi pesanan" };
   }
 }
+
+/**
+ * Kirim ulang email struk dan rincian pesanan via Resend
+ */
+export async function resendOrderEmail(
+  orderId: string
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: { items: true },
+    });
+    if (!order) {
+      return { success: false, message: "Pesanan tidak ditemukan" };
+    }
+
+    const settings = await getSettings();
+
+    const result = await sendOrderCreatedEmail({
+      customerName: order.customerName,
+      customerEmail: order.customerEmail,
+      orderNo: order.orderNo,
+      items: order.items.map((it) => ({
+        productName: it.productName,
+        variantName: it.variantName,
+        quantity: it.quantity,
+        price: it.price,
+        total: it.total,
+      })),
+      totalAmount: order.total,
+      shippingAddress: `${order.address}, ${order.city}, ${order.province} ${order.postalCode}`,
+      shippingMethod: order.shippingMethod,
+      paymentMethod: order.paymentMethod,
+      storeName: settings.general.storeName,
+      whatsappContact: settings.other.whatsapp || settings.general.phone,
+    });
+
+    if (result.success && result.id) {
+      return {
+        success: true,
+        message: `Sukses terkirim ke ${order.customerEmail} (ID: ${result.id})`,
+      };
+    } else if (result.error) {
+      return { success: false, message: result.error };
+    }
+
+    return {
+      success: true,
+      message: `Email berhasil diproses ke ${order.customerEmail}`,
+    };
+  } catch (err: any) {
+    console.error("[resendOrderEmail Error]:", err);
+    return { success: false, message: err.message || "Gagal mengirim email via Resend" };
+  }
+}

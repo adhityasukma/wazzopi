@@ -11,6 +11,7 @@ import { ClearCartOnSuccess } from "@/components/shop/clear-cart";
 import { CopyButton } from "@/components/shop/copy-button";
 import { MidtransPayButton } from "@/components/shop/midtrans-pay-button";
 import { OrderTrackingModal } from "@/components/shop/order-tracking-modal";
+import { ResendEmailButton } from "@/components/admin/resend-email-button";
 
 export const metadata = {
   title: "Terima Kasih Atas Pesanan Anda",
@@ -56,6 +57,9 @@ export default async function CheckoutSuccessPage({
         <p className="mt-1 text-sm font-semibold text-espresso-900">
           Nomor Pesanan: <span className="text-caramel-600">{order.orderNo}</span>
         </p>
+        <div className="mt-3 flex items-center justify-center">
+          <ResendEmailButton orderId={order.id} customerEmail={order.customerEmail} />
+        </div>
       </div>
 
       {/* Kartu Informasi Akun Member Baru (jika otomatis dibuatkan akun) */}

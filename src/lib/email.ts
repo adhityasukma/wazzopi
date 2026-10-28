@@ -196,10 +196,12 @@ export function generateOrderEmailHtml(params: SendOrderEmailParams): string {
   `;
 }
 
-export async function sendOrderCreatedEmail(params: SendOrderEmailParams): Promise<{ success: boolean; id?: string }> {
+export async function sendOrderCreatedEmail(
+  params: SendOrderEmailParams
+): Promise<{ success: boolean; id?: string; error?: string }> {
   try {
     const htmlContent = generateOrderEmailHtml(params);
-    const resendApiKey = process.env.RESEND_API_KEY;
+    const resendApiKey = process.env.RESEND_API_KEY?.trim();
 
     if (resendApiKey) {
       const fromEmail = process.env.EMAIL_FROM || "Wazzopi <onboarding@resend.dev>";
@@ -226,6 +228,7 @@ export async function sendOrderCreatedEmail(params: SendOrderEmailParams): Promi
       } else {
         const errText = await res.text();
         console.warn(`[Email] Gagal mengirim via Resend (${res.status}): ${errText}`);
+        return { success: false, error: `Resend HTTP ${res.status}: ${errText}` };
       }
     } else {
       console.log(
@@ -236,12 +239,10 @@ export async function sendOrderCreatedEmail(params: SendOrderEmailParams): Promi
           `[Email Preview] Akun Member Dibuat: Email=${params.newAccount.email}, Password=${params.newAccount.tempPassword}`
         );
       }
+      return { success: false, error: "RESEND_API_KEY belum terdeteksi di server hosting Vercel." };
     }
-
-    return { success: true };
-  } catch (error) {
+  } catch (error: any) {
     console.error("[Email Error] Terjadi kesalahan saat memproses pengiriman email:", error);
-    // Return true agar proses checkout tidak pernah terputus/gagal hanya karena email server
-    return { success: true };
+    return { success: false, error: error?.message || "Terjadi kesalahan jaringan saat mengirim email." };
   }
 }

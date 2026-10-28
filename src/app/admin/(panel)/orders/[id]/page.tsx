@@ -8,6 +8,7 @@ import { formatDate, ORDER_STATUSES, ORDER_STATUS_LABEL, ORDER_STATUS_STYLE, PAY
 import { requireAdmin } from "@/lib/auth";
 import { updateOrderStatus } from "@/actions/orders";
 import { OrderTrackingForm } from "@/components/admin/order-tracking-form";
+import { ResendEmailButton } from "@/components/admin/resend-email-button";
 
 export const metadata = {
   title: "Rincian Pesanan",
@@ -54,6 +55,10 @@ export default async function AdminOrderDetailPage({
           <p className="mt-1 text-xs text-espresso-400">
             Dibuat pada {formatDate(order.createdAt, true)}
           </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <ResendEmailButton orderId={order.id} customerEmail={order.customerEmail} />
         </div>
       </div>
 
