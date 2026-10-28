@@ -1,7 +1,10 @@
+import { cookies } from "next/headers";
 import { CurrencyProvider } from "@/components/currency-provider";
 import { SiteHeader } from "@/components/shop/site-header";
 import { SiteFooter } from "@/components/shop/site-footer";
+import { SessionPurge } from "@/components/shop/session-purge";
 import { getSession } from "@/lib/auth";
+import { SESSION_COOKIE } from "@/lib/jwt";
 import { formatCurrency } from "@/lib/currency";
 import { getSettings } from "@/lib/settings";
 import { prisma } from "@/lib/prisma";
@@ -9,14 +12,21 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 export default async function ShopLayout({ children }: LayoutProps<"/">) {
+  const cookieStore = await cookies();
+  const hasSessionCookie = Boolean(cookieStore.get(SESSION_COOKIE)?.value);
+
   const [settings, session, categories] = await Promise.all([
     getSettings(),
     getSession(),
     prisma.category.findMany({ orderBy: { name: "asc" }, select: { name: true, slug: true } }),
   ]);
+
   const isFreeActive = settings.shipping.freeShippingEnabled && settings.shipping.freeShippingMin > 0;
+  const isStaleSession = hasSessionCookie && !session;
+
   return (
     <CurrencyProvider value={settings.currency}>
+      {isStaleSession && <SessionPurge />}
       <SiteHeader
         user={session ? { name: session.name, role: session.role } : null}
         categories={categories}
