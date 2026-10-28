@@ -15,11 +15,10 @@ export {
   type TrackingResult,
 };
 
-function cleanCityName(raw?: string): string {
-  if (!raw) return "Cimahi";
+function cleanCityName(raw?: string, fallback = "Tangerang"): string {
+  if (!raw) return fallback;
   const cleaned = raw.replace(/^(kota|kabupaten|kab\.)\s+/i, "").trim();
-  if (cleaned.toLowerCase() === "bandung") return "Cimahi";
-  return cleaned;
+  return cleaned || fallback;
 }
 
 function formatDateStr(d: Date): string {
@@ -50,13 +49,31 @@ export async function trackShipment(
     city: string;
     createdAt: Date;
     status: string;
+    trackingUpdatedAt?: Date | null;
   }
 ): Promise<TrackingResult> {
   const courier = courierCode.toLowerCase().trim();
   const awb = trackingNumber.trim();
   const courierName = getCourierName(courier);
 
-  // 1. Ambil API Key dari env atau setting database
+  // 1. Ambil kota asal pengirim dari pengaturan toko
+  let storeOrigin = "Tangerang";
+  try {
+    const settings = await getSettings();
+    if (settings.shipping?.originCity?.trim()) {
+      storeOrigin = settings.shipping.originCity.trim();
+    } else if (settings.general?.city?.trim()) {
+      storeOrigin = settings.general.city.trim();
+    }
+  } catch {
+    // Abaikan jika database setting belum ada
+  }
+
+  const originCity = cleanCityName(storeOrigin, "Tangerang");
+  const destCity = cleanCityName(orderContext?.city, originCity);
+  const isSameCity = originCity.toLowerCase() === destCity.toLowerCase();
+
+  // 2. Ambil API Key dari env atau setting database
   let apiKey = process.env.BINDERBYTE_API_KEY;
   if (!apiKey) {
     try {
@@ -71,7 +88,7 @@ export async function trackShipment(
     }
   }
 
-  // 2. Jika API Key ada, coba query live API Binderbyte
+  // 3. Jika API Key ada, coba query live API Binderbyte
   if (apiKey && apiKey.length > 5) {
     try {
       const url = `https://api.binderbyte.com/v1/track?api_key=${apiKey}&courier=${courier}&awb=${encodeURIComponent(awb)}`;
@@ -89,7 +106,7 @@ export async function trackShipment(
           const checkpoints: TrackingCheckpoint[] = rawHistory.map((h) => ({
             date: h.date,
             desc: h.desc,
-            location: cleanCityName(h.location),
+            location: cleanCityName(h.location, originCity),
             status: isDelivered ? "DELIVERED" : "ON_PROCESS",
           }));
 
@@ -113,19 +130,22 @@ export async function trackShipment(
     }
   }
 
-  // 3. Fallback Cerdas Berbasis Kronologi E-commerce Standar
-  // Alamat pengirim toko Wazzopi berlokasi di Cimahi
-  const originCity = "Cimahi";
-  const destCity = cleanCityName(orderContext?.city || originCity);
-  const isSameCity = originCity.toLowerCase() === destCity.toLowerCase();
-
+  // 4. Fallback Cerdas Berbasis Kronologi E-commerce Standar
   const created = orderContext?.createdAt ? new Date(orderContext.createdAt) : new Date();
   const customer = orderContext?.customerName || "Pelanggan";
-  const isCompleted = orderContext?.status === "COMPLETED";
+  const orderStatus = (orderContext?.status || "SHIPPED").toUpperCase();
+  const isCompleted = orderStatus === "COMPLETED";
   const now = new Date();
 
-  // Hitung selisih waktu dari pemesanan hingga saat ini
-  const totalElapsed = Math.max(0, now.getTime() - created.getTime());
+  // Waktu saat resi diterbitkan/diperbarui
+  const shippedAt = orderContext?.trackingUpdatedAt
+    ? new Date(orderContext.trackingUpdatedAt)
+    : now;
+  // Pastikan waktu pengiriman tidak mendahului waktu pembuatan pesanan
+  const tShipped = Math.min(now.getTime(), Math.max(created.getTime(), shippedAt.getTime()));
+
+  // Selisih waktu sejak nomor resi diterbitkan (pengiriman aktif)
+  const shippedElapsed = Math.max(0, now.getTime() - tShipped);
   const t0 = created.getTime();
 
   // Helper agar timestamp tidak pernah melampaui waktu sekarang (strictly <= now)
@@ -145,57 +165,61 @@ export async function trackShipment(
   });
 
   // Milestone 2: Pengemasan oleh Penjual
-  const t1 = t0 + Math.min(25 * 60 * 1000, Math.max(5 * 60 * 1000, totalElapsed * 0.2));
+  const tPackaging = t0 + Math.min(25 * 60 * 1000, Math.max(5 * 60 * 1000, (tShipped - t0) * 0.5));
   rawCheckpoints.push({
-    date: formatDateStr(clampDate(t1)),
+    date: formatDateStr(clampDate(tPackaging)),
     desc: `Pesanan telah selesai disiapkan dan dikemas rapi oleh penjual Wazzopi ${originCity}.`,
     location: originCity,
     status: "PROCESSING",
   });
 
   // Milestone 3: Penjual Mengatur Pengiriman & Menerbitkan Nomor Resi
-  const t2 = t0 + Math.min(50 * 60 * 1000, Math.max(12 * 60 * 1000, totalElapsed * 0.35));
   rawCheckpoints.push({
-    date: formatDateStr(clampDate(t2)),
+    date: formatDateStr(clampDate(tShipped)),
     desc: `Penjual telah mengatur pengiriman dengan ${courierName}. Nomor resi terbit: ${awb}. Menunggu penyerahan paket ke kurir.`,
     location: originCity,
     status: "ON_PROCESS",
   });
 
   // Milestone 4: Paket Diserahkan ke Drop Point / Agen Kurir
-  const t3 = t0 + Math.min(80 * 60 * 1000, Math.max(20 * 60 * 1000, totalElapsed * 0.5));
-  rawCheckpoints.push({
-    date: formatDateStr(clampDate(t3)),
-    desc: `Paket telah diserahterimakan dan diterima oleh kurir ${courierName} di Agen/Drop Point ${originCity}.`,
-    location: originCity,
-    status: "ON_PROCESS",
-  });
-
-  // Milestone 5: Fasilitas Sortir Logistik
-  if (totalElapsed >= 30 * 60 * 1000 || isCompleted) {
-    const t4 = t0 + Math.min(2.5 * 3600 * 1000, Math.max(45 * 60 * 1000, totalElapsed * 0.7));
+  // Hanya muncul jika sudah berlalu minimal 2 jam sejak resi diterbitkan ATAU pesanan sudah COMPLETED
+  if (shippedElapsed >= 2 * 3600 * 1000 || isCompleted) {
+    const tDropPoint = tShipped + Math.min(1.5 * 3600 * 1000, shippedElapsed * 0.4);
     rawCheckpoints.push({
-      date: formatDateStr(clampDate(t4)),
-      desc: isSameCity
-        ? `Paket telah diproses di Pusat Sortir logistik ${originCity}. Mempersiapkan rute pengantaran langsung.`
-        : `Paket telah diproses di Pusat Sortir logistik ${originCity} dan diberangkatkan menuju ${destCity}.`,
+      date: formatDateStr(clampDate(tDropPoint)),
+      desc: `Paket telah diserahterimakan dan diterima oleh kurir ${courierName} di Agen/Drop Point ${originCity}.`,
       location: originCity,
       status: "ON_PROCESS",
     });
   }
 
-  // Milestone 6: Kurir Membawa Paket Menuju Alamat Penerima
-  if (totalElapsed >= 2 * 3600 * 1000 || isCompleted) {
-    const t5 = Math.min(now.getTime() - (isCompleted ? 25 * 60 * 1000 : 5 * 60 * 1000), t0 + 5.5 * 3600 * 1000);
+  // Milestone 5: Pusat Sortir Logistik Kota Asal
+  // Hanya muncul jika sudah berlalu minimal 6 jam sejak resi diterbitkan ATAU pesanan sudah COMPLETED
+  if (shippedElapsed >= 6 * 3600 * 1000 || isCompleted) {
+    const tSortir = tShipped + Math.min(5 * 3600 * 1000, shippedElapsed * 0.65);
     rawCheckpoints.push({
-      date: formatDateStr(clampDate(t5)),
-      desc: `Paket sedang dibawa oleh kurir ${courierName} menuju ke alamat penerima di ${destCity}.`,
+      date: formatDateStr(clampDate(tSortir)),
+      desc: isSameCity
+        ? `Paket telah diproses di Pusat Sortir logistik ${originCity}. Mempersiapkan rute pengantaran ke alamat tujuan.`
+        : `Paket telah diproses di Pusat Sortir logistik ${originCity} dan sedang diberangkatkan menuju kota tujuan (${destCity}).`,
+      location: originCity,
+      status: "ON_PROCESS",
+    });
+  }
+
+  // Milestone 6: Kurir Membawa Paket Menuju Alamat Penerima di Kota Tujuan
+  // Hanya muncul jika sudah berlalu minimal 20 jam sejak resi diterbitkan ATAU pesanan sudah COMPLETED
+  if (shippedElapsed >= 20 * 3600 * 1000 || isCompleted) {
+    const tDelivery = tShipped + Math.min(22 * 3600 * 1000, shippedElapsed * 0.9);
+    rawCheckpoints.push({
+      date: formatDateStr(clampDate(tDelivery)),
+      desc: `Paket telah tiba di fasilitas logistik ${destCity} dan sedang dibawa oleh kurir ${courierName} menuju alamat penerima.`,
       location: destCity,
       status: "ON_PROCESS",
     });
   }
 
-  // Milestone 7: Paket Diterima (Hanya jika status pesanan COMPLETED)
+  // Milestone 7: Paket Diterima (HANYA jika status pesanan COMPLETED)
   if (isCompleted) {
     rawCheckpoints.push({
       date: formatDateStr(now),

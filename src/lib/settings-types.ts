@@ -71,9 +71,9 @@ export const DEFAULT_SETTINGS: AllSettings = {
     email: "halo@wazzopi.com",
     phone: "0812-3456-7890",
     address: "Jl. Kopi Nusantara No. 17",
-    city: "Cimahi",
-    province: "Jawa Barat",
-    postalCode: "40512",
+    city: "Tangerang",
+    province: "Banten",
+    postalCode: "15111",
     country: "Indonesia",
     mapUrl: "",
   },
@@ -90,7 +90,7 @@ export const DEFAULT_SETTINGS: AllSettings = {
     midtrans: { enabled: false, mode: "sandbox", merchantId: "", clientKey: "", serverKey: "" },
   },
   shipping: {
-    originCity: "Cimahi",
+    originCity: "Tangerang",
     methods: [
       { id: "jne-reg", name: "JNE Reguler", cost: 18000, etd: "2-3 hari", enabled: true },
       { id: "jnt-ez", name: "J&T Express", cost: 17000, etd: "2-3 hari", enabled: true },

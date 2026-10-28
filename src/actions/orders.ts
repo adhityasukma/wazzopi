@@ -401,18 +401,20 @@ export async function updateOrderTracking(formData: FormData) {
       return { success: true };
     }
 
+    // Otomatis ubah status pesanan menjadi SHIPPED jika sebelumnya PENDING, PAID, atau PROCESSING
+    const shouldUpdateStatus = ["PENDING", "PAID", "PROCESSING"].includes(order.status);
+    const newStatus = shouldUpdateStatus ? "SHIPPED" : order.status;
+    const trackingUpdatedAt = new Date();
+
     // Ambil data tracking (live API atau fallback kontekstual)
     const trackingInfo = await trackShipment(courierCode, trackingNumber, {
       orderNo: order.orderNo,
       customerName: order.customerName,
       city: order.city,
       createdAt: order.createdAt,
-      status: order.status,
+      status: newStatus,
+      trackingUpdatedAt,
     });
-
-    // Otomatis ubah status pesanan menjadi SHIPPED jika sebelumnya PENDING, PAID, atau PROCESSING
-    const shouldUpdateStatus = ["PENDING", "PAID", "PROCESSING"].includes(order.status);
-    const newStatus = shouldUpdateStatus ? "SHIPPED" : order.status;
 
     await prisma.order.update({
       where: { id },
@@ -423,7 +425,7 @@ export async function updateOrderTracking(formData: FormData) {
         status: newStatus,
         trackingStatus: trackingInfo.status,
         trackingHistory: JSON.stringify(trackingInfo.checkpoints),
-        trackingUpdatedAt: new Date(),
+        trackingUpdatedAt,
       },
     });
 
@@ -463,6 +465,7 @@ export async function refreshOrderTracking(orderId: string) {
       city: order.city,
       createdAt: order.createdAt,
       status: order.status,
+      trackingUpdatedAt: order.trackingUpdatedAt || order.createdAt,
     });
 
     const isNowDelivered = trackingInfo.status === "DELIVERED";
