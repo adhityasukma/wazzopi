@@ -10,6 +10,7 @@ import { createSession, getSession, requireAdmin } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
 import { sendOrderCreatedEmail } from "@/lib/email";
 import { generateOrderNo, ORDER_STATUSES } from "@/lib/utils";
+import { calculateDynamicRates } from "@/lib/shipping-calculator";
 import type { FormState } from "./auth";
 
 const checkoutSchema = z.object({
@@ -89,7 +90,14 @@ export async function placeOrder(_: FormState, formData: FormData): Promise<Form
     if (!settings.shipping.pickupEnabled) return { error: "Ambil di toko tidak tersedia" };
     shippingName = "Ambil di Toko";
   } else {
-    const m = settings.shipping.methods.find((x) => x.id === d.shippingMethod && x.enabled);
+    // Hitung tarif dinamis berdasarkan kota tujuan dan produk
+    const dynamicMethods = calculateDynamicRates(
+      settings.shipping.methods,
+      d.city,
+      d.province,
+      lines.map((l) => ({ name: l.productName, variantName: l.variantName, quantity: l.quantity }))
+    );
+    const m = dynamicMethods.find((x) => x.id === d.shippingMethod && x.enabled);
     if (!m) return { error: "Metode pengiriman tidak tersedia" };
     shippingName = m.name;
     const free =

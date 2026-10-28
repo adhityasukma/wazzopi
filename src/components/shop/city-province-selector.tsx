@@ -14,6 +14,7 @@ interface CityProvinceSelectorProps {
   defaultCity?: string | null;
   defaultProvince?: string | null;
   required?: boolean;
+  onChange?: (data: { city: string; province: string }) => void;
 }
 
 // Rekomendasi kota populer saat input pertama kali difokuskan
@@ -33,6 +34,7 @@ export function CityProvinceSelector({
   defaultCity = "",
   defaultProvince = "",
   required = true,
+  onChange,
 }: CityProvinceSelectorProps) {
   const [cityInput, setCityInput] = useState(defaultCity || "");
   const [selectedCity, setSelectedCity] = useState(defaultCity || "");
@@ -50,9 +52,10 @@ export function CityProvinceSelector({
       const autoProv = findProvinceByCity(defaultCity);
       if (autoProv) {
         setSelectedProvince(autoProv);
+        onChange?.({ city: defaultCity, province: autoProv });
       }
     }
-  }, [defaultCity, selectedProvince]);
+  }, [defaultCity, selectedProvince, onChange]);
 
   // Filter daftar kota
   const suggestions = useMemo(() => {
@@ -74,6 +77,7 @@ export function CityProvinceSelector({
           if (matched) {
             setSelectedCity(cityInput.trim());
             setSelectedProvince(matched);
+            onChange?.({ city: cityInput.trim(), province: matched });
           }
         }
       }
@@ -81,13 +85,14 @@ export function CityProvinceSelector({
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [cityInput, selectedCity]);
+  }, [cityInput, selectedCity, onChange]);
 
   const handleSelect = (item: IndonesianRegion) => {
     setCityInput(item.city);
     setSelectedCity(item.city);
     setSelectedProvince(item.province);
     setIsOpen(false);
+    onChange?.({ city: item.city, province: item.province });
   };
 
   const handleClear = () => {
@@ -96,6 +101,7 @@ export function CityProvinceSelector({
     setSelectedProvince("");
     setIsOpen(true);
     inputRef.current?.focus();
+    onChange?.({ city: "", province: "" });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {

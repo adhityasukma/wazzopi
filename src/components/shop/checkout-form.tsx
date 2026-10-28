@@ -1,14 +1,15 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, CreditCard, ShieldCheck, Truck } from "lucide-react";
+import { ArrowLeft, CheckCircle2, CreditCard, Scale, ShieldCheck, Truck, Zap } from "lucide-react";
 import { placeOrder } from "@/actions/orders";
 import { useMoney, useHydrated } from "@/components/currency-provider";
 import { useAppLoading } from "@/components/loading-provider";
 import { Alert, Button, Field, Input, Textarea } from "@/components/ui";
 import { CityProvinceSelector } from "@/components/shop/city-province-selector";
+import { estimateCartWeight, calculateDynamicRates } from "@/lib/shipping-calculator";
 import { cartSubtotal, useCart } from "@/store/cart";
 import type { AllSettings } from "@/lib/settings-types";
 import { cn } from "@/lib/utils";
@@ -44,10 +45,36 @@ export function CheckoutForm({
     }
   }, [isPending, showLoading, hideLoading]);
 
-  const enabledShippings = settings.shipping.methods.filter((m) => m.enabled);
+  const [destination, setDestination] = useState({
+    city: customer?.city || "",
+    province: customer?.province || "",
+  });
+
+  const cartWeight = useMemo(() => estimateCartWeight(items), [items]);
+
+  const dynamicShippings = useMemo(() => {
+    return calculateDynamicRates(
+      settings.shipping.methods,
+      destination.city,
+      destination.province,
+      items
+    );
+  }, [settings.shipping.methods, destination.city, destination.province, items]);
+
+  const enabledShippings = dynamicShippings.filter((m) => m.enabled);
   const [selectedShipping, setSelectedShipping] = useState<string>(
     enabledShippings[0]?.id || (settings.shipping.pickupEnabled ? "pickup" : "")
   );
+
+  // Jika opsi kurir berubah dan kurir yang dipilih tidak tersedia (cth: GoSend di luar kota)
+  useEffect(() => {
+    if (selectedShipping !== "pickup") {
+      const exists = enabledShippings.some((m) => m.id === selectedShipping);
+      if (!exists && enabledShippings.length > 0) {
+        setSelectedShipping(enabledShippings[0].id);
+      }
+    }
+  }, [enabledShippings, selectedShipping]);
 
   const paymentOptions = [
     settings.payment.bankTransfer.enabled && {
@@ -173,6 +200,7 @@ export function CheckoutForm({
                   defaultCity={customer?.city || ""}
                   defaultProvince={customer?.province || ""}
                   required
+                  onChange={setDestination}
                 />
               </div>
               <Field label="Kode Pos" className="sm:col-span-2">
@@ -194,7 +222,25 @@ export function CheckoutForm({
 
           {/* Pilihan Pengiriman */}
           <div className="rounded-xl border border-latte bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-lg font-semibold text-espresso-900">2. Metode Pengiriman</h2>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-espresso-100 pb-3">
+              <div>
+                <h2 className="text-lg font-semibold text-espresso-900">2. Metode Pengiriman</h2>
+                <p className="text-xs text-espresso-500">
+                  {destination.city ? (
+                    <span>
+                      Tujuan: <strong className="text-espresso-800">{destination.city}</strong> ({dynamicShippings[0]?.zoneLabel || "Disesuaikan"})
+                    </span>
+                  ) : (
+                    <span className="text-caramel-700 font-medium">Pilih Kota / Kabupaten di atas untuk menghitung ongkir otomatis</span>
+                  )}
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5 rounded-full bg-cream px-3 py-1 text-xs font-medium text-espresso-700 border border-espresso-100">
+                <Scale className="h-3.5 w-3.5 text-caramel-600" />
+                <span>Berat: {cartWeight.totalGrams}g ({cartWeight.chargeableKg} kg)</span>
+              </div>
+            </div>
+
             <div className="space-y-3">
               {enabledShippings.map((m) => {
                 const isFree =
@@ -220,7 +266,14 @@ export function CheckoutForm({
                         className="text-caramel-600 focus:ring-caramel-500"
                       />
                       <div>
-                        <p className="font-semibold text-espresso-900">{m.name}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold text-espresso-900">{m.name}</p>
+                          {destination.city && m.isDynamic && (
+                            <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 border border-emerald-200">
+                              Otomatis
+                            </span>
+                          )}
+                        </div>
                         <p className="text-xs text-espresso-400">Estimasi tiba: {m.etd}</p>
                       </div>
                     </div>
