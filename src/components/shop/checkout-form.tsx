@@ -50,6 +50,8 @@ export function CheckoutForm({
     province: customer?.province || "",
   });
 
+  const hasSelectedCity = Boolean(destination.city && destination.city.trim());
+
   const cartWeight = useMemo(() => estimateCartWeight(items), [items]);
 
   const dynamicShippings = useMemo(() => {
@@ -62,19 +64,44 @@ export function CheckoutForm({
   }, [settings.shipping.methods, destination.city, destination.province, items]);
 
   const enabledShippings = dynamicShippings.filter((m) => m.enabled);
+
+  // Jika awalnya sudah ada data kota tersimpan (misal customer login), kurir pertama otomatis dipilih
   const [selectedShipping, setSelectedShipping] = useState<string>(
-    enabledShippings[0]?.id || (settings.shipping.pickupEnabled ? "pickup" : "")
+    hasSelectedCity ? (enabledShippings[0]?.id || "") : ""
   );
+
+  // Handler saat pemilihan kota berubah di CityProvinceSelector
+  const handleDestinationChange = (data: { city: string; province: string }) => {
+    setDestination(data);
+    if (data.city && data.city.trim()) {
+      // Auto-select kurir pertama otomatis jika bukan pickup
+      const rates = calculateDynamicRates(
+        settings.shipping.methods,
+        data.city,
+        data.province,
+        items
+      );
+      const firstEnabled = rates.find((m) => m.enabled);
+      if (firstEnabled && selectedShipping !== "pickup") {
+        setSelectedShipping(firstEnabled.id);
+      }
+    } else {
+      // Jika kota dikosongkan
+      if (selectedShipping !== "pickup") {
+        setSelectedShipping("");
+      }
+    }
+  };
 
   // Jika opsi kurir berubah dan kurir yang dipilih tidak tersedia (cth: GoSend di luar kota)
   useEffect(() => {
-    if (selectedShipping !== "pickup") {
+    if (hasSelectedCity && selectedShipping && selectedShipping !== "pickup") {
       const exists = enabledShippings.some((m) => m.id === selectedShipping);
       if (!exists && enabledShippings.length > 0) {
         setSelectedShipping(enabledShippings[0].id);
       }
     }
-  }, [enabledShippings, selectedShipping]);
+  }, [enabledShippings, selectedShipping, hasSelectedCity]);
 
   const paymentOptions = [
     settings.payment.bankTransfer.enabled && {
@@ -104,7 +131,7 @@ export function CheckoutForm({
   let shippingCost = 0;
   if (selectedShipping === "pickup") {
     shippingCost = 0;
-  } else {
+  } else if (hasSelectedCity && selectedShipping) {
     const method = enabledShippings.find((m) => m.id === selectedShipping);
     const isFree =
       settings.shipping.freeShippingEnabled &&
@@ -200,7 +227,7 @@ export function CheckoutForm({
                   defaultCity={customer?.city || ""}
                   defaultProvince={customer?.province || ""}
                   required
-                  onChange={setDestination}
+                  onChange={handleDestinationChange}
                 />
               </div>
               <Field label="Kode Pos" className="sm:col-span-2">
@@ -226,12 +253,12 @@ export function CheckoutForm({
               <div>
                 <h2 className="text-lg font-semibold text-espresso-900">2. Metode Pengiriman</h2>
                 <p className="text-xs text-espresso-500">
-                  {destination.city ? (
+                  {hasSelectedCity ? (
                     <span>
                       Tujuan: <strong className="text-espresso-800">{destination.city}</strong> ({dynamicShippings[0]?.zoneLabel || "Disesuaikan"})
                     </span>
                   ) : (
-                    <span className="text-caramel-700 font-medium">Pilih Kota / Kabupaten di atas untuk menghitung ongkir otomatis</span>
+                    <span className="text-caramel-700 font-medium">Lengkapi alamat pengiriman di atas untuk melihat pilihan kurir</span>
                   )}
                 </p>
               </div>
@@ -241,17 +268,107 @@ export function CheckoutForm({
               </div>
             </div>
 
-            <div className="space-y-3">
-              {enabledShippings.map((m) => {
-                const isFree =
-                  settings.shipping.freeShippingEnabled &&
-                  subtotal >= settings.shipping.freeShippingMin;
-                return (
+            {!hasSelectedCity ? (
+              <div className="space-y-4">
+                <div className="rounded-xl border border-dashed border-caramel-200 bg-caramel-50/40 p-6 text-center">
+                  <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-caramel-100 text-caramel-700">
+                    <Truck className="h-5 w-5" />
+                  </div>
+                  <p className="text-sm font-semibold text-espresso-900">
+                    Silakan isi Alamat Pengiriman di atas terlebih dahulu
+                  </p>
+                  <p className="mt-1 text-xs text-espresso-500 max-w-md mx-auto">
+                    Setelah <strong>Kota / Kabupaten</strong> dipilih, daftar opsi kurir (JNE, J&T, SiCepat) dan tarif ongkir resmi akan otomatis muncul dan terkalkulasi.
+                  </p>
+                </div>
+
+                {settings.shipping.pickupEnabled && (
+                  <div className="pt-2">
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-espresso-400">
+                      Atau Pilih Opsi Ambil Langsung di Kedai:
+                    </p>
+                    <label
+                      className={cn(
+                        "flex cursor-pointer items-center justify-between rounded-lg border p-4 transition-all",
+                        selectedShipping === "pickup"
+                          ? "border-caramel-500 bg-caramel-50/30 ring-1 ring-caramel-500"
+                          : "border-espresso-100 hover:border-espresso-300"
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="radio"
+                          name="shippingMethod"
+                          value="pickup"
+                          checked={selectedShipping === "pickup"}
+                          onChange={() => setSelectedShipping("pickup")}
+                          className="text-caramel-600 focus:ring-caramel-500"
+                        />
+                        <div>
+                          <p className="font-semibold text-espresso-900">Ambil Sendiri di Toko</p>
+                          <p className="text-xs text-espresso-400">
+                            {settings.general.address}, {settings.general.city}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="font-semibold text-emerald-700">GRATIS</span>
+                    </label>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {enabledShippings.map((m) => {
+                  const isFree =
+                    settings.shipping.freeShippingEnabled &&
+                    subtotal >= settings.shipping.freeShippingMin;
+                  return (
+                    <label
+                      key={m.id}
+                      className={cn(
+                        "flex cursor-pointer items-center justify-between rounded-lg border p-4 transition-all",
+                        selectedShipping === m.id
+                          ? "border-caramel-500 bg-caramel-50/30 ring-1 ring-caramel-500"
+                          : "border-espresso-100 hover:border-espresso-300"
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="radio"
+                          name="shippingMethod"
+                          value={m.id}
+                          checked={selectedShipping === m.id}
+                          onChange={() => setSelectedShipping(m.id)}
+                          className="text-caramel-600 focus:ring-caramel-500"
+                        />
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-espresso-900">{m.name}</p>
+                            {m.isDynamic && (
+                              <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 border border-emerald-200">
+                                Otomatis
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-espresso-400">Estimasi tiba: {m.etd}</p>
+                        </div>
+                      </div>
+                      <span className="font-semibold text-espresso-800">
+                        {isFree ? (
+                          <span className="text-emerald-700">GRATIS</span>
+                        ) : (
+                          money(m.cost)
+                        )}
+                      </span>
+                    </label>
+                  );
+                })}
+
+                {settings.shipping.pickupEnabled && (
                   <label
-                    key={m.id}
                     className={cn(
                       "flex cursor-pointer items-center justify-between rounded-lg border p-4 transition-all",
-                      selectedShipping === m.id
+                      selectedShipping === "pickup"
                         ? "border-caramel-500 bg-caramel-50/30 ring-1 ring-caramel-500"
                         : "border-espresso-100 hover:border-espresso-300"
                     )}
@@ -260,63 +377,23 @@ export function CheckoutForm({
                       <input
                         type="radio"
                         name="shippingMethod"
-                        value={m.id}
-                        checked={selectedShipping === m.id}
-                        onChange={() => setSelectedShipping(m.id)}
+                        value="pickup"
+                        checked={selectedShipping === "pickup"}
+                        onChange={() => setSelectedShipping("pickup")}
                         className="text-caramel-600 focus:ring-caramel-500"
                       />
                       <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-semibold text-espresso-900">{m.name}</p>
-                          {destination.city && m.isDynamic && (
-                            <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 border border-emerald-200">
-                              Otomatis
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs text-espresso-400">Estimasi tiba: {m.etd}</p>
+                        <p className="font-semibold text-espresso-900">Ambil Sendiri di Toko</p>
+                        <p className="text-xs text-espresso-400">
+                          {settings.general.address}, {settings.general.city}
+                        </p>
                       </div>
                     </div>
-                    <span className="font-semibold text-espresso-800">
-                      {isFree ? (
-                        <span className="text-emerald-700">GRATIS</span>
-                      ) : (
-                        money(m.cost)
-                      )}
-                    </span>
+                    <span className="font-semibold text-emerald-700">GRATIS</span>
                   </label>
-                );
-              })}
-
-              {settings.shipping.pickupEnabled && (
-                <label
-                  className={cn(
-                    "flex cursor-pointer items-center justify-between rounded-lg border p-4 transition-all",
-                    selectedShipping === "pickup"
-                      ? "border-caramel-500 bg-caramel-50/30 ring-1 ring-caramel-500"
-                      : "border-espresso-100 hover:border-espresso-300"
-                  )}
-                >
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="radio"
-                      name="shippingMethod"
-                      value="pickup"
-                      checked={selectedShipping === "pickup"}
-                      onChange={() => setSelectedShipping("pickup")}
-                      className="text-caramel-600 focus:ring-caramel-500"
-                    />
-                    <div>
-                      <p className="font-semibold text-espresso-900">Ambil Sendiri di Toko</p>
-                      <p className="text-xs text-espresso-400">
-                        {settings.general.address}, {settings.general.city}
-                      </p>
-                    </div>
-                  </div>
-                  <span className="font-semibold text-emerald-700">GRATIS</span>
-                </label>
-              )}
-            </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Pilihan Pembayaran */}
@@ -387,11 +464,19 @@ export function CheckoutForm({
                 <span>Subtotal Produk</span>
                 <span className="font-medium text-espresso-900">{money(subtotal)}</span>
               </div>
-              <div className="flex justify-between text-espresso-600">
+              <div className="flex justify-between items-center text-espresso-600">
                 <span>Biaya Pengiriman</span>
-                <span className="font-medium text-espresso-900">
-                  {shippingCost === 0 ? <span className="text-emerald-700">Gratis</span> : money(shippingCost)}
-                </span>
+                {selectedShipping === "pickup" ? (
+                  <span className="font-medium text-emerald-700">Gratis (Ambil di Toko)</span>
+                ) : hasSelectedCity && selectedShipping ? (
+                  <span className="font-medium text-espresso-900">
+                    {shippingCost === 0 ? <span className="text-emerald-700">Gratis</span> : money(shippingCost)}
+                  </span>
+                ) : (
+                  <span className="text-xs font-normal text-espresso-400 italic">
+                    Dihitung setelah isi alamat
+                  </span>
+                )}
               </div>
               {codFee > 0 && (
                 <div className="flex justify-between text-espresso-600">
@@ -406,17 +491,28 @@ export function CheckoutForm({
                 </div>
               )}
               <div className="flex items-baseline justify-between border-t border-latte pt-3">
-                <span className="font-semibold text-espresso-900">Total Pembayaran</span>
+                <div>
+                  <span className="font-semibold text-espresso-900">Total Pembayaran</span>
+                  {!hasSelectedCity && selectedShipping !== "pickup" && (
+                    <p className="text-[11px] text-espresso-400">Belum termasuk ongkir</p>
+                  )}
+                </div>
                 <span className="font-display text-2xl font-bold text-espresso-900">
                   {money(total)}
                 </span>
               </div>
             </div>
 
+            {!hasSelectedCity && selectedShipping !== "pickup" && (
+              <p className="mt-4 text-center text-xs text-caramel-800 bg-caramel-50/80 py-2.5 px-3 rounded-lg border border-caramel-200">
+                Lengkapi Kota / Kabupaten pada alamat di atas untuk melanjutkan pemesanan
+              </p>
+            )}
+
             <Button
               type="submit"
-              disabled={isPending}
-              className="mt-6 w-full justify-center h-12 text-base font-semibold"
+              disabled={isPending || (!hasSelectedCity && selectedShipping !== "pickup")}
+              className="mt-4 w-full justify-center h-12 text-base font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isPending ? "Memproses Pesanan..." : "Buat Pesanan Sekarang"}
             </Button>
