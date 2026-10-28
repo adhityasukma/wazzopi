@@ -4,6 +4,8 @@ import { getSettings } from "@/lib/settings";
 import {
   SUPPORTED_COURIERS,
   getCourierName,
+  detectCourierByAwb,
+  validateAwbForCourier,
   type TrackingCheckpoint,
   type TrackingResult,
 } from "./tracking-constants";
@@ -11,6 +13,8 @@ import {
 export {
   SUPPORTED_COURIERS,
   getCourierName,
+  detectCourierByAwb,
+  validateAwbForCourier,
   type TrackingCheckpoint,
   type TrackingResult,
 };

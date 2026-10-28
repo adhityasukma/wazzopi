@@ -373,8 +373,16 @@ export async function updateOrderTracking(formData: FormData) {
   if (!id) return { success: false, error: "ID pesanan tidak valid" };
 
   try {
-    const { getCourierName, trackShipment } = await import("@/lib/tracking");
+    const { getCourierName, trackShipment, validateAwbForCourier } = await import("@/lib/tracking");
     const courierName = getCourierName(courierCode);
+
+    // Validasi format nomor resi dan kesesuaian kurir
+    if (trackingNumber) {
+      const validation = validateAwbForCourier(courierCode, trackingNumber);
+      if (!validation.valid) {
+        return { success: false, error: validation.error || "Nomor resi tidak valid untuk kurir yang dipilih" };
+      }
+    }
 
     const order = await prisma.order.findUnique({
       where: { id },
@@ -398,7 +406,7 @@ export async function updateOrderTracking(formData: FormData) {
       revalidatePath(`/admin/orders/${id}`);
       revalidatePath("/admin/orders");
       revalidatePath("/account");
-      return { success: true };
+      return { success: true, message: "Nomor resi berhasil dihapus" };
     }
 
     // Otomatis ubah status pesanan menjadi SHIPPED jika sebelumnya PENDING, PAID, atau PROCESSING
@@ -441,7 +449,12 @@ export async function updateOrderTracking(formData: FormData) {
     revalidatePath(`/admin/orders/${id}`);
     revalidatePath("/admin/orders");
     revalidatePath("/account");
-    return { success: true };
+
+    const feedbackMessage = trackingInfo.isLive
+      ? `Nomor resi resmi terverifikasi di server ${courierName}! Data kurir live disinkronkan.`
+      : `Nomor resi disimpan. (Belum terindeks di server resmi ${courierName}, menggunakan estimasi pelacakan toko).`;
+
+    return { success: true, isLive: trackingInfo.isLive, message: feedbackMessage };
   } catch (error: any) {
     console.error("[updateOrderTracking error]:", error);
     return { success: false, error: error.message || "Gagal memperbarui nomor resi" };

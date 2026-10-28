@@ -1,9 +1,13 @@
 "use client";
 
 import React, { useState, useTransition } from "react";
-import { Truck, Check, AlertCircle, RotateCw } from "lucide-react";
+import { Truck, Check, AlertCircle, RotateCw, Info } from "lucide-react";
 import { updateOrderTracking } from "@/actions/orders";
-import { SUPPORTED_COURIERS } from "@/lib/tracking-constants";
+import {
+  SUPPORTED_COURIERS,
+  detectCourierByAwb,
+  validateAwbForCourier,
+} from "@/lib/tracking-constants";
 import { OrderTrackingModal, TrackingCheckpoint } from "@/components/shop/order-tracking-modal";
 
 type OrderTrackingFormProps = {
@@ -39,9 +43,23 @@ export function OrderTrackingForm({
     historyList = [];
   }
 
+  const detectedMismatch = trackingNumber.trim()
+    ? detectCourierByAwb(trackingNumber)
+    : null;
+  const isMismatch = Boolean(detectedMismatch && detectedMismatch.code !== courierCode);
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setMessage(null);
+
+    const trimmedAwb = trackingNumber.trim();
+    if (trimmedAwb) {
+      const validation = validateAwbForCourier(courierCode, trimmedAwb);
+      if (!validation.valid) {
+        setMessage({ type: "error", text: validation.error || "Nomor resi tidak valid" });
+        return;
+      }
+    }
 
     const formData = new FormData(e.currentTarget);
     startTransition(async () => {
@@ -49,9 +67,11 @@ export function OrderTrackingForm({
       if (res.success) {
         setMessage({
           type: "success",
-          text: trackingNumber
-            ? "Nomor resi disimpan! Riwayat pelacakan kurir telah diperbarui otomatis."
-            : "Nomor resi telah dihapus.",
+          text:
+            (res as any).message ||
+            (trackingNumber
+              ? "Nomor resi disimpan! Riwayat pelacakan kurir telah diperbarui otomatis."
+              : "Nomor resi telah dihapus."),
         });
       } else {
         setMessage({ type: "error", text: res.error || "Gagal menyimpan nomor resi" });
@@ -119,10 +139,32 @@ export function OrderTrackingForm({
             type="text"
             name="trackingNumber"
             value={trackingNumber}
-            onChange={(e) => setTrackingNumber(e.target.value.toUpperCase())}
+            onChange={(e) => {
+              setTrackingNumber(e.target.value.toUpperCase());
+              if (message?.type === "error") setMessage(null);
+            }}
             placeholder="Contoh: JNE0192837465, JP12345678"
             className="w-full font-mono font-bold tracking-wide rounded-lg border border-espresso-200 bg-white p-2.5 text-sm text-espresso-900 placeholder:font-sans placeholder:font-normal placeholder:text-espresso-300 focus:outline-none focus:ring-2 focus:ring-caramel-500"
           />
+
+          {isMismatch && detectedMismatch && (
+            <div className="mt-2 flex items-center justify-between gap-2 rounded-lg bg-amber-50 p-2.5 text-xs text-amber-900 border border-amber-200">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <AlertCircle className="h-4 w-4 shrink-0 text-amber-600" />
+                <span className="truncate">
+                  Format resi terdeteksi sebagai <strong>{detectedMismatch.name}</strong> ({detectedMismatch.reason}).
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCourierCode(detectedMismatch.code)}
+                className="shrink-0 font-bold underline text-amber-800 hover:text-amber-950 cursor-pointer"
+              >
+                Ganti ke {detectedMismatch.name}
+              </button>
+            </div>
+          )}
+
           <p className="mt-1 text-[11px] text-espresso-400">
             Setelah disimpan, sistem akan melacak riwayat posisi kurir secara otomatis.
           </p>
