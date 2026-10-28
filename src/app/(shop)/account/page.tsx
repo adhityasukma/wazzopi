@@ -10,6 +10,7 @@ import { logout } from "@/actions/auth";
 import { AccountProfileForm } from "@/components/shop/account-profile-form";
 import { AccountPasswordForm } from "@/components/shop/account-password-form";
 import { MidtransPayButton } from "@/components/shop/midtrans-pay-button";
+import { OrderTrackingModal } from "@/components/shop/order-tracking-modal";
 
 export const metadata = {
   title: "Member Area",
@@ -109,7 +110,14 @@ export default async function AccountPage() {
                     </div>
 
                     <div className="mt-3 flex items-center justify-between border-t border-latte pt-3 text-xs">
-                      <span className="text-espresso-500">Pengiriman: {order.shippingMethod}</span>
+                      <div>
+                        <span className="text-espresso-500">Pengiriman: {order.shippingMethod}</span>
+                        {order.trackingNumber && (
+                          <p className="mt-0.5 text-[11px] text-espresso-700 font-mono font-medium">
+                            Resi: <strong className="text-caramel-700 font-bold">{order.trackingNumber}</strong> ({order.courierName || order.courierCode?.toUpperCase()})
+                          </p>
+                        )}
+                      </div>
                       <div className="text-right">
                         <span className="text-espresso-500">Total: </span>
                         <span className="font-display font-bold text-sm text-espresso-900">
@@ -119,12 +127,33 @@ export default async function AccountPage() {
                     </div>
 
                     <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-latte/60 pt-3">
-                      <Link
-                        href={`/checkout/success/${order.orderNo}`}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-espresso-600 hover:text-caramel-600 hover:underline"
-                      >
-                        Lihat Rincian Pesanan &rarr;
-                      </Link>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <Link
+                          href={`/checkout/success/${order.orderNo}`}
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-espresso-600 hover:text-caramel-600 hover:underline"
+                        >
+                          Lihat Rincian Pesanan &rarr;
+                        </Link>
+
+                        {order.trackingNumber && (
+                          <OrderTrackingModal
+                            orderId={order.id}
+                            orderNo={order.orderNo}
+                            courierName={order.courierName || order.courierCode?.toUpperCase() || "Ekspedisi"}
+                            trackingNumber={order.trackingNumber}
+                            status={order.status}
+                            trackingStatus={order.trackingStatus}
+                            history={(() => {
+                              try {
+                                return order.trackingHistory ? JSON.parse(order.trackingHistory) : [];
+                              } catch {
+                                return [];
+                              }
+                            })()}
+                            isCustomerView={true}
+                          />
+                        )}
+                      </div>
 
                       {order.paymentMethod === "midtrans" && order.status === "PENDING" && (
                         <MidtransPayButton

@@ -14,6 +14,7 @@ import {
   MinusSquare,
   Square,
   Trash2,
+  Truck,
   X,
 } from "lucide-react";
 import { formatCurrency, type CurrencySettings } from "@/lib/currency";
@@ -43,6 +44,9 @@ export type OrderRow = {
   }[];
   total: number;
   status: string;
+  trackingNumber?: string | null;
+  courierName?: string | null;
+  courierCode?: string | null;
 };
 
 type Props = {
@@ -501,6 +505,12 @@ export function OrdersTable({
                         <p className="text-espresso-400">
                           {PAYMENT_LABEL[o.paymentMethod] || o.paymentMethod}
                         </p>
+                        {o.trackingNumber && (
+                          <span className="inline-flex items-center gap-1 font-mono font-bold text-[10px] text-caramel-700 bg-caramel-50 px-1.5 py-0.5 rounded border border-caramel-200 mt-1">
+                            <Truck className="h-2.5 w-2.5 text-caramel-600" />
+                            {o.trackingNumber}
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-xs text-espresso-600">
                         {o.items.length} item (

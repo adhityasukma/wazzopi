@@ -90,10 +90,16 @@ model Order {
   shippingMethod  String
   shippingCost    Int         @default(0)
   paymentMethod   String
-  subtotal        Int
-  total           Int
-  status          String      @default("PENDING")
-  createdAt       DateTime    @default(now())
+  subtotal          Int
+  total             Int
+  status            String      @default("PENDING")
+  trackingNumber    String?
+  courierCode       String?
+  courierName       String?
+  trackingStatus    String?
+  trackingHistory   String?
+  trackingUpdatedAt DateTime?
+  createdAt         DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
   items           OrderItem[]
 }

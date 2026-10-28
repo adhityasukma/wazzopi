@@ -7,6 +7,7 @@ import { formatCurrency } from "@/lib/currency";
 import { formatDate, ORDER_STATUSES, ORDER_STATUS_LABEL, ORDER_STATUS_STYLE, PAYMENT_LABEL } from "@/lib/utils";
 import { requireAdmin } from "@/lib/auth";
 import { updateOrderStatus } from "@/actions/orders";
+import { OrderTrackingForm } from "@/components/admin/order-tracking-form";
 
 export const metadata = {
   title: "Rincian Pesanan",
@@ -160,6 +161,18 @@ export default async function AdminOrderDetailPage({
               </button>
             </form>
           </div>
+
+          {/* Form Input Resi & Tracking Otomatis */}
+          <OrderTrackingForm
+            orderId={order.id}
+            orderNo={order.orderNo}
+            currentCourierCode={order.courierCode}
+            currentCourierName={order.courierName}
+            currentTrackingNumber={order.trackingNumber}
+            currentTrackingStatus={order.trackingStatus}
+            trackingHistory={order.trackingHistory}
+            orderStatus={order.status}
+          />
 
           <div className="rounded-xl border border-latte bg-white p-6 shadow-xs text-sm space-y-3">
             <h2 className="text-base font-bold text-espresso-900 border-b border-latte pb-3">

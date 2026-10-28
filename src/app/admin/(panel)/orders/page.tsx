@@ -29,6 +29,7 @@ export default async function AdminOrdersPage({
             { orderNo: { contains: q } },
             { customerName: { contains: q } },
             { customerPhone: { contains: q } },
+            { trackingNumber: { contains: q } },
           ],
         }
       : {}),

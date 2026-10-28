@@ -10,6 +10,7 @@ import { LinkButton } from "@/components/ui";
 import { ClearCartOnSuccess } from "@/components/shop/clear-cart";
 import { CopyButton } from "@/components/shop/copy-button";
 import { MidtransPayButton } from "@/components/shop/midtrans-pay-button";
+import { OrderTrackingModal } from "@/components/shop/order-tracking-modal";
 
 export const metadata = {
   title: "Terima Kasih Atas Pesanan Anda",
@@ -231,6 +232,33 @@ export default async function CheckoutSuccessPage({
             <span className="text-espresso-500">Metode Pengiriman</span>
             <span className="font-medium text-espresso-900">{order.shippingMethod}</span>
           </div>
+          {order.trackingNumber && (
+            <div className="flex items-center justify-between rounded-lg bg-latte/40 p-3 border border-latte">
+              <div>
+                <span className="text-espresso-500 block text-xs">Resi Pengiriman</span>
+                <span className="font-mono font-bold text-caramel-700">{order.trackingNumber}</span>
+                <span className="text-xs text-espresso-500 ml-1.5">
+                  ({order.courierName || order.courierCode?.toUpperCase()})
+                </span>
+              </div>
+              <OrderTrackingModal
+                orderId={order.id}
+                orderNo={order.orderNo}
+                courierName={order.courierName || order.courierCode?.toUpperCase() || "Ekspedisi"}
+                trackingNumber={order.trackingNumber}
+                status={order.status}
+                trackingStatus={order.trackingStatus}
+                history={(() => {
+                  try {
+                    return order.trackingHistory ? JSON.parse(order.trackingHistory) : [];
+                  } catch {
+                    return [];
+                  }
+                })()}
+                isCustomerView={true}
+              />
+            </div>
+          )}
           <div className="flex justify-between">
             <span className="text-espresso-500">Metode Pembayaran</span>
             <span className="font-medium text-espresso-900">{PAYMENT_LABEL[order.paymentMethod] || order.paymentMethod}</span>

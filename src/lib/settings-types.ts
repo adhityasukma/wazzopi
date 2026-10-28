@@ -29,6 +29,7 @@ export type ShippingSettings = {
   freeShippingEnabled: boolean;
   freeShippingMin: number;
   pickupEnabled: boolean;
+  binderbyteApiKey?: string;
 };
 
 export type OtherSettings = {

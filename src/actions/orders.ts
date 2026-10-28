@@ -301,3 +301,175 @@ export async function deleteAllOrders() {
     return { success: false, error: error.message || "Gagal menghapus seluruh pesanan" };
   }
 }
+
+export async function updateOrderTracking(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") || "").trim();
+  const courierCode = String(formData.get("courierCode") || "").trim().toLowerCase();
+  const trackingNumber = String(formData.get("trackingNumber") || "").trim().toUpperCase();
+
+  if (!id) return { success: false, error: "ID pesanan tidak valid" };
+
+  try {
+    const { getCourierName, trackShipment } = await import("@/lib/tracking");
+    const courierName = getCourierName(courierCode);
+
+    const order = await prisma.order.findUnique({
+      where: { id },
+    });
+
+    if (!order) return { success: false, error: "Pesanan tidak ditemukan" };
+
+    // Jika nomor resi dihapus
+    if (!trackingNumber) {
+      await prisma.order.update({
+        where: { id },
+        data: {
+          trackingNumber: null,
+          courierCode: null,
+          courierName: null,
+          trackingStatus: null,
+          trackingHistory: null,
+          trackingUpdatedAt: null,
+        },
+      });
+      revalidatePath(`/admin/orders/${id}`);
+      revalidatePath("/admin/orders");
+      revalidatePath("/account");
+      return { success: true };
+    }
+
+    // Ambil data tracking (live API atau fallback kontekstual)
+    const trackingInfo = await trackShipment(courierCode, trackingNumber, {
+      orderNo: order.orderNo,
+      customerName: order.customerName,
+      city: order.city,
+      createdAt: order.createdAt,
+      status: order.status,
+    });
+
+    // Otomatis ubah status pesanan menjadi SHIPPED jika sebelumnya PENDING, PAID, atau PROCESSING
+    const shouldUpdateStatus = ["PENDING", "PAID", "PROCESSING"].includes(order.status);
+    const newStatus = shouldUpdateStatus ? "SHIPPED" : order.status;
+
+    await prisma.order.update({
+      where: { id },
+      data: {
+        courierCode,
+        courierName,
+        trackingNumber,
+        status: newStatus,
+        trackingStatus: trackingInfo.status,
+        trackingHistory: JSON.stringify(trackingInfo.checkpoints),
+        trackingUpdatedAt: new Date(),
+      },
+    });
+
+    revalidatePath(`/admin/orders/${id}`);
+    revalidatePath("/admin/orders");
+    revalidatePath("/account");
+    return { success: true };
+  } catch (error: any) {
+    console.error("[updateOrderTracking error]:", error);
+    return { success: false, error: error.message || "Gagal memperbarui nomor resi" };
+  }
+}
+
+export async function refreshOrderTracking(orderId: string) {
+  try {
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+    });
+
+    if (!order || !order.trackingNumber || !order.courierCode) {
+      return { success: false, error: "Data resi belum lengkap" };
+    }
+
+    const { trackShipment } = await import("@/lib/tracking");
+    const trackingInfo = await trackShipment(order.courierCode, order.trackingNumber, {
+      orderNo: order.orderNo,
+      customerName: order.customerName,
+      city: order.city,
+      createdAt: order.createdAt,
+      status: order.status,
+    });
+
+    await prisma.order.update({
+      where: { id: orderId },
+      data: {
+        trackingStatus: trackingInfo.status,
+        trackingHistory: JSON.stringify(trackingInfo.checkpoints),
+        trackingUpdatedAt: new Date(),
+        // Jika dari API statusnya DELIVERED, otomatis selesaikan pesanan
+        status: trackingInfo.status === "DELIVERED" ? "COMPLETED" : order.status,
+      },
+    });
+
+    revalidatePath(`/admin/orders/${orderId}`);
+    revalidatePath("/account");
+    return { success: true, tracking: trackingInfo };
+  } catch (error: any) {
+    console.error("[refreshOrderTracking error]:", error);
+    return { success: false, error: error.message || "Gagal memperbarui tracking" };
+  }
+}
+
+export async function confirmOrderReceived(orderId: string) {
+  const session = await getSession();
+  if (!session) return { success: false, error: "Silakan login terlebih dahulu" };
+
+  try {
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+    });
+
+    if (!order) return { success: false, error: "Pesanan tidak ditemukan" };
+
+    // Pastikan pesanan milik user yang sedang login (atau admin)
+    if (session.role !== "ADMIN" && order.userId !== session.id) {
+      return { success: false, error: "Akses tidak diizinkan" };
+    }
+
+    // Parse riwayat lama
+    let checkpoints = [];
+    try {
+      checkpoints = order.trackingHistory ? JSON.parse(order.trackingHistory) : [];
+    } catch {
+      checkpoints = [];
+    }
+
+    const nowStr = new Date().toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }) + " WIB";
+
+    // Tambahkan checkpoint selesai di posisi paling atas
+    checkpoints.unshift({
+      date: nowStr,
+      desc: `Pesanan telah dikonfirmasi diterima dengan baik oleh ${order.customerName}. Transaksi selesai.`,
+      location: order.city,
+      status: "DELIVERED",
+    });
+
+    await prisma.order.update({
+      where: { id: orderId },
+      data: {
+        status: "COMPLETED",
+        trackingStatus: "DELIVERED",
+        trackingHistory: JSON.stringify(checkpoints),
+        trackingUpdatedAt: new Date(),
+      },
+    });
+
+    revalidatePath(`/admin/orders/${orderId}`);
+    revalidatePath("/admin/orders");
+    revalidatePath("/account");
+    return { success: true };
+  } catch (error: any) {
+    console.error("[confirmOrderReceived error]:", error);
+    return { success: false, error: error.message || "Gagal mengonfirmasi pesanan" };
+  }
+}

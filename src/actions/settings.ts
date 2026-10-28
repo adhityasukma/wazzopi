@@ -90,13 +90,22 @@ export async function saveShipping(_: FormState, f: FormData): Promise<FormState
   } catch {
     return { error: "Data kurir tidak valid" };
   }
+  const apiKey = str(f, "binderbyteApiKey");
   await saveSetting("shipping", {
     originCity: str(f, "originCity"),
     methods,
     freeShippingEnabled: bool(f, "freeShippingEnabled"),
     freeShippingMin: num(f, "freeShippingMin"),
     pickupEnabled: bool(f, "pickupEnabled"),
+    binderbyteApiKey: apiKey,
   });
+  if (apiKey) {
+    await prisma.setting.upsert({
+      where: { key: "binderbyte_api_key" },
+      update: { value: apiKey },
+      create: { key: "binderbyte_api_key", value: apiKey },
+    });
+  }
   return done();
 }
 

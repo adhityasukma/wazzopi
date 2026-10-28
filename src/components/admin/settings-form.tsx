@@ -632,6 +632,30 @@ export function SettingsForm({
                 </p>
               </div>
 
+              {/* Integrasi API Cek Resi Otomatis (Binderbyte) */}
+              <div className="rounded-lg border border-latte p-4 bg-latte/20 space-y-3">
+                <div>
+                  <h3 className="font-semibold text-espresso-900 text-sm">
+                    Integrasi API Pelacak Resi Otomatis (Binderbyte)
+                  </h3>
+                  <p className="text-xs text-espresso-500">
+                    Otomatis melacak posisi kurir (JNE, J&amp;T, SiCepat, Anteraja, POS, TIKI) ke server ekspedisi resmi.
+                  </p>
+                </div>
+
+                <Field label="Binderbyte API Key (Opsional / Free Tier)">
+                  <Input
+                    name="binderbyteApiKey"
+                    type="password"
+                    defaultValue={initialSettings.shipping.binderbyteApiKey || ""}
+                    placeholder="Masukkan API Key dari dashboard binderbyte.com"
+                  />
+                  <p className="mt-1 text-[11px] text-espresso-400">
+                    Dapatkan API Key gratis di <strong>binderbyte.com</strong>. Jika dikosongkan, sistem pelacakan otomatis menggunakan mode fallback cerdas berbasis data pesanan.
+                  </p>
+                </Field>
+              </div>
+
               <div className="pt-4 border-t border-latte">
                 <Button type="submit" disabled={shippingPending} className="justify-center">
                   {shippingPending ? "Menyimpan..." : "Simpan Pengaturan Pengiriman"}
