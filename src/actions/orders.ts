@@ -113,10 +113,21 @@ export async function placeOrder(_: FormState, formData: FormData): Promise<Form
   const orderNo = generateOrderNo(settings.other.orderPrefix || "WZ");
   const extraNotes = [d.notes, codFee ? `Biaya COD: ${codFee}` : "", tax ? `Pajak: ${tax}` : ""].filter(Boolean).join(" | ");
 
-  let assignedUserId: string | null = session?.id || null;
+  let assignedUserId: string | null = null;
   let newAccountInfo: { email: string; tempPassword: string } | null = null;
 
-  // Jika pembeli belum login, cek akun yang ada atau buatkan akun Member baru secara otomatis
+  // 1. Jika ada session login di browser, verifikasi apakah User ID tersebut benar-benar ada di database
+  if (session?.id) {
+    const sessionUser = await prisma.user.findUnique({
+      where: { id: session.id },
+      select: { id: true },
+    });
+    if (sessionUser) {
+      assignedUserId = sessionUser.id;
+    }
+  }
+
+  // 2. Jika user ID tidak ditemukan di database (atau session lama/kadaluarsa), cocokkan via email atau buat akun baru
   if (!assignedUserId) {
     const cleanEmail = d.customerEmail.toLowerCase().trim();
     const existingUser = await prisma.user.findUnique({
