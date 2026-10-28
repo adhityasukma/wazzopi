@@ -34,6 +34,19 @@ function formatDateStr(d: Date): string {
   );
 }
 
+function formatApiDate(dateStr: string): string {
+  if (!dateStr) return "";
+  try {
+    const parsed = new Date(dateStr.replace(" ", "T"));
+    if (!isNaN(parsed.getTime())) {
+      return formatDateStr(parsed);
+    }
+  } catch {
+    // Abaikan jika parsing gagal
+  }
+  return dateStr;
+}
+
 /**
  * Mengambil informasi tracking resi ekspedisi.
  * Jika API Key Binderbyte tersedia, memanggil API resmi secara otomatis.
@@ -56,14 +69,18 @@ export async function trackShipment(
   const awb = trackingNumber.trim();
   const courierName = getCourierName(courier);
 
-  // 1. Ambil kota asal pengirim dari pengaturan toko
+  // 1. Ambil kota asal pengirim dari pengaturan toko & API Key Binderbyte
   let storeOrigin = "Tangerang";
+  let apiKey = process.env.BINDERBYTE_API_KEY;
   try {
     const settings = await getSettings();
     if (settings.shipping?.originCity?.trim()) {
       storeOrigin = settings.shipping.originCity.trim();
     } else if (settings.general?.city?.trim()) {
       storeOrigin = settings.general.city.trim();
+    }
+    if (!apiKey && settings.shipping?.binderbyteApiKey?.trim()) {
+      apiKey = settings.shipping.binderbyteApiKey.trim();
     }
   } catch {
     // Abaikan jika database setting belum ada
@@ -73,15 +90,14 @@ export async function trackShipment(
   const destCity = cleanCityName(orderContext?.city, originCity);
   const isSameCity = originCity.toLowerCase() === destCity.toLowerCase();
 
-  // 2. Ambil API Key dari env atau setting database
-  let apiKey = process.env.BINDERBYTE_API_KEY;
+  // 2. Cek juga jika API Key tersimpan di baris setting database terpisah
   if (!apiKey) {
     try {
       const setting = await prisma.setting.findUnique({
         where: { key: "binderbyte_api_key" },
       });
       if (setting?.value) {
-        apiKey = setting.value;
+        apiKey = setting.value.trim();
       }
     } catch {
       // Abaikan jika database setting belum ada
@@ -93,7 +109,7 @@ export async function trackShipment(
     try {
       const url = `https://api.binderbyte.com/v1/track?api_key=${apiKey}&courier=${courier}&awb=${encodeURIComponent(awb)}`;
       const res = await fetch(url, {
-        next: { revalidate: 3600 },
+        cache: "no-store",
       });
 
       if (res.ok) {
@@ -104,7 +120,7 @@ export async function trackShipment(
           const rawHistory: Array<{ date: string; desc: string; location: string }> = d.history || [];
 
           const checkpoints: TrackingCheckpoint[] = rawHistory.map((h) => ({
-            date: h.date,
+            date: formatApiDate(h.date),
             desc: h.desc,
             location: cleanCityName(h.location, originCity),
             status: isDelivered ? "DELIVERED" : "ON_PROCESS",
