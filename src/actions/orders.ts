@@ -30,17 +30,18 @@ const checkoutSchema = z.object({
 });
 
 export async function placeOrder(_: FormState, formData: FormData): Promise<FormState> {
-  let items: unknown = [];
   try {
-    items = JSON.parse(String(formData.get("items") || "[]"));
-  } catch {
-    /* noop */
-  }
-  const parsed = checkoutSchema.safeParse({ ...Object.fromEntries(formData), items });
-  if (!parsed.success) return { error: parsed.error.issues[0].message };
-  const d = parsed.data;
-  const settings = await getSettings();
-  const session = await getSession();
+    let items: unknown = [];
+    try {
+      items = JSON.parse(String(formData.get("items") || "[]"));
+    } catch {
+      /* noop */
+    }
+    const parsed = checkoutSchema.safeParse({ ...Object.fromEntries(formData), items });
+    if (!parsed.success) return { error: parsed.error.issues[0].message };
+    const d = parsed.data;
+    const settings = await getSettings();
+    const session = await getSession();
 
   // Validasi metode pembayaran
   const pay = settings.payment;
@@ -238,9 +239,19 @@ export async function placeOrder(_: FormState, formData: FormData): Promise<Form
     });
   }
 
-  revalidatePath("/admin/orders");
-  revalidatePath("/account");
-  redirect(`/checkout/success/${orderNo}`);
+    revalidatePath("/admin/orders");
+    revalidatePath("/account");
+    redirect(`/checkout/success/${orderNo}`);
+  } catch (err: any) {
+    if (err?.message === "NEXT_REDIRECT" || err?.digest?.startsWith("NEXT_REDIRECT")) {
+      throw err;
+    }
+    console.error("[PlaceOrder Error]:", err);
+    return {
+      error:
+        err?.message || "Terjadi kesalahan saat memproses pesanan. Silakan coba beberapa saat lagi.",
+    };
+  }
 }
 
 export async function updateOrderStatus(formData: FormData) {
