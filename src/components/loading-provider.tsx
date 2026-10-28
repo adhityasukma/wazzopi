@@ -31,6 +31,10 @@ const LoadingContext = createContext<LoadingContextType>({
   startTransitionLoading: () => {},
 });
 
+export function useLoading() {
+  return useContext(LoadingContext);
+}
+
 // Pemetaan cerdas URL ke pesan preloader informatif
 function getLoadingMessageForHref(href: string, elementText?: string): string {
   try {
@@ -242,6 +246,18 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
 
       const form = target.closest("form");
       if (!form) return;
+
+      // Abaikan form yang mengelola loading/validasi secara manual
+      if (
+        form.hasAttribute("data-no-loading") ||
+        form.hasAttribute("data-skip-loading") ||
+        (e.submitter && (
+          (e.submitter as HTMLElement).hasAttribute("data-no-loading") ||
+          (e.submitter as HTMLElement).hasAttribute("data-skip-loading")
+        ))
+      ) {
+        return;
+      }
 
       // Cek data-loading-message di form
       const formMsg = form.getAttribute("data-loading-message");

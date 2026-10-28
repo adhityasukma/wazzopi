@@ -3,6 +3,7 @@
 import React, { useState, useTransition } from "react";
 import { Truck, Check, AlertCircle, RotateCw, Info, AlertTriangle, X } from "lucide-react";
 import { updateOrderTracking } from "@/actions/orders";
+import { useLoading } from "@/components/loading-provider";
 import {
   SUPPORTED_COURIERS,
   getCourierName,
@@ -36,6 +37,7 @@ export function OrderTrackingForm({
   const [trackingNumber, setTrackingNumber] = useState(currentTrackingNumber || "");
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const { showLoading, hideLoading } = useLoading();
   const [validationModal, setValidationModal] = useState<{
     isOpen: boolean;
     title: string;
@@ -66,45 +68,59 @@ export function OrderTrackingForm({
     if (trimmedAwb) {
       const validation = validateAwbForCourier(courierCode, trimmedAwb);
       if (!validation.valid) {
-        setValidationModal({
-          isOpen: true,
-          title: "Peringatan Kesesuaian Kurir & Nomor Resi",
-          message: validation.error || "Nomor resi tidak sesuai dengan ekspedisi yang dipilih.",
-          trackingNumber: trimmedAwb,
-          selectedCourierCode: courierCode,
-          selectedCourierName: getCourierName(courierCode),
-          detectedCourier: validation.detectedCourier || null,
-        });
+        // Tampilkan preloader sebentar untuk mensimulasikan pengecekan kurir,
+        // lalu TUTUP preloader sepenuhnya SEBELUM memunculkan modal peringatan
+        showLoading("Memeriksa kesesuaian nomor resi & kurir...");
+        setTimeout(() => {
+          hideLoading();
+          setValidationModal({
+            isOpen: true,
+            title: "Peringatan Kesesuaian Kurir & Nomor Resi",
+            message: validation.error || "Nomor resi tidak sesuai dengan ekspedisi yang dipilih.",
+            trackingNumber: trimmedAwb,
+            selectedCourierCode: courierCode,
+            selectedCourierName: getCourierName(courierCode),
+            detectedCourier: validation.detectedCourier || null,
+          });
+        }, 450);
         return;
       }
     }
 
+    showLoading("Menyimpan & memverifikasi nomor resi...");
+
     const formData = new FormData(e.currentTarget);
     startTransition(async () => {
-      const res = await updateOrderTracking(formData);
-      if (res.success) {
-        setMessage({
-          type: "success",
-          text:
-            (res as any).message ||
-            (trackingNumber
-              ? "Nomor resi disimpan! Riwayat pelacakan kurir telah diperbarui otomatis."
-              : "Nomor resi telah dihapus."),
-        });
-      } else {
-        if ((res as any).isValidationMismatch) {
-          setValidationModal({
-            isOpen: true,
-            title: "Peringatan Kesesuaian Kurir & Nomor Resi",
-            message: res.error || "Nomor resi tidak sesuai dengan ekspedisi.",
-            trackingNumber: trimmedAwb,
-            selectedCourierCode: courierCode,
-            selectedCourierName: getCourierName(courierCode),
-            detectedCourier: (res as any).detectedCourier || null,
+      try {
+        const res = await updateOrderTracking(formData);
+        hideLoading();
+        if (res.success) {
+          setMessage({
+            type: "success",
+            text:
+              (res as any).message ||
+              (trackingNumber
+                ? "Nomor resi disimpan! Riwayat pelacakan kurir telah diperbarui otomatis."
+                : "Nomor resi telah dihapus."),
           });
         } else {
-          setMessage({ type: "error", text: res.error || "Gagal menyimpan nomor resi" });
+          if ((res as any).isValidationMismatch) {
+            setValidationModal({
+              isOpen: true,
+              title: "Peringatan Kesesuaian Kurir & Nomor Resi",
+              message: res.error || "Nomor resi tidak sesuai dengan ekspedisi.",
+              trackingNumber: trimmedAwb,
+              selectedCourierCode: courierCode,
+              selectedCourierName: getCourierName(courierCode),
+              detectedCourier: (res as any).detectedCourier || null,
+            });
+          } else {
+            setMessage({ type: "error", text: res.error || "Gagal menyimpan nomor resi" });
+          }
         }
+      } catch {
+        hideLoading();
+        setMessage({ type: "error", text: "Terjadi kesalahan saat menyimpan nomor resi" });
       }
     });
   };
@@ -113,21 +129,29 @@ export function OrderTrackingForm({
     setCourierCode(targetCourierCode);
     setValidationModal(null);
     setMessage(null);
+    showLoading(`Menyimpan resi untuk ${getCourierName(targetCourierCode)}...`);
+
     startTransition(async () => {
-      const fd = new FormData();
-      fd.append("id", orderId);
-      fd.append("courierCode", targetCourierCode);
-      fd.append("trackingNumber", trackingNumber.trim());
-      const res = await updateOrderTracking(fd);
-      if (res.success) {
-        setMessage({
-          type: "success",
-          text:
-            (res as any).message ||
-            `Nomor resi berhasil disimpan untuk ekspedisi ${getCourierName(targetCourierCode)}!`,
-        });
-      } else {
-        setMessage({ type: "error", text: res.error || "Gagal menyimpan nomor resi" });
+      try {
+        const fd = new FormData();
+        fd.append("id", orderId);
+        fd.append("courierCode", targetCourierCode);
+        fd.append("trackingNumber", trackingNumber.trim());
+        const res = await updateOrderTracking(fd);
+        hideLoading();
+        if (res.success) {
+          setMessage({
+            type: "success",
+            text:
+              (res as any).message ||
+              `Nomor resi berhasil disimpan untuk ekspedisi ${getCourierName(targetCourierCode)}!`,
+          });
+        } else {
+          setMessage({ type: "error", text: res.error || "Gagal menyimpan nomor resi" });
+        }
+      } catch {
+        hideLoading();
+        setMessage({ type: "error", text: "Gagal menyimpan nomor resi" });
       }
     });
   };
@@ -135,20 +159,28 @@ export function OrderTrackingForm({
   const handleForceSave = () => {
     setValidationModal(null);
     setMessage(null);
+    showLoading("Menyimpan resi dalam mode estimasi toko...");
+
     startTransition(async () => {
-      const fd = new FormData();
-      fd.append("id", orderId);
-      fd.append("courierCode", courierCode);
-      fd.append("trackingNumber", trackingNumber.trim());
-      fd.append("force", "true");
-      const res = await updateOrderTracking(fd);
-      if (res.success) {
-        setMessage({
-          type: "success",
-          text: (res as any).message || "Nomor resi disimpan (mode estimasi toko).",
-        });
-      } else {
-        setMessage({ type: "error", text: res.error || "Gagal menyimpan nomor resi" });
+      try {
+        const fd = new FormData();
+        fd.append("id", orderId);
+        fd.append("courierCode", courierCode);
+        fd.append("trackingNumber", trackingNumber.trim());
+        fd.append("force", "true");
+        const res = await updateOrderTracking(fd);
+        hideLoading();
+        if (res.success) {
+          setMessage({
+            type: "success",
+            text: (res as any).message || "Nomor resi disimpan (mode estimasi toko).",
+          });
+        } else {
+          setMessage({ type: "error", text: res.error || "Gagal menyimpan nomor resi" });
+        }
+      } catch {
+        hideLoading();
+        setMessage({ type: "error", text: "Gagal menyimpan nomor resi" });
       }
     });
   };
@@ -167,7 +199,7 @@ export function OrderTrackingForm({
         )}
       </div>
 
-      <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+      <form data-no-loading onSubmit={handleSubmit} className="mt-4 space-y-4">
         <input type="hidden" name="id" value={orderId} />
 
         {message && (
