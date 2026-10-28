@@ -16,6 +16,14 @@ export async function confirmMidtransSuccess(orderNo: string): Promise<{ success
         where: { orderNo },
         data: { status: "PAID" },
       });
+
+      try {
+        const { sendOrderNotificationByOrderId } = await import("@/lib/email");
+        await sendOrderNotificationByOrderId(order.id, { forcedStatus: "PAID" });
+      } catch (emailErr) {
+        console.error("[confirmMidtransSuccess Email Error]:", emailErr);
+      }
+
       revalidatePath(`/checkout/success/${orderNo}`);
       revalidatePath("/admin/orders");
       revalidatePath("/account");

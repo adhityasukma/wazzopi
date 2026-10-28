@@ -95,6 +95,18 @@ export async function POST(req: Request) {
 
       console.log(`[Midtrans Webhook Success] Status Order #${order_id} berhasil diupdate ke ${nextStatus}`);
 
+      // Kirim notifikasi email status pembayaran ke customer
+      if (nextStatus === "PAID" || nextStatus === "CANCELLED") {
+        try {
+          const { sendOrderNotificationByOrderId } = await import("@/lib/email");
+          await sendOrderNotificationByOrderId(order.id, {
+            forcedStatus: nextStatus,
+          });
+        } catch (emailErr) {
+          console.error("[Midtrans Webhook Email Error]:", emailErr);
+        }
+      }
+
       revalidatePath(`/checkout/success/${order_id}`);
       revalidatePath(`/admin/orders/${order.id}`);
       revalidatePath("/admin/orders");

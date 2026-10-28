@@ -8,7 +8,11 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { createSession, getSession, requireAdmin } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
-import { sendOrderCreatedEmail } from "@/lib/email";
+import {
+  sendOrderStatusEmail,
+  sendOrderNotificationByOrderId,
+  type OrderEmailStatus,
+} from "@/lib/email";
 import { generateOrderNo, ORDER_STATUSES } from "@/lib/utils";
 import { calculateDynamicRates } from "@/lib/shipping-calculator";
 import type { FormState } from "./auth";
@@ -219,26 +223,32 @@ export async function placeOrder(_: FormState, formData: FormData): Promise<Form
     }
   }
 
-  // Kirim email rincian pesanan & akses akun member
-  await sendOrderCreatedEmail({
-    customerName: d.customerName,
-    customerEmail: d.customerEmail,
-    orderNo,
-    items: lines.map((l) => ({
-      productName: l.productName,
-      variantName: l.variantName,
-      quantity: l.quantity,
-      price: l.price,
-      total: l.total,
-    })),
-    totalAmount: total,
-    shippingAddress: `${d.address}, ${d.city}, ${d.province} ${d.postalCode}`,
-    shippingMethod: shippingName,
-    paymentMethod: d.paymentMethod,
-    newAccount: newAccountInfo,
-    storeName: settings.general.storeName,
-    whatsappContact: settings.other.whatsapp || settings.general.phone,
-  });
+  // Kirim email rincian pesanan (Status: Menunggu Pembayaran) & akses akun member
+  try {
+    await sendOrderStatusEmail({
+      status: "PENDING",
+      customerName: d.customerName,
+      customerEmail: d.customerEmail,
+      orderNo,
+      items: lines.map((l) => ({
+        productName: l.productName,
+        variantName: l.variantName,
+        quantity: l.quantity,
+        price: l.price,
+        total: l.total,
+      })),
+      totalAmount: total,
+      shippingAddress: `${d.address}, ${d.city}, ${d.province} ${d.postalCode}`,
+      shippingMethod: shippingName,
+      paymentMethod: d.paymentMethod,
+      bankAccounts: settings.payment.bankTransfer.accounts,
+      newAccount: newAccountInfo,
+      storeName: settings.general.storeName,
+      whatsappContact: settings.other.whatsapp || settings.general.phone,
+    });
+  } catch (emailErr) {
+    console.error("[placeOrder Email Error]:", emailErr);
+  }
 
   // Simpan info akun baru di cookie singkat untuk ditampilkan langsung di halaman /checkout/success/[orderNo]
   if (newAccountInfo) {
@@ -281,6 +291,18 @@ export async function updateOrderStatus(formData: FormData) {
     }
   }
   await prisma.order.update({ where: { id }, data: { status } });
+
+  // Kirim notifikasi email status baru ke customer jika status berubah
+  if (status !== order.status) {
+    try {
+      await sendOrderNotificationByOrderId(id, {
+        forcedStatus: status as OrderEmailStatus,
+      });
+    } catch (emailErr) {
+      console.error("[updateOrderStatus Email Error]:", emailErr);
+    }
+  }
+
   revalidatePath(`/admin/orders/${id}`);
   revalidatePath("/admin/orders");
 }
@@ -395,6 +417,15 @@ export async function updateOrderTracking(formData: FormData) {
       },
     });
 
+    // Kirim email notifikasi nomor resi & informasi pengiriman ke customer
+    try {
+      await sendOrderNotificationByOrderId(id, {
+        forcedStatus: "SHIPPED",
+      });
+    } catch (emailErr) {
+      console.error("[updateOrderTracking Email Error]:", emailErr);
+    }
+
     revalidatePath(`/admin/orders/${id}`);
     revalidatePath("/admin/orders");
     revalidatePath("/account");
@@ -424,6 +455,8 @@ export async function refreshOrderTracking(orderId: string) {
       status: order.status,
     });
 
+    const isNowDelivered = trackingInfo.status === "DELIVERED";
+
     await prisma.order.update({
       where: { id: orderId },
       data: {
@@ -431,9 +464,19 @@ export async function refreshOrderTracking(orderId: string) {
         trackingHistory: JSON.stringify(trackingInfo.checkpoints),
         trackingUpdatedAt: new Date(),
         // Jika dari API statusnya DELIVERED, otomatis selesaikan pesanan
-        status: trackingInfo.status === "DELIVERED" ? "COMPLETED" : order.status,
+        status: isNowDelivered ? "COMPLETED" : order.status,
       },
     });
+
+    if (isNowDelivered && order.status !== "COMPLETED") {
+      try {
+        await sendOrderNotificationByOrderId(orderId, {
+          forcedStatus: "COMPLETED",
+        });
+      } catch (emailErr) {
+        console.error("[refreshOrderTracking Email Error]:", emailErr);
+      }
+    }
 
     revalidatePath(`/admin/orders/${orderId}`);
     revalidatePath("/account");
@@ -494,6 +537,15 @@ export async function confirmOrderReceived(orderId: string) {
       },
     });
 
+    // Kirim notifikasi email pesanan selesai ke customer
+    try {
+      await sendOrderNotificationByOrderId(orderId, {
+        forcedStatus: "COMPLETED",
+      });
+    } catch (emailErr) {
+      console.error("[confirmOrderReceived Email Error]:", emailErr);
+    }
+
     revalidatePath(`/admin/orders/${orderId}`);
     revalidatePath("/admin/orders");
     revalidatePath("/account");
@@ -505,7 +557,7 @@ export async function confirmOrderReceived(orderId: string) {
 }
 
 /**
- * Kirim ulang email struk dan rincian pesanan via Resend
+ * Kirim ulang email status pesanan terkini via Mail Server (SMTP) atau Resend
  */
 export async function resendOrderEmail(
   orderId: string
@@ -513,32 +565,13 @@ export async function resendOrderEmail(
   try {
     const order = await prisma.order.findUnique({
       where: { id: orderId },
-      include: { items: true },
+      select: { customerEmail: true, orderNo: true, status: true },
     });
     if (!order) {
       return { success: false, message: "Pesanan tidak ditemukan" };
     }
 
-    const settings = await getSettings();
-
-    const result = await sendOrderCreatedEmail({
-      customerName: order.customerName,
-      customerEmail: order.customerEmail,
-      orderNo: order.orderNo,
-      items: order.items.map((it) => ({
-        productName: it.productName,
-        variantName: it.variantName,
-        quantity: it.quantity,
-        price: it.price,
-        total: it.total,
-      })),
-      totalAmount: order.total,
-      shippingAddress: `${order.address}, ${order.city}, ${order.province} ${order.postalCode}`,
-      shippingMethod: order.shippingMethod,
-      paymentMethod: order.paymentMethod,
-      storeName: settings.general.storeName,
-      whatsappContact: settings.other.whatsapp || settings.general.phone,
-    });
+    const result = await sendOrderNotificationByOrderId(orderId);
 
     if (result.success && result.id) {
       return {
@@ -555,6 +588,6 @@ export async function resendOrderEmail(
     };
   } catch (err: any) {
     console.error("[resendOrderEmail Error]:", err);
-    return { success: false, message: err.message || "Gagal mengirim email via Resend" };
+    return { success: false, message: err.message || "Gagal memproses pengiriman email" };
   }
 }

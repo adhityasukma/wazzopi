@@ -49,7 +49,7 @@ export function ResendEmailButton({
         ) : (
           <>
             <Mail className="h-3.5 w-3.5 text-caramel-600" />
-            <span>Kirim Ulang Email Struk</span>
+            <span>Kirim Ulang Email Status</span>
           </>
         )}
       </button>

@@ -1,6 +1,15 @@
 import "server-only";
+import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 import { sendSmtpMail } from "@/lib/smtp";
+
+export type OrderEmailStatus =
+  | "PENDING"
+  | "PAID"
+  | "PROCESSING"
+  | "SHIPPED"
+  | "COMPLETED"
+  | "CANCELLED";
 
 export type OrderEmailItem = {
   productName: string;
@@ -10,7 +19,14 @@ export type OrderEmailItem = {
   total: number;
 };
 
-export type SendOrderEmailParams = {
+export type BankAccountInfo = {
+  bank: string;
+  number: string;
+  holder: string;
+};
+
+export type SendOrderStatusEmailParams = {
+  status: OrderEmailStatus;
   customerName: string;
   customerEmail: string;
   orderNo: string;
@@ -19,6 +35,9 @@ export type SendOrderEmailParams = {
   shippingAddress: string;
   shippingMethod: string;
   paymentMethod: string;
+  trackingNumber?: string | null;
+  courierName?: string | null;
+  bankAccounts?: BankAccountInfo[];
   newAccount?: {
     email: string;
     tempPassword: string;
@@ -26,6 +45,9 @@ export type SendOrderEmailParams = {
   storeName?: string;
   whatsappContact?: string;
 };
+
+// Backward-compatible type alias
+export type SendOrderEmailParams = SendOrderStatusEmailParams;
 
 function formatIDR(amount: number): string {
   return new Intl.NumberFormat("id-ID", {
@@ -36,20 +58,97 @@ function formatIDR(amount: number): string {
   }).format(amount);
 }
 
-export function generateOrderEmailHtml(params: SendOrderEmailParams): string {
+function getStatusBadgeConfig(status: OrderEmailStatus): {
+  badgeBg: string;
+  badgeBorder: string;
+  badgeColor: string;
+  badgeLabel: string;
+  heading: string;
+  description: string;
+} {
+  switch (status) {
+    case "PENDING":
+      return {
+        badgeBg: "#fffbeb",
+        badgeBorder: "#fde68a",
+        badgeColor: "#92400e",
+        badgeLabel: "Menunggu Pembayaran",
+        heading: "Pesanan Dibuat - Menunggu Pembayaran",
+        description:
+          "Terima kasih telah memesan di Wazzopi. Pesanan Anda telah tercatat dan saat ini berstatus Menunggu Pembayaran. Silakan selesaikan pembayaran agar pesanan dapat segera diproses.",
+      };
+    case "PAID":
+    case "PROCESSING":
+      return {
+        badgeBg: "#ecfdf5",
+        badgeBorder: "#a7f3d0",
+        badgeColor: "#065f46",
+        badgeLabel: status === "PAID" ? "Pembayaran Diterima" : "Sedang Diproses",
+        heading: "Pembayaran Berhasil & Pesanan Diproses",
+        description:
+          "Kabar baik! Pembayaran untuk pesanan Anda telah berhasil diverifikasi. Tim barista dan staf kami sedang menyiapkan serta mengemas produk pilihan Anda dengan teliti.",
+      };
+    case "SHIPPED":
+      return {
+        badgeBg: "#eff6ff",
+        badgeBorder: "#bfdbfe",
+        badgeColor: "#1e40af",
+        badgeLabel: "Dalam Pengiriman",
+        heading: "Pesanan Sedang Dalam Pengiriman",
+        description:
+          "Paket pesanan Anda telah selesai dikemas dan diserahkan kepada pihak ekspedisi untuk diantarkan langsung ke alamat tujuan Anda.",
+      };
+    case "COMPLETED":
+      return {
+        badgeBg: "#f0fdf4",
+        badgeBorder: "#86efac",
+        badgeColor: "#166534",
+        badgeLabel: "Pesanan Selesai",
+        heading: "Pesanan Telah Diterima & Selesai",
+        description:
+          "Pesanan Anda telah berhasil sampai di tujuan dan dikonfirmasi telah diterima. Terima kasih banyak atas kepercayaan Anda memilih Wazzopi. Selamat menikmati setiap tegukan kopi artisan kami!",
+      };
+    case "CANCELLED":
+      return {
+        badgeBg: "#fef2f2",
+        badgeBorder: "#fecaca",
+        badgeColor: "#991b1b",
+        badgeLabel: "Pesanan Dibatalkan",
+        heading: "Pesanan Telah Dibatalkan",
+        description:
+          "Pesanan ini telah dibatalkan. Jika Anda memiliki pertanyaan atau kendala, silakan hubungi tim layanan pelanggan kami.",
+      };
+    default:
+      return {
+        badgeBg: "#f3f4f6",
+        badgeBorder: "#e5e7eb",
+        badgeColor: "#374151",
+        badgeLabel: status,
+        heading: `Pembaruan Status Pesanan: ${status}`,
+        description: "Berikut adalah rincian terkini mengenai pesanan Anda di Wazzopi.",
+      };
+  }
+}
+
+export function generateOrderEmailHtml(params: SendOrderStatusEmailParams): string {
   const {
+    status,
     customerName,
-    customerEmail,
     orderNo,
     items,
     totalAmount,
     shippingAddress,
     shippingMethod,
     paymentMethod,
+    trackingNumber,
+    courierName,
+    bankAccounts = [],
     newAccount,
     storeName = "Wazzopi",
     whatsappContact = "6281234567890",
   } = params;
+
+  const badgeConfig = getStatusBadgeConfig(status);
 
   const paymentLabel =
     paymentMethod === "bank_transfer"
@@ -77,14 +176,13 @@ export function generateOrderEmailHtml(params: SendOrderEmailParams): string {
     )
     .join("");
 
+  // Box Informasi Akun Member Baru (jika baru mendaftar saat checkout)
   const newAccountBoxHtml = newAccount
     ? `
       <div style="background-color: #faf2ea; border: 1.5px solid #d39f6f; border-radius: 12px; padding: 20px; margin: 24px 0;">
-        <div style="display: flex; align-items: center; margin-bottom: 12px;">
-          <h3 style="margin: 0; color: #5a2c1e; font-size: 16px; font-weight: bold;">
-            Akses Login Member Area Anda
-          </h3>
-        </div>
+        <h3 style="margin: 0 0 10px 0; color: #5a2c1e; font-size: 16px; font-weight: bold;">
+          Akses Login Member Area Anda
+        </h3>
         <p style="margin: 0 0 14px 0; font-size: 13px; color: #6e3a28; line-height: 1.5;">
           Untuk memudahkan Anda memantau status pesanan, nomor resi pengiriman, dan riwayat belanja, kami telah otomatis membuatkan akun Member untuk Anda:
         </p>
@@ -110,17 +208,134 @@ export function generateOrderEmailHtml(params: SendOrderEmailParams): string {
     `
     : "";
 
+  // Box Instruksi Pembayaran (Khusus Status PENDING)
+  let paymentInstructionHtml = "";
+  if (status === "PENDING") {
+    if (paymentMethod === "bank_transfer") {
+      const bankListHtml =
+        bankAccounts.length > 0
+          ? bankAccounts
+              .map(
+                (b) => `
+                <div style="background-color: #ffffff; border: 1px solid #efe3d0; border-radius: 8px; padding: 12px 16px; margin-bottom: 10px;">
+                  <div style="font-size: 12px; color: #8f5a43; text-transform: uppercase; font-weight: 600;">Bank ${b.bank}</div>
+                  <div style="font-size: 18px; font-family: monospace; font-weight: bold; color: #2a120c; margin: 4px 0;">${b.number}</div>
+                  <div style="font-size: 12px; color: #5a2c1e;">a.n. ${b.holder}</div>
+                </div>
+              `
+              )
+              .join("")
+          : `
+            <div style="background-color: #ffffff; border: 1px solid #efe3d0; border-radius: 8px; padding: 12px 16px;">
+              <div style="font-size: 12px; color: #8f5a43;">Silakan hubungi admin kami untuk nomor rekening transfer.</div>
+            </div>
+          `;
+
+      paymentInstructionHtml = `
+        <div style="background-color: #fff9f2; border: 1.5px solid #d39f6f; border-radius: 12px; padding: 20px; margin: 24px 0;">
+          <h3 style="margin: 0 0 10px 0; color: #5a2c1e; font-size: 15px; font-weight: bold;">
+            Instruksi Pembayaran Transfer Bank
+          </h3>
+          <p style="margin: 0 0 14px 0; font-size: 13px; color: #6e3a28; line-height: 1.5;">
+            Silakan transfer sejumlah <strong>${formatIDR(totalAmount)}</strong> ke salah satu rekening resmi berikut:
+          </p>
+          ${bankListHtml}
+          <div style="margin-top: 14px; text-align: center;">
+            <a href="https://wa.me/${whatsappContact}?text=Halo%20Admin%20Wazzopi,%20saya%20sudah%20transfer%20untuk%20pesanan%20${orderNo}%20sebesar%20${encodeURIComponent(formatIDR(totalAmount))}" style="display: inline-block; background-color: #25d366; color: #ffffff; text-decoration: none; padding: 10px 22px; border-radius: 8px; font-size: 13px; font-weight: 600;">
+              Konfirmasi Bukti Transfer via WhatsApp &rarr;
+            </a>
+          </div>
+        </div>
+      `;
+    } else if (paymentMethod === "midtrans") {
+      paymentInstructionHtml = `
+        <div style="background-color: #fff9f2; border: 1.5px solid #d39f6f; border-radius: 12px; padding: 20px; margin: 24px 0; text-align: center;">
+          <h3 style="margin: 0 0 8px 0; color: #5a2c1e; font-size: 15px; font-weight: bold;">
+            Selesaikan Pembayaran Online Anda
+          </h3>
+          <p style="margin: 0 0 16px 0; font-size: 13px; color: #6e3a28; line-height: 1.5;">
+            Total yang harus dibayar: <strong>${formatIDR(totalAmount)}</strong> via QRIS, GoPay, Virtual Account, atau Kartu Kredit.
+          </p>
+          <a href="https://wazzopi.vercel.app/checkout/success/${orderNo}" style="display: inline-block; background-color: #a8673c; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-size: 14px; font-weight: bold;">
+            Bayar Sekarang Secara Online &rarr;
+          </a>
+        </div>
+      `;
+    } else if (paymentMethod === "cod") {
+      paymentInstructionHtml = `
+        <div style="background-color: #fbf5ea; border: 1px solid #efe3d0; border-radius: 12px; padding: 16px; margin: 24px 0;">
+          <h4 style="margin: 0 0 6px 0; color: #4a2117; font-size: 14px; font-weight: bold;">
+            Metode Bayar di Tempat (COD)
+          </h4>
+          <p style="margin: 0; font-size: 13px; color: #5a2c1e; line-height: 1.5;">
+            Pesanan Anda akan dikirim ke alamat tujuan. Mohon siapkan uang tunai sebesar <strong>${formatIDR(totalAmount)}</strong> saat kurir mengantarkan paket.
+          </p>
+        </div>
+      `;
+    }
+  }
+
+  // Box Informasi Pengiriman & Resi (Khusus Status SHIPPED atau jika resi tersedia)
+  let trackingBoxHtml = "";
+  if (trackingNumber || status === "SHIPPED") {
+    trackingBoxHtml = `
+      <div style="background-color: #eff6ff; border: 1.5px solid #bfdbfe; border-radius: 12px; padding: 20px; margin: 24px 0;">
+        <h3 style="margin: 0 0 8px 0; color: #1e3a8a; font-size: 15px; font-weight: bold;">
+          Informasi Pelacakan Paket (Resi Pengiriman)
+        </h3>
+        <p style="margin: 0 0 14px 0; font-size: 13px; color: #1e40af; line-height: 1.5;">
+          Paket Anda telah dikirim dan dapat dilacak perjalanannya dengan nomor resi berikut:
+        </p>
+        <table style="width: 100%; border-collapse: collapse; background: #ffffff; border-radius: 8px; overflow: hidden; border: 1px solid #bfdbfe;">
+          <tr>
+            <td style="padding: 10px 14px; font-size: 13px; color: #64748b; width: 35%; border-bottom: 1px solid #f1f5f9;">Ekspedisi Kurir</td>
+            <td style="padding: 10px 14px; font-size: 13px; color: #0f172a; font-weight: 600; border-bottom: 1px solid #f1f5f9;">${courierName || shippingMethod}</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px 14px; font-size: 13px; color: #64748b;">Nomor Resi (AWB)</td>
+            <td style="padding: 10px 14px; font-size: 16px; color: #1d4ed8; font-family: monospace; font-weight: bold; letter-spacing: 1px;">
+              ${trackingNumber || "Nomor resi sedang diperbarui"}
+            </td>
+          </tr>
+        </table>
+        <div style="margin-top: 16px; text-align: center;">
+          <a href="https://wazzopi.vercel.app/account" style="display: inline-block; background-color: #1e40af; color: #ffffff; text-decoration: none; padding: 10px 24px; border-radius: 8px; font-size: 13px; font-weight: 600;">
+            Lacak Perjalanan Paket Anda &rarr;
+          </a>
+        </div>
+      </div>
+    `;
+  }
+
+  // Box Selesai / Terima Kasih (Khusus Status COMPLETED)
+  let completedBoxHtml = "";
+  if (status === "COMPLETED") {
+    completedBoxHtml = `
+      <div style="background-color: #f0fdf4; border: 1.5px solid #86efac; border-radius: 12px; padding: 22px; margin: 24px 0; text-align: center;">
+        <h3 style="margin: 0 0 8px 0; color: #166534; font-size: 16px; font-weight: bold;">
+          Terima Kasih Atas Kepercayaan Anda!
+        </h3>
+        <p style="margin: 0 0 16px 0; font-size: 13px; color: #15803d; line-height: 1.6;">
+          Kami bangga dapat menghadirkan kopi Nusantara berkualitas langsung ke cangkir Anda. Bagikan momen ngopi Anda atau pesan menu favorit berikutnya kapan saja.
+        </p>
+        <a href="https://wazzopi.vercel.app/shop" style="display: inline-block; background-color: #15803d; color: #ffffff; text-decoration: none; padding: 10px 24px; border-radius: 8px; font-size: 13px; font-weight: 600;">
+          Jelajahi Menu Kopi Lainnya &rarr;
+        </a>
+      </div>
+    `;
+  }
+
   return `
     <!DOCTYPE html>
     <html lang="id">
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Konfirmasi Pesanan ${orderNo}</title>
+      <title>Status Pesanan #${orderNo} - ${storeName}</title>
     </head>
-    <body style="margin: 0; padding: 20px 0; background-color: #fbf5ea; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+    <body style="margin: 0; padding: 24px 0; background-color: #fbf5ea; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
       <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 16px rgba(42, 18, 12, 0.08); border: 1px solid #efe3d0;">
-        <!-- Header -->
+        <!-- Header Brand -->
         <tr>
           <td style="background-color: #2a120c; padding: 32px 24px; text-align: center;">
             <h1 style="margin: 0; color: #fbf5ea; font-size: 26px; font-weight: bold; letter-spacing: 0.5px;">
@@ -132,18 +347,39 @@ export function generateOrderEmailHtml(params: SendOrderEmailParams): string {
           </td>
         </tr>
 
-        <!-- Body -->
+        <!-- Status Header Pill -->
         <tr>
-          <td style="padding: 32px 24px;">
-            <h2 style="margin: 0 0 12px 0; color: #2a120c; font-size: 20px;">
-              Pesanan Berhasil Diterima!
+          <td style="padding: 24px 24px 0 24px;">
+            <div style="background-color: ${badgeConfig.badgeBg}; border: 1px solid ${badgeConfig.badgeBorder}; border-radius: 10px; padding: 12px 16px; display: inline-block; width: calc(100% - 32px);">
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="font-size: 12px; color: #78716c; text-transform: uppercase; font-weight: 600;">Status Pesanan Saat Ini:</td>
+                  <td style="text-align: right;">
+                    <span style="background-color: #ffffff; border: 1px solid ${badgeConfig.badgeBorder}; color: ${badgeConfig.badgeColor}; font-weight: bold; font-size: 12px; padding: 4px 10px; border-radius: 20px;">
+                      ${badgeConfig.badgeLabel}
+                    </span>
+                  </td>
+                </tr>
+              </table>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Body Content -->
+        <tr>
+          <td style="padding: 20px 24px 32px 24px;">
+            <h2 style="margin: 0 0 12px 0; color: #2a120c; font-size: 20px; line-height: 1.3;">
+              ${badgeConfig.heading}
             </h2>
-            <p style="margin: 0 0 20px 0; font-size: 14px; color: #5a2c1e; line-height: 1.6;">
+            <p style="margin: 0 0 16px 0; font-size: 14px; color: #5a2c1e; line-height: 1.6;">
               Halo <strong>${customerName}</strong>,<br>
-              Terima kasih telah berbelanja di <strong>${storeName}</strong>. Pesanan Anda dengan nomor <strong>#${orderNo}</strong> telah masuk ke sistem kami dan sedang disiapkan dengan cermat.
+              ${badgeConfig.description}
             </p>
 
             ${newAccountBoxHtml}
+            ${paymentInstructionHtml}
+            ${trackingBoxHtml}
+            ${completedBoxHtml}
 
             <!-- Rincian Pesanan -->
             <div style="background-color: #fffdf9; border: 1px solid #efe3d0; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
@@ -176,7 +412,7 @@ export function generateOrderEmailHtml(params: SendOrderEmailParams): string {
             <!-- Bantuan / Kontak -->
             <div style="margin-top: 28px; padding-top: 20px; border-top: 1px solid #efe3d0; text-align: center;">
               <p style="margin: 0 0 8px 0; font-size: 13px; color: #6e3a28;">
-                Ada pertanyaan mengenai pesanan Anda? Hubungi kami via WhatsApp:
+                Ada pertanyaan mengenai pesanan Anda? Hubungi tim admin kami via WhatsApp:
               </p>
               <a href="https://wa.me/${whatsappContact}?text=Halo%20Admin%20Wazzopi,%20saya%20ingin%20menanyakan%20pesanan%20${orderNo}" style="display: inline-block; color: #a8673c; font-weight: bold; text-decoration: underline; font-size: 14px;">
                 Chat WhatsApp Admin Wazzopi
@@ -198,23 +434,48 @@ export function generateOrderEmailHtml(params: SendOrderEmailParams): string {
   `;
 }
 
-export async function sendOrderCreatedEmail(
-  params: SendOrderEmailParams
+function getSubjectByStatus(params: SendOrderStatusEmailParams): string {
+  const { status, orderNo, newAccount, trackingNumber } = params;
+  switch (status) {
+    case "PENDING":
+      return newAccount
+        ? `[Menunggu Pembayaran] Pesanan #${orderNo} & Akses Akun Member Wazzopi`
+        : `[Menunggu Pembayaran] Menunggu Pembayaran Pesanan #${orderNo}`;
+    case "PAID":
+    case "PROCESSING":
+      return `[Pembayaran Diterima] Pesanan #${orderNo} Sedang Diproses`;
+    case "SHIPPED":
+      return trackingNumber
+        ? `[Dalam Pengiriman] Pesanan #${orderNo} Telah Dikirim (Resi: ${trackingNumber})`
+        : `[Dalam Pengiriman] Pesanan #${orderNo} Telah Dikirim`;
+    case "COMPLETED":
+      return `[Pesanan Selesai] Terima Kasih Telah Berbelanja di Wazzopi #${orderNo}`;
+    case "CANCELLED":
+      return `[Dibatalkan] Pesanan #${orderNo} Telah Dibatalkan`;
+    default:
+      return `Pembaruan Pesanan Wazzopi #${orderNo}`;
+  }
+}
+
+/**
+ * Mengirim email transaksional berdasarkan status pesanan
+ */
+export async function sendOrderStatusEmail(
+  params: SendOrderStatusEmailParams
 ): Promise<{ success: boolean; id?: string; error?: string }> {
   try {
     const htmlContent = generateOrderEmailHtml(params);
+    const subject = getSubjectByStatus(params);
     const settings = await getSettings();
 
     // 1. Prioritas Utama: Jika Custom Mail Server (SMTP) diaktifkan di Admin
     if (settings.smtp?.enabled && settings.smtp?.host) {
       console.log(
-        `[Email] Mengirim pesanan #${params.orderNo} via Custom SMTP (${settings.smtp.host}) ke ${params.customerEmail}`
+        `[Email] Mengirim email status (${params.status}) untuk order #${params.orderNo} via Custom SMTP (${settings.smtp.host}) ke ${params.customerEmail}`
       );
       const smtpRes = await sendSmtpMail(settings.smtp, {
         to: params.customerEmail,
-        subject: params.newAccount
-          ? `Pesanan Diterima & Akses Akun Member Wazzopi (#${params.orderNo})`
-          : `Konfirmasi Pesanan Wazzopi (#${params.orderNo})`,
+        subject,
         html: htmlContent,
       });
 
@@ -239,16 +500,14 @@ export async function sendOrderCreatedEmail(
         body: JSON.stringify({
           from: fromEmail,
           to: [params.customerEmail],
-          subject: params.newAccount
-            ? `Pesanan Diterima & Akses Akun Member Wazzopi (#${params.orderNo})`
-            : `Konfirmasi Pesanan Wazzopi (#${params.orderNo})`,
+          subject,
           html: htmlContent,
         }),
       });
 
       if (res.ok) {
         const data = await res.json();
-        console.log(`[Email] Sukses mengirim email ke ${params.customerEmail} via Resend. ID: ${data.id}`);
+        console.log(`[Email] Sukses mengirim email status (${params.status}) ke ${params.customerEmail} via Resend. ID: ${data.id}`);
         return { success: true, id: data.id };
       } else {
         const errText = await res.text();
@@ -257,17 +516,74 @@ export async function sendOrderCreatedEmail(
       }
     } else {
       console.log(
-        `[Email Preview] (RESEND_API_KEY belum dikonfigurasi). Email pesanan #${params.orderNo} siap dikirim ke: ${params.customerEmail}`
+        `[Email Preview] (RESEND_API_KEY belum dikonfigurasi). Email status (${params.status}) pesanan #${params.orderNo} siap dikirim ke: ${params.customerEmail}`
       );
-      if (params.newAccount) {
-        console.log(
-          `[Email Preview] Akun Member Dibuat: Email=${params.newAccount.email}, Password=${params.newAccount.tempPassword}`
-        );
-      }
-      return { success: false, error: "RESEND_API_KEY belum terdeteksi di server hosting Vercel." };
+      return { success: false, error: "Mail Server (SMTP) atau RESEND_API_KEY belum dikonfigurasi di server." };
     }
   } catch (error: any) {
     console.error("[Email Error] Terjadi kesalahan saat memproses pengiriman email:", error);
-    return { success: false, error: error?.message || "Terjadi kesalahan jaringan saat mengirim email." };
+    return { success: false, error: error?.message || "Terjadi kesalahan saat mengirim email." };
+  }
+}
+
+// Backward compatible wrapper
+export async function sendOrderCreatedEmail(
+  params: SendOrderStatusEmailParams
+): Promise<{ success: boolean; id?: string; error?: string }> {
+  return sendOrderStatusEmail({
+    ...params,
+    status: params.status || "PENDING",
+  });
+}
+
+/**
+ * Helper terpusat untuk mengambil data pesanan dari database dan mengirim email status terkini
+ */
+export async function sendOrderNotificationByOrderId(
+  orderId: string,
+  options?: {
+    forcedStatus?: OrderEmailStatus;
+    newAccount?: { email: string; tempPassword: string } | null;
+  }
+): Promise<{ success: boolean; id?: string; error?: string }> {
+  try {
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: { items: true },
+    });
+
+    if (!order) {
+      return { success: false, error: "Pesanan tidak ditemukan" };
+    }
+
+    const settings = await getSettings();
+    const effectiveStatus = (options?.forcedStatus || order.status) as OrderEmailStatus;
+
+    return await sendOrderStatusEmail({
+      status: effectiveStatus,
+      customerName: order.customerName,
+      customerEmail: order.customerEmail,
+      orderNo: order.orderNo,
+      items: order.items.map((it) => ({
+        productName: it.productName,
+        variantName: it.variantName,
+        quantity: it.quantity,
+        price: it.price,
+        total: it.total,
+      })),
+      totalAmount: order.total,
+      shippingAddress: `${order.address}, ${order.city}, ${order.province} ${order.postalCode}`,
+      shippingMethod: order.shippingMethod,
+      paymentMethod: order.paymentMethod,
+      trackingNumber: order.trackingNumber,
+      courierName: order.courierName,
+      bankAccounts: settings.payment.bankTransfer.accounts,
+      newAccount: options?.newAccount ?? null,
+      storeName: settings.general.storeName,
+      whatsappContact: settings.other.whatsapp || settings.general.phone,
+    });
+  } catch (error: any) {
+    console.error("[sendOrderNotificationByOrderId error]:", error);
+    return { success: false, error: error?.message || "Gagal mengirim notifikasi email" };
   }
 }
