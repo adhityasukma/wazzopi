@@ -31,6 +31,7 @@ type OrderTrackingModalProps = {
   status: string;
   trackingStatus?: string | null;
   history: TrackingCheckpoint[];
+  shippingMethod?: string | null;
   isCustomerView?: boolean;
 };
 
@@ -42,6 +43,7 @@ export function OrderTrackingModal({
   status,
   trackingStatus,
   history,
+  shippingMethod,
   isCustomerView = true,
 }: OrderTrackingModalProps) {
   const router = useRouter();
@@ -163,7 +165,13 @@ export function OrderTrackingModal({
                   <span className="text-[11px] font-semibold uppercase tracking-wider text-espresso-400">
                     Ekspedisi Kurir
                   </span>
-                  <p className="text-sm font-bold text-espresso-900">{courierName}</p>
+                  <p className="text-sm font-bold text-espresso-900">
+                    {courierName.toLowerCase().includes("jne")
+                      ? "JNE Express (Reguler)"
+                      : shippingMethod && !courierName.toLowerCase().includes(shippingMethod.toLowerCase())
+                      ? `${courierName} (${shippingMethod})`
+                      : courierName}
+                  </p>
                   <div className="flex items-center gap-2 mt-1">
                     <span className="font-mono text-xs font-bold text-caramel-700 bg-white px-2 py-0.5 rounded border border-latte">
                       {trackingNumber}

@@ -20,7 +20,7 @@ export type TrackingResult = {
 };
 
 export const SUPPORTED_COURIERS: { code: string; name: string }[] = [
-  { code: "jne", name: "JNE Express" },
+  { code: "jne", name: "JNE Express / Reguler" },
   { code: "jnt", name: "J&T Express" },
   { code: "sicepat", name: "SiCepat Ekspres" },
   { code: "anteraja", name: "Anteraja" },

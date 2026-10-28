@@ -148,6 +148,7 @@ export default async function AdminOrderDetailPage({
           <OrderTrackingForm
             orderId={order.id}
             orderNo={order.orderNo}
+            shippingMethod={order.shippingMethod}
             currentCourierCode={order.courierCode}
             currentCourierName={order.courierName}
             currentTrackingNumber={order.trackingNumber}

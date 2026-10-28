@@ -143,6 +143,7 @@ export default async function AccountPage() {
                             trackingNumber={order.trackingNumber}
                             status={order.status}
                             trackingStatus={order.trackingStatus}
+                            shippingMethod={order.shippingMethod}
                             history={(() => {
                               try {
                                 return order.trackingHistory ? JSON.parse(order.trackingHistory) : [];

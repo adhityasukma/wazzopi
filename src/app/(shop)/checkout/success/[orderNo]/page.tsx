@@ -252,6 +252,7 @@ export default async function CheckoutSuccessPage({
                 trackingNumber={order.trackingNumber}
                 status={order.status}
                 trackingStatus={order.trackingStatus}
+                shippingMethod={order.shippingMethod}
                 history={(() => {
                   try {
                     return order.trackingHistory ? JSON.parse(order.trackingHistory) : [];

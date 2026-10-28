@@ -15,6 +15,7 @@ import { OrderTrackingModal, TrackingCheckpoint } from "@/components/shop/order-
 type OrderTrackingFormProps = {
   orderId: string;
   orderNo: string;
+  shippingMethod?: string | null;
   currentCourierCode?: string | null;
   currentCourierName?: string | null;
   currentTrackingNumber?: string | null;
@@ -23,9 +24,25 @@ type OrderTrackingFormProps = {
   orderStatus: string;
 };
 
+function getInitialCourier(currentCode?: string | null, shippingMethod?: string | null): string {
+  if (currentCode) return currentCode;
+  const sm = (shippingMethod || "").toLowerCase();
+  if (sm.includes("jne")) return "jne";
+  if (sm.includes("j&t") || sm.includes("jnt")) return "jnt";
+  if (sm.includes("sicepat")) return "sicepat";
+  if (sm.includes("anteraja")) return "anteraja";
+  if (sm.includes("pos")) return "pos";
+  if (sm.includes("tiki")) return "tiki";
+  if (sm.includes("lion")) return "lion";
+  if (sm.includes("ninja")) return "ninja";
+  if (sm.includes("spx") || sm.includes("shopee")) return "spx";
+  return "jne";
+}
+
 export function OrderTrackingForm({
   orderId,
   orderNo,
+  shippingMethod,
   currentCourierCode,
   currentCourierName,
   currentTrackingNumber,
@@ -33,7 +50,9 @@ export function OrderTrackingForm({
   trackingHistory,
   orderStatus,
 }: OrderTrackingFormProps) {
-  const [courierCode, setCourierCode] = useState(currentCourierCode || "jne");
+  const [courierCode, setCourierCode] = useState(() =>
+    getInitialCourier(currentCourierCode, shippingMethod)
+  );
   const [trackingNumber, setTrackingNumber] = useState(currentTrackingNumber || "");
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -220,9 +239,16 @@ export function OrderTrackingForm({
         )}
 
         <div>
-          <label className="block text-xs font-semibold text-espresso-700 mb-1">
-            Ekspedisi / Kurir
-          </label>
+          <div className="flex items-center justify-between mb-1">
+            <label className="block text-xs font-semibold text-espresso-700">
+              Ekspedisi / Kurir
+            </label>
+            {shippingMethod && (
+              <span className="text-[11px] font-medium text-espresso-500">
+                Pilihan Pembeli: <strong className="text-caramel-700">{shippingMethod}</strong>
+              </span>
+            )}
+          </div>
           <select
             name="courierCode"
             value={courierCode}
@@ -302,6 +328,7 @@ export function OrderTrackingForm({
                 status={orderStatus}
                 trackingStatus={currentTrackingStatus}
                 history={historyList}
+                shippingMethod={shippingMethod}
                 isCustomerView={false}
               />
 
