@@ -275,13 +275,15 @@ export async function placeOrder(_: FormState, formData: FormData): Promise<Form
   }
 }
 
-export async function updateOrderStatus(formData: FormData) {
+export async function updateOrderStatus(formData: FormData): Promise<{ success: boolean; error?: string }> {
   await requireAdmin();
   const id = String(formData.get("id"));
   const status = String(formData.get("status"));
-  if (!ORDER_STATUSES.includes(status as (typeof ORDER_STATUSES)[number])) return;
+  if (!ORDER_STATUSES.includes(status as (typeof ORDER_STATUSES)[number])) {
+    return { success: false, error: "Status pesanan tidak valid" };
+  }
   const order = await prisma.order.findUnique({ where: { id }, include: { items: true } });
-  if (!order) return;
+  if (!order) return { success: false, error: "Pesanan tidak ditemukan" };
 
   // kembalikan stok jika dibatalkan
   if (status === "CANCELLED" && order.status !== "CANCELLED") {
@@ -290,7 +292,13 @@ export async function updateOrderStatus(formData: FormData) {
       if (it.productId) await prisma.product.updateMany({ where: { id: it.productId }, data: { stock: { increment: it.quantity } } });
     }
   }
-  await prisma.order.update({ where: { id }, data: { status } });
+
+  const updateData: Record<string, any> = { status };
+  if (status === "COMPLETED") {
+    updateData.trackingStatus = "DELIVERED";
+  }
+
+  await prisma.order.update({ where: { id }, data: updateData });
 
   // Kirim notifikasi email status baru ke customer jika status berubah
   if (status !== order.status) {
@@ -305,6 +313,8 @@ export async function updateOrderStatus(formData: FormData) {
 
   revalidatePath(`/admin/orders/${id}`);
   revalidatePath("/admin/orders");
+  revalidatePath("/account");
+  return { success: true };
 }
 
 export async function deleteOrder(id: string) {
