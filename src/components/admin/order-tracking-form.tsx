@@ -3,7 +3,7 @@
 import React, { useState, useTransition } from "react";
 import { Truck, Check, AlertCircle, RotateCw } from "lucide-react";
 import { updateOrderTracking } from "@/actions/orders";
-import { SUPPORTED_COURIERS } from "@/lib/tracking";
+import { SUPPORTED_COURIERS } from "@/lib/tracking-constants";
 import { OrderTrackingModal, TrackingCheckpoint } from "@/components/shop/order-tracking-modal";
 
 type OrderTrackingFormProps = {
