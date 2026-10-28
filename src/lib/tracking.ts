@@ -109,6 +109,8 @@ export async function trackShipment(
   }
 
   // 3. Jika API Key ada, coba query live API Binderbyte
+  let liveApiError: string | undefined;
+
   if (apiKey && apiKey.length > 5) {
     try {
       const url = `https://api.binderbyte.com/v1/track?api_key=${apiKey}&courier=${courier}&awb=${encodeURIComponent(awb)}`;
@@ -143,10 +145,20 @@ export async function trackShipment(
             checkpoints,
             isLive: true,
           };
+        } else {
+          liveApiError = json.message || "Nomor resi tidak ditemukan di server ekspedisi resmi";
+        }
+      } else {
+        try {
+          const json = await res.json();
+          liveApiError = json.message || `Server ekspedisi merespons error (HTTP ${res.status})`;
+        } catch {
+          liveApiError = `Server ekspedisi merespons error (HTTP ${res.status})`;
         }
       }
     } catch (err) {
       console.warn("Binderbyte API error, fallback to contextual simulation:", err);
+      liveApiError = "Gagal terhubung ke API pelacak ekspedisi";
     }
   }
 
@@ -262,5 +274,6 @@ export async function trackShipment(
     receiverName: isCompleted ? customer : undefined,
     checkpoints: rawCheckpoints,
     isLive: false,
+    liveApiError,
   };
 }

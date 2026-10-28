@@ -378,8 +378,9 @@ export async function updateOrderTracking(formData: FormData) {
     const courierName = getCourierName(courierCode);
 
     // Validasi format nomor resi dan kesesuaian kurir (jika tidak dipaksa simpan)
+    let validation: ReturnType<typeof validateAwbForCourier> | undefined;
     if (trackingNumber && !force) {
-      const validation = validateAwbForCourier(courierCode, trackingNumber);
+      validation = validateAwbForCourier(courierCode, trackingNumber);
       if (!validation.valid) {
         return {
           success: false,
@@ -431,6 +432,18 @@ export async function updateOrderTracking(formData: FormData) {
       status: newStatus,
       trackingUpdatedAt,
     });
+
+    // Jika API Key ekspedisi aktif dan server kurir mengembalikan error resi tidak terdaftar (bukan force simpan):
+    if (trackingInfo.liveApiError && !force) {
+      return {
+        success: false,
+        isValidationMismatch: true,
+        error: `Nomor resi ${trackingNumber} tidak terdaftar di server resmi ${courierName}. (${trackingInfo.liveApiError})`,
+        detectedCourier: validation?.detectedCourier,
+        selectedCourierName: courierName,
+        trackingNumber,
+      };
+    }
 
     await prisma.order.update({
       where: { id },

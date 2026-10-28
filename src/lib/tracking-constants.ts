@@ -15,6 +15,7 @@ export type TrackingResult = {
   receiverName?: string;
   checkpoints: TrackingCheckpoint[];
   isLive: boolean;
+  liveApiError?: string;
   error?: string;
 };
 
@@ -43,6 +44,24 @@ export function getCourierName(code: string): string {
 export function detectCourierByAwb(awbRaw: string): { code: string; name: string; reason: string } | null {
   const awb = awbRaw.trim().toUpperCase();
   if (!awb || awb.length < 4) return null;
+
+  // JNE Express: awalan kode cabang kota (CM, CGK, BDO, BDG, SUB, SOC, JOG, SMG, DPS, MDN, PLM, BPN, UPG, TGR, BKI, BOO, DPK) diikuti angka, atau awalan JNE, atau numerik 15-16 digit
+  if (
+    /^(CM|CGK|BDO|BDG|SUB|SOC|JOG|SMG|DPS|MDN|PLM|BPN|UPG|TGR|BKI|BOO|DPK|JNE)\d{8,14}$/.test(awb) ||
+    (awb.startsWith("CM") && awb.length >= 10) ||
+    /^\d{15,16}$/.test(awb)
+  ) {
+    const isNum = /^\d+$/.test(awb);
+    const prefix2 = awb.slice(0, 2);
+    const branchName = prefix2 === "CM" ? "Cimahi" : prefix2;
+    return {
+      code: "jne",
+      name: "JNE Express",
+      reason: isNum
+        ? "15–16 digit numerik adalah format standar resi JNE Express"
+        : `Awalan '${prefix2 === "CM" ? "CM" : awb.slice(0, 3)}' adalah kode cabang resmi JNE Express (${branchName})`,
+    };
+  }
 
   // Shopee Xpress: awalan SPXID...
   if (awb.startsWith("SPXID") || awb.startsWith("SPX")) {
@@ -171,10 +190,13 @@ export function validateAwbForCourier(
   }
 
   if (courier === "lion") {
-    if (/^\d+$/.test(awb) && awb.length !== 11) {
+    const isLionValid =
+      (awb.startsWith("LP") && awb.length >= 8) ||
+      (/^\d{11}$/.test(awb) && !awb.startsWith("00") && !awb.startsWith("100"));
+    if (!isLionValid) {
       return {
         valid: false,
-        error: `Nomor resi numerik Lion Parcel umumnya terdiri dari 11 digit angka (nomor yang dimasukkan memiliki ${awb.length} digit).`,
+        error: `Nomor resi Lion Parcel harus berupa 11 digit angka (misal: 9817...) atau diawali 'LP'. Resi '${awb}' tidak valid untuk Lion Parcel.`,
         detectedCourier: detected ? { code: detected.code, name: detected.name } : undefined,
       };
     }
