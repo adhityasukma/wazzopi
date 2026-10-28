@@ -25,6 +25,7 @@ function cleanCityName(raw?: string): string {
 function formatDateStr(d: Date): string {
   return (
     d.toLocaleDateString("id-ID", {
+      timeZone: "Asia/Jakarta",
       day: "numeric",
       month: "short",
       year: "numeric",

@@ -24,6 +24,7 @@ export function generateOrderNo(prefix = "WZ") {
 export function formatDate(date: Date | string, withTime = false) {
   const d = typeof date === "string" ? new Date(date) : date;
   return d.toLocaleDateString("id-ID", {
+    timeZone: "Asia/Jakarta",
     day: "2-digit",
     month: "short",
     year: "numeric",

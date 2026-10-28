@@ -93,6 +93,18 @@ export function OrderTrackingModal({
     }
   }, [history]);
 
+  useEffect(() => {
+    if (isOpen) {
+      refreshOrderTracking(orderId)
+        .then((res) => {
+          if (res?.success && res?.tracking?.checkpoints) {
+            setCurrentHistory(sanitizeHistory(res.tracking.checkpoints));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isOpen, orderId]);
+
   const handleCopyResi = () => {
     navigator.clipboard.writeText(trackingNumber);
     setCopied(true);

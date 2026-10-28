@@ -512,6 +512,7 @@ export async function confirmOrderReceived(orderId: string) {
     }
 
     const nowStr = new Date().toLocaleDateString("id-ID", {
+      timeZone: "Asia/Jakarta",
       day: "numeric",
       month: "short",
       year: "numeric",
