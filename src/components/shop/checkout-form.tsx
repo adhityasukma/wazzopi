@@ -238,7 +238,7 @@ export function CheckoutForm({
                   {formData.city}, {formData.province} {formData.postalCode}
                 </p>
                 <p className="text-[11px] text-espresso-400 pt-0.5">
-                  Email konfirmasi: {formData.email}
+                  Email: {formData.email}
                 </p>
               </div>
 
