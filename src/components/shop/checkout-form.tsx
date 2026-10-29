@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, CreditCard, Scale, ShieldCheck, Truck, Zap } from "lucide-react";
+import { ArrowLeft, CheckCircle2, CreditCard, MapPin, MessageSquare, Scale, ShieldCheck, Truck, Zap } from "lucide-react";
 import { placeOrder } from "@/actions/orders";
 import { useMoney, useHydrated } from "@/components/currency-provider";
 import { useAppLoading } from "@/components/loading-provider";
@@ -45,6 +45,18 @@ export function CheckoutForm({
     }
   }, [isPending, showLoading, hideLoading]);
 
+  const hasSavedAddress = Boolean(customer?.address && customer?.city && customer?.name);
+  const [isEditingAddress, setIsEditingAddress] = useState(!hasSavedAddress);
+  const [formData, setFormData] = useState({
+    name: customer?.name || "",
+    email: customer?.email || "",
+    phone: customer?.phone || "",
+    address: customer?.address || "",
+    city: customer?.city || "",
+    province: customer?.province || "",
+    postalCode: customer?.postalCode || "",
+  });
+
   const [destination, setDestination] = useState({
     city: customer?.city || "",
     province: customer?.province || "",
@@ -71,8 +83,14 @@ export function CheckoutForm({
   );
 
   // Handler saat pemilihan kota berubah di CityProvinceSelector
-  const handleDestinationChange = (data: { city: string; province: string }) => {
+  const handleDestinationChange = (data: { city: string; province: string; postalCode?: string }) => {
     setDestination(data);
+    setFormData((prev) => ({
+      ...prev,
+      city: data.city,
+      province: data.province,
+      postalCode: data.postalCode ?? prev.postalCode,
+    }));
     if (data.city && data.city.trim()) {
       // Auto-select kurir pertama otomatis jika bukan pickup
       const rates = calculateDynamicRates(
@@ -184,63 +202,141 @@ export function CheckoutForm({
             </Alert>
           )}
 
-          {/* Data Kontak & Alamat */}
-          <div className="rounded-xl border border-latte bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-lg font-semibold text-espresso-900">1. Alamat Pengiriman</h2>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Nama Lengkap" className="sm:col-span-2">
-                <Input
-                  name="customerName"
-                  required
-                  defaultValue={customer?.name || ""}
-                  placeholder="Nama penerima paket"
-                />
-              </Field>
-              <Field label="Email">
-                <Input
-                  name="customerEmail"
-                  type="email"
-                  required
-                  defaultValue={customer?.email || ""}
-                  placeholder="email@anda.com"
-                />
-              </Field>
-              <Field label="Nomor WhatsApp/HP">
-                <Input
-                  name="customerPhone"
-                  type="tel"
-                  required
-                  defaultValue={customer?.phone || ""}
-                  placeholder="081234567890"
-                />
-              </Field>
-              <Field label="Alamat Lengkap" className="sm:col-span-2">
-                <Textarea
-                  name="address"
-                  required
-                  defaultValue={customer?.address || ""}
-                  placeholder="Nama jalan, nomor rumah, RT/RW, kelurahan/kecamatan"
-                />
-              </Field>
-              <div className="sm:col-span-2">
-                <CityProvinceSelector
-                  defaultCity={customer?.city || ""}
-                  defaultProvince={customer?.province || ""}
-                  defaultPostalCode={customer?.postalCode || ""}
-                  showPostalCode={true}
-                  postalCodeRequired={true}
-                  required
-                  onChange={handleDestinationChange}
-                />
+          {/* Section 1: Alamat Pengiriman */}
+          {hasSavedAddress && !isEditingAddress ? (
+            <div className="rounded-xl border border-latte bg-white p-5 md:p-6 shadow-sm">
+              <div className="flex items-center justify-between border-b border-espresso-100 pb-3 mb-3.5">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-caramel-600" />
+                  <h2 className="text-sm md:text-base font-bold text-espresso-900">
+                    Alamat Pengiriman
+                  </h2>
+                  <span className="rounded-md bg-caramel-50 px-2 py-0.5 text-[10px] font-semibold text-caramel-700 border border-caramel-200">
+                    Utama
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsEditingAddress(true)}
+                  className="text-xs font-semibold text-caramel-700 hover:text-caramel-800 hover:underline transition-colors cursor-pointer"
+                >
+                  Ubah Alamat
+                </button>
               </div>
-              <Field label="Catatan untuk Toko/Kurir (Opsional)" className="sm:col-span-2">
-                <Input
-                  name="notes"
-                  placeholder="Contoh: Titipkan ke satpam jika rumah kosong"
-                />
-              </Field>
+
+              {/* Keterangan Alamat Ala Shopee */}
+              <div className="space-y-1.5 text-xs text-espresso-800">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-bold text-sm text-espresso-900">{formData.name}</span>
+                  <span className="text-espresso-300">|</span>
+                  <span className="font-medium text-espresso-700">{formData.phone || "-"}</span>
+                </div>
+                <p className="leading-relaxed text-espresso-700 pt-0.5">
+                  {formData.address}
+                </p>
+                <p className="font-semibold text-espresso-800">
+                  {formData.city}, {formData.province} {formData.postalCode}
+                </p>
+                <p className="text-[11px] text-espresso-400 pt-0.5">
+                  Email konfirmasi: {formData.email}
+                </p>
+              </div>
+
+              {/* Hidden Inputs untuk Pengiriman Data Form ke Server Action */}
+              <input type="hidden" name="customerName" value={formData.name} />
+              <input type="hidden" name="customerEmail" value={formData.email} />
+              <input type="hidden" name="customerPhone" value={formData.phone} />
+              <input type="hidden" name="address" value={formData.address} />
+              <input type="hidden" name="city" value={formData.city} />
+              <input type="hidden" name="province" value={formData.province} />
+              <input type="hidden" name="postalCode" value={formData.postalCode} />
             </div>
-          </div>
+          ) : (
+            <div className="rounded-xl border border-latte bg-white p-6 shadow-sm">
+              <div className="flex items-center justify-between border-b border-espresso-100 pb-3 mb-4">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-caramel-600" />
+                  <h2 className="text-base font-bold text-espresso-900">
+                    {hasSavedAddress ? "Ubah Alamat Pengiriman" : "1. Alamat Pengiriman"}
+                  </h2>
+                </div>
+                {hasSavedAddress && (
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingAddress(false)}
+                    className="text-xs text-espresso-500 hover:text-espresso-800 transition-colors cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                )}
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Nama Lengkap" className="sm:col-span-2">
+                  <Input
+                    name="customerName"
+                    required
+                    value={formData.name}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+                    placeholder="Nama penerima paket"
+                  />
+                </Field>
+                <Field label="Email">
+                  <Input
+                    name="customerEmail"
+                    type="email"
+                    required
+                    value={formData.email}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
+                    placeholder="email@anda.com"
+                  />
+                </Field>
+                <Field label="Nomor WhatsApp/HP">
+                  <Input
+                    name="customerPhone"
+                    type="tel"
+                    required
+                    value={formData.phone}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))}
+                    placeholder="081234567890"
+                  />
+                </Field>
+                <Field label="Alamat Lengkap" className="sm:col-span-2">
+                  <Textarea
+                    name="address"
+                    required
+                    value={formData.address}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, address: e.target.value }))}
+                    placeholder="Nama jalan, nomor rumah, RT/RW, kelurahan/kecamatan"
+                  />
+                </Field>
+                <div className="sm:col-span-2">
+                  <CityProvinceSelector
+                    defaultCity={formData.city}
+                    defaultProvince={formData.province}
+                    defaultPostalCode={formData.postalCode}
+                    showPostalCode={true}
+                    postalCodeRequired={true}
+                    required
+                    onChange={handleDestinationChange}
+                    onPostalCodeChange={(code) => setFormData((prev) => ({ ...prev, postalCode: code }))}
+                  />
+                </div>
+              </div>
+
+              {hasSavedAddress && (
+                <div className="mt-4 pt-3 border-t border-espresso-100 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingAddress(false)}
+                    className="inline-flex items-center rounded-lg bg-espresso-800 px-4 py-2 text-xs font-semibold text-white hover:bg-espresso-900 transition-colors cursor-pointer"
+                  >
+                    Gunakan Alamat Ini
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Pilihan Pengiriman */}
           <div className="rounded-xl border border-latte bg-white p-6 shadow-sm">
@@ -389,6 +485,19 @@ export function CheckoutForm({
                 )}
               </div>
             )}
+
+            {/* Catatan untuk Toko/Kurir */}
+            <div className="mt-5 pt-4 border-t border-espresso-100">
+              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-espresso-800">
+                <MessageSquare className="h-3.5 w-3.5 text-caramel-600" />
+                Catatan untuk Toko / Kurir (Opsional)
+              </label>
+              <Input
+                name="notes"
+                placeholder="Contoh: Titipkan ke satpam jika rumah kosong, packing aman, dll."
+                className="text-xs"
+              />
+            </div>
           </div>
 
           {/* Pilihan Pembayaran */}
