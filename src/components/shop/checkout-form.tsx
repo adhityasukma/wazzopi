@@ -45,6 +45,7 @@ export function CheckoutForm({
     }
   }, [isPending, showLoading, hideLoading]);
 
+  const isLoggedIn = Boolean(customer?.email);
   const hasSavedAddress = Boolean(customer?.address && customer?.city && customer?.name);
   const [isEditingAddress, setIsEditingAddress] = useState(!hasSavedAddress);
   const [formData, setFormData] = useState({
@@ -238,13 +239,13 @@ export function CheckoutForm({
                   {formData.city}, {formData.province} {formData.postalCode}
                 </p>
                 <p className="text-[11px] text-espresso-400 pt-0.5">
-                  Email: {formData.email}
+                  {isLoggedIn ? "Email akun:" : "Email:"} {customer?.email || formData.email}
                 </p>
               </div>
 
               {/* Hidden Inputs untuk Pengiriman Data Form ke Server Action */}
               <input type="hidden" name="customerName" value={formData.name} />
-              <input type="hidden" name="customerEmail" value={formData.email} />
+              <input type="hidden" name="customerEmail" value={customer?.email || formData.email} />
               <input type="hidden" name="customerPhone" value={formData.phone} />
               <input type="hidden" name="address" value={formData.address} />
               <input type="hidden" name="city" value={formData.city} />
@@ -272,7 +273,7 @@ export function CheckoutForm({
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Nama Lengkap" className="sm:col-span-2">
+                <Field label="Nama Penerima" className="sm:col-span-2">
                   <Input
                     name="customerName"
                     required
@@ -281,17 +282,28 @@ export function CheckoutForm({
                     placeholder="Nama penerima paket"
                   />
                 </Field>
-                <Field label="Email">
-                  <Input
-                    name="customerEmail"
-                    type="email"
-                    required
-                    value={formData.email}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
-                    placeholder="email@anda.com"
-                  />
-                </Field>
-                <Field label="Nomor WhatsApp/HP">
+
+                {/* Kolom Email hanya untuk tamu yang belum login */}
+                {!isLoggedIn ? (
+                  <Field label="Email untuk Notifikasi Pesanan">
+                    <Input
+                      name="customerEmail"
+                      type="email"
+                      required
+                      value={formData.email}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
+                      placeholder="email@anda.com"
+                    />
+                  </Field>
+                ) : (
+                  <input type="hidden" name="customerEmail" value={customer?.email || formData.email} />
+                )}
+
+                <Field
+                  label="Nomor HP / WhatsApp Penerima"
+                  hint="Nomor aktif yang dapat dihubungi kurir saat pengantaran"
+                  className={isLoggedIn ? "sm:col-span-2" : ""}
+                >
                   <Input
                     name="customerPhone"
                     type="tel"
@@ -301,6 +313,7 @@ export function CheckoutForm({
                     placeholder="081234567890"
                   />
                 </Field>
+
                 <Field label="Alamat Lengkap" className="sm:col-span-2">
                   <Textarea
                     name="address"

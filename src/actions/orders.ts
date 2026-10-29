@@ -119,21 +119,24 @@ export async function placeOrder(_: FormState, formData: FormData): Promise<Form
 
   let assignedUserId: string | null = null;
   let newAccountInfo: { email: string; tempPassword: string } | null = null;
+  let finalCustomerEmail = d.customerEmail.toLowerCase().trim();
 
   // 1. Jika ada session login di browser, verifikasi apakah User ID tersebut benar-benar ada di database
   if (session?.id) {
     const sessionUser = await prisma.user.findUnique({
       where: { id: session.id },
-      select: { id: true },
+      select: { id: true, email: true },
     });
     if (sessionUser) {
       assignedUserId = sessionUser.id;
+      // Untuk pengguna yang sudah login, selalu kunci email pesanan ke email akun login yang sah
+      finalCustomerEmail = sessionUser.email.toLowerCase().trim();
     }
   }
 
   // 2. Jika user ID tidak ditemukan di database (atau session lama/kadaluarsa), cocokkan via email atau buat akun baru
   if (!assignedUserId) {
-    const cleanEmail = d.customerEmail.toLowerCase().trim();
+    const cleanEmail = finalCustomerEmail;
     const existingUser = await prisma.user.findUnique({
       where: { email: cleanEmail },
     });
@@ -182,7 +185,7 @@ export async function placeOrder(_: FormState, formData: FormData): Promise<Form
         orderNo,
         userId: assignedUserId,
         customerName: d.customerName,
-        customerEmail: d.customerEmail,
+        customerEmail: finalCustomerEmail,
         customerPhone: d.customerPhone,
         address: d.address,
         city: d.city,
@@ -228,7 +231,7 @@ export async function placeOrder(_: FormState, formData: FormData): Promise<Form
     await sendOrderStatusEmail({
       status: "PENDING",
       customerName: d.customerName,
-      customerEmail: d.customerEmail,
+      customerEmail: finalCustomerEmail,
       orderNo,
       items: lines.map((l) => ({
         productName: l.productName,
