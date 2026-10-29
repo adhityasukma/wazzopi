@@ -29,10 +29,18 @@ export async function updateProfile(_: FormState, formData: FormData): Promise<F
 const pwSchema = z
   .object({
     current: z.string().min(1, "Password saat ini wajib diisi"),
-    password: z.string().min(6, "Password baru minimal 6 karakter"),
-    confirm: z.string(),
+    password: z
+      .string()
+      .min(8, "Password baru minimal 8 karakter")
+      .regex(/[A-Z]/, "Password baru harus mengandung minimal 1 huruf besar (A-Z)")
+      .regex(/[a-z]/, "Password baru harus mengandung minimal 1 huruf kecil (a-z)")
+      .regex(/[0-9]/, "Password baru harus mengandung minimal 1 angka (0-9)"),
+    confirm: z.string().min(1, "Konfirmasi password wajib diisi"),
   })
-  .refine((d) => d.password === d.confirm, { message: "Konfirmasi password tidak sama" });
+  .refine((d) => d.password === d.confirm, {
+    message: "Konfirmasi password baru tidak cocok",
+    path: ["confirm"],
+  });
 
 export async function changePassword(_: FormState, formData: FormData): Promise<FormState> {
   const session = await requireCustomer();
