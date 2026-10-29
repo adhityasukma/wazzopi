@@ -252,45 +252,88 @@ export function SettingsForm({
         {activeTab === "general" && (
           <div className="rounded-xl border border-latte bg-white p-6 shadow-xs">
             <h2 className="text-base font-bold text-espresso-900 border-b border-latte pb-3">
-              Informasi Umum Toko
+              Informasi Umum Toko & Kontak
             </h2>
             {generalState?.error && <Alert tone="error" className="mt-4">{generalState.error}</Alert>}
             {generalState?.success && <Alert tone="success" className="mt-4">{generalState.success}</Alert>}
 
-            <form action={generalAction} className="mt-6 space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Nama Brand / Toko">
-                  <Input name="storeName" defaultValue={initialSettings.general.storeName} required />
-                </Field>
-                <Field label="Tagline Toko">
-                  <Input name="tagline" defaultValue={initialSettings.general.tagline} />
-                </Field>
-                <Field label="Email Resmi Toko">
-                  <Input name="email" type="email" defaultValue={initialSettings.general.email} required />
-                </Field>
-                <Field label="Nomor Telepon / CS">
-                  <Input name="phone" defaultValue={initialSettings.general.phone} required />
-                </Field>
-                <Field label="Alamat Fisik Toko" className="sm:col-span-2">
-                  <Textarea name="address" defaultValue={initialSettings.general.address} rows={2} />
-                </Field>
-                <Field label="Kota">
-                  <Input name="city" defaultValue={initialSettings.general.city} />
-                </Field>
-                <Field label="Provinsi">
-                  <Input name="province" defaultValue={initialSettings.general.province} />
-                </Field>
-                <Field label="Kode Pos">
-                  <Input name="postalCode" defaultValue={initialSettings.general.postalCode} />
-                </Field>
-                <Field label="Negara">
-                  <Input name="country" defaultValue={initialSettings.general.country} />
-                </Field>
+            <form action={generalAction} className="mt-6 space-y-6">
+              {/* Grup 1: Identitas Brand & Toko */}
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-caramel-800 mb-3">
+                  Identitas Brand & Toko
+                </h3>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Nama Brand / Toko">
+                    <Input name="storeName" defaultValue={initialSettings.general.storeName} required />
+                  </Field>
+                  <Field label="Tagline Toko">
+                    <Input name="tagline" defaultValue={initialSettings.general.tagline} />
+                  </Field>
+                  <Field label="Negara">
+                    <Input name="country" defaultValue={initialSettings.general.country} />
+                  </Field>
+                </div>
+              </div>
+
+              {/* Grup 2: Kontak & Lokasi Toko (Ditampilkan di Footer "Kunjungi Kami") */}
+              <div className="pt-5 border-t border-latte">
+                <div className="mb-3">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-caramel-800">
+                    Kontak & Lokasi (Footer &quot;Kunjungi Kami&quot;)
+                  </h3>
+                  <p className="text-[11px] text-espresso-500 mt-0.5">
+                    Data di bawah ini ditampilkan langsung di bagian footer &quot;Kunjungi Kami&quot; toko Anda.
+                  </p>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Nomor Telepon / CS" hint="Ditampilkan dengan ikon telepon di footer">
+                    <Input name="phone" defaultValue={initialSettings.general.phone} required />
+                  </Field>
+                  <Field label="Email Resmi Toko" hint="Ditampilkan dengan ikon email di footer">
+                    <Input name="email" type="email" defaultValue={initialSettings.general.email} required />
+                  </Field>
+                  <Field
+                    label="Jam Operasional Toko"
+                    hint="Ditampilkan dengan ikon jam di footer 'Kunjungi Kami'"
+                    className="sm:col-span-2"
+                  >
+                    <Input
+                      name="openingHours"
+                      defaultValue={initialSettings.general.openingHours || "Setiap hari, 08.00 - 22.00"}
+                      placeholder="Contoh: Setiap hari, 08.00 - 22.00"
+                    />
+                  </Field>
+                  <Field label="Alamat Fisik Toko" className="sm:col-span-2">
+                    <Textarea name="address" defaultValue={initialSettings.general.address} rows={2} />
+                  </Field>
+                  <Field label="Kota">
+                    <Input name="city" defaultValue={initialSettings.general.city} />
+                  </Field>
+                  <Field label="Provinsi">
+                    <Input name="province" defaultValue={initialSettings.general.province} />
+                  </Field>
+                  <Field label="Kode Pos">
+                    <Input name="postalCode" defaultValue={initialSettings.general.postalCode} />
+                  </Field>
+                  <Field
+                    label="URL Google Maps / Tautan Peta Lokasi"
+                    hint="Jika diisi, klik pada alamat di footer akan membuka peta ini"
+                  >
+                    <Input
+                      name="mapUrl"
+                      type="url"
+                      defaultValue={initialSettings.general.mapUrl || ""}
+                      placeholder="https://maps.app.goo.gl/..."
+                    />
+                  </Field>
+                </div>
               </div>
 
               <div className="pt-4 border-t border-latte">
                 <Button type="submit" disabled={generalPending} className="justify-center">
-                  {generalPending ? "Menyimpan..." : "Simpan Pengaturan Umum"}
+                  {generalPending ? "Menyimpan..." : "Simpan Pengaturan Umum & Kontak"}
                 </Button>
               </div>
             </form>

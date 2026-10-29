@@ -66,10 +66,46 @@ export function SiteFooter({ settings, categories }: { settings: AllSettings; ca
         <div>
           <h4 className="mb-4 text-sm font-semibold uppercase tracking-wider text-cream">Kunjungi Kami</h4>
           <ul className="space-y-3 text-sm">
-            <li className="flex gap-3"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-caramel-300" />{g.address}, {g.city}, {g.province} {g.postalCode}</li>
-            <li className="flex gap-3"><Phone className="mt-0.5 h-4 w-4 shrink-0 text-caramel-300" />{g.phone}</li>
-            <li className="flex gap-3"><Mail className="mt-0.5 h-4 w-4 shrink-0 text-caramel-300" />{g.email}</li>
-            <li className="flex gap-3"><Clock className="mt-0.5 h-4 w-4 shrink-0 text-caramel-300" />Setiap hari, 08.00 - 22.00</li>
+            <li className="flex gap-3">
+              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-caramel-300" />
+              {g.mapUrl ? (
+                <a
+                  href={g.mapUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-cream transition-colors underline-offset-2 hover:underline"
+                  title="Buka lokasi di Google Maps"
+                >
+                  {g.address}, {g.city}, {g.province} {g.postalCode}
+                </a>
+              ) : (
+                <span>
+                  {g.address}, {g.city}, {g.province} {g.postalCode}
+                </span>
+              )}
+            </li>
+            <li className="flex gap-3">
+              <Phone className="mt-0.5 h-4 w-4 shrink-0 text-caramel-300" />
+              <a
+                href={`tel:${g.phone.replace(/[^0-9+]/g, "")}`}
+                className="hover:text-cream transition-colors underline-offset-2 hover:underline"
+              >
+                {g.phone}
+              </a>
+            </li>
+            <li className="flex gap-3">
+              <Mail className="mt-0.5 h-4 w-4 shrink-0 text-caramel-300" />
+              <a
+                href={`mailto:${g.email}`}
+                className="hover:text-cream transition-colors underline-offset-2 hover:underline"
+              >
+                {g.email}
+              </a>
+            </li>
+            <li className="flex gap-3">
+              <Clock className="mt-0.5 h-4 w-4 shrink-0 text-caramel-300" />
+              <span>{g.openingHours || "Setiap hari, 08.00 - 22.00"}</span>
+            </li>
           </ul>
         </div>
       </div>

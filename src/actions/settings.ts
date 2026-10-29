@@ -32,6 +32,7 @@ export async function saveGeneral(_: FormState, f: FormData): Promise<FormState>
     postalCode: str(f, "postalCode"),
     country: str(f, "country"),
     mapUrl: str(f, "mapUrl"),
+    openingHours: str(f, "openingHours") || "Setiap hari, 08.00 - 22.00",
   });
   return done();
 }

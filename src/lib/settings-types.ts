@@ -11,6 +11,7 @@ export type GeneralSettings = {
   postalCode: string;
   country: string;
   mapUrl: string;
+  openingHours: string;
 };
 
 export type BankAccount = { bank: string; number: string; holder: string };
@@ -76,6 +77,7 @@ export const DEFAULT_SETTINGS: AllSettings = {
     postalCode: "15111",
     country: "Indonesia",
     mapUrl: "",
+    openingHours: "Setiap hari, 08.00 - 22.00",
   },
   currency: DEFAULT_CURRENCY,
   payment: {
