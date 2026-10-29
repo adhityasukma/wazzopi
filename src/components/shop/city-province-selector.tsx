@@ -85,19 +85,32 @@ export function CityProvinceSelector({
     function handleClickOutside(event: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsOpen(false);
-        // Jika belum memilih kota valid dari list tapi sudah mengetik,
-        // coba cocokkan dengan database wilayah
-        if (cityInput.trim() && cityInput !== selectedCity) {
+        if (!cityInput.trim()) {
+          // Jika input kosong saat klik luar, kosongkan kota, provinsi, dan kode pos
+          setSelectedCity("");
+          setSelectedProvince("");
+          setPostalCode("");
+          onPostalCodeChange?.("");
+          onChange?.({ city: "", province: "", postalCode: "" });
+        } else if (cityInput.trim() && cityInput !== selectedCity) {
           const matched = findProvinceByCity(cityInput);
           if (matched) {
             setSelectedCity(cityInput.trim());
             setSelectedProvince(matched);
             const autoPostal = findPostalCodeByCity(cityInput.trim(), matched) || "";
-            if (autoPostal) {
+            if (autoPostal && !postalCode) {
               setPostalCode(autoPostal);
               onPostalCodeChange?.(autoPostal);
             }
             onChange?.({ city: cityInput.trim(), province: matched, postalCode: autoPostal || postalCode });
+          } else {
+            // Teks diketik tidak cocok dengan kota resmi mana pun, reset
+            setCityInput("");
+            setSelectedCity("");
+            setSelectedProvince("");
+            setPostalCode("");
+            onPostalCodeChange?.("");
+            onChange?.({ city: "", province: "", postalCode: "" });
           }
         }
       }
@@ -128,7 +141,7 @@ export function CityProvinceSelector({
     setSelectedCity("");
     setSelectedProvince("");
     setPostalCode("");
-    setIsOpen(true);
+    setIsOpen(false);
     inputRef.current?.focus();
     onPostalCodeChange?.("");
     onChange?.({ city: "", province: "", postalCode: "" });
@@ -186,9 +199,25 @@ export function CityProvinceSelector({
             type="text"
             value={cityInput}
             onChange={(e) => {
-              setCityInput(e.target.value);
+              const val = e.target.value;
+              setCityInput(val);
               setIsOpen(true);
               setHighlightIndex(0);
+
+              // Jika input dikosongkan (cth: pengguna menghapus teks / backspace)
+              if (!val.trim()) {
+                setSelectedCity("");
+                setSelectedProvince("");
+                setPostalCode("");
+                onPostalCodeChange?.("");
+                onChange?.({ city: "", province: "", postalCode: "" });
+              } else if (selectedCity && val.trim().toLowerCase() !== selectedCity.toLowerCase()) {
+                // Pengguna sedang mengubah teks dari kota yang sebelumnya dipilih,
+                // kosongkan kota & provinsi agar tampilan ongkir tidak menampilkan data lama
+                setSelectedCity("");
+                setSelectedProvince("");
+                onChange?.({ city: "", province: "", postalCode });
+              }
             }}
             onFocus={() => setIsOpen(true)}
             onKeyDown={handleKeyDown}
