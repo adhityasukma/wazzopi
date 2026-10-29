@@ -25,7 +25,11 @@ import {
   MessageCircle,
   AlertCircle,
   ExternalLink,
+  ChevronLeft,
+  ChevronRight,
+  RotateCcw,
 } from "lucide-react";
+import { useLoading } from "@/components/loading-provider";
 import { formatCurrency, type CurrencySettings, DEFAULT_CURRENCY } from "@/lib/currency";
 import type { AllSettings } from "@/lib/settings-types";
 import { formatDate, ORDER_STATUS_LABEL, ORDER_STATUS_STYLE } from "@/lib/utils";
@@ -91,9 +95,12 @@ export function MemberAreaView({
   settings,
   initialTab = "dashboard",
 }: MemberAreaViewProps) {
+  const { showLoading, hideLoading } = useLoading();
   const [activeTab, setActiveTab] = useState<string>(initialTab);
   const [orderSearch, setOrderSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [pageSize, setPageSize] = useState<string>("20");
+  const [currentPage, setCurrentPage] = useState<number>(1);
   const [copiedResi, setCopiedResi] = useState<string | null>(null);
 
   const currencyConfig: CurrencySettings = settings?.currency || DEFAULT_CURRENCY;
@@ -125,6 +132,72 @@ export function MemberAreaView({
 
     return true;
   });
+
+  // Perhitungan Pagination
+  const effectivePageSize =
+    pageSize === "ALL" ? Math.max(1, filteredOrders.length) : parseInt(pageSize, 10) || 20;
+  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / effectivePageSize));
+  const validCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+
+  const startIndex = (validCurrentPage - 1) * effectivePageSize;
+  const paginatedOrders =
+    pageSize === "ALL"
+      ? filteredOrders
+      : filteredOrders.slice(startIndex, startIndex + effectivePageSize);
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > totalPages || newPage === validCurrentPage) return;
+    showLoading(`Memuat halaman ${newPage}...`);
+    setTimeout(() => {
+      setCurrentPage(newPage);
+      hideLoading();
+    }, 280);
+  };
+
+  const handlePageSizeChange = (newSize: string) => {
+    if (newSize === pageSize) return;
+    const label = newSize === "ALL" ? "semua" : newSize;
+    showLoading(`Menampilkan ${label} data pesanan...`);
+    setTimeout(() => {
+      setPageSize(newSize);
+      setCurrentPage(1);
+      hideLoading();
+    }, 280);
+  };
+
+  const handleResetFilters = () => {
+    showLoading("Mereset filter pesanan...");
+    setTimeout(() => {
+      setOrderSearch("");
+      setStatusFilter("ALL");
+      setPageSize("20");
+      setCurrentPage(1);
+      hideLoading();
+    }, 280);
+  };
+
+  const handleStatusFilterChange = (status: string) => {
+    if (status === statusFilter) return;
+    showLoading("Menyaring daftar pesanan...");
+    setTimeout(() => {
+      setStatusFilter(status);
+      setCurrentPage(1);
+      hideLoading();
+    }, 250);
+  };
+
+  const getPaginationNumbers = (current: number, total: number): (number | string)[] => {
+    if (total <= 7) {
+      return Array.from({ length: total }, (_, i) => i + 1);
+    }
+    if (current <= 4) {
+      return [1, 2, 3, 4, 5, "...", total];
+    }
+    if (current >= total - 3) {
+      return [1, "...", total - 4, total - 3, total - 2, total - 1, total];
+    }
+    return [1, "...", current - 1, current, current + 1, "...", total];
+  };
 
   const handleCopyResi = (resi: string) => {
     navigator.clipboard.writeText(resi);
@@ -665,7 +738,7 @@ export function MemberAreaView({
           {activeTab === "orders" && (
             <div className="space-y-5 animate-in fade-in duration-150">
               <div className="rounded-2xl border border-latte bg-white p-5 shadow-xs space-y-4">
-                {/* Header & Search */}
+                {/* Header & Search + Tombol Reset */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
                     <h2 className="text-base font-bold text-espresso-900">
@@ -676,48 +749,80 @@ export function MemberAreaView({
                     </p>
                   </div>
 
-                  <div className="relative min-w-[240px]">
-                    <Search className="h-3.5 w-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-espresso-400" />
-                    <input
-                      type="text"
-                      value={orderSearch}
-                      onChange={(e) => setOrderSearch(e.target.value)}
-                      placeholder="Cari No. Pesanan / Produk..."
-                      className="w-full rounded-xl border border-latte bg-espresso-50/50 pl-8 pr-3 py-1.5 text-xs text-espresso-900 placeholder:text-espresso-400 focus:bg-white focus:border-caramel-500 focus:outline-hidden"
-                    />
+                  <div className="flex items-center gap-2">
+                    <div className="relative min-w-[200px] sm:min-w-[240px]">
+                      <Search className="h-3.5 w-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-espresso-400" />
+                      <input
+                        type="text"
+                        value={orderSearch}
+                        onChange={(e) => {
+                          setOrderSearch(e.target.value);
+                          setCurrentPage(1);
+                        }}
+                        placeholder="Cari No. Pesanan / Produk..."
+                        className="w-full rounded-xl border border-latte bg-espresso-50/50 pl-8 pr-3 py-1.5 text-xs text-espresso-900 placeholder:text-espresso-400 focus:bg-white focus:border-caramel-500 focus:outline-hidden"
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleResetFilters}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-espresso-200 bg-white px-3 py-1.5 text-xs font-semibold text-espresso-700 hover:bg-espresso-100 hover:text-espresso-900 transition-colors shadow-2xs shrink-0"
+                      title="Reset semua filter dan pencarian"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5 text-espresso-500" />
+                      <span>Reset</span>
+                    </button>
                   </div>
                 </div>
 
-                {/* Filter Status Pills */}
-                <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none border-t border-latte pt-3">
-                  {[
-                    { id: "ALL", label: "Semua", count: orders.length },
-                    { id: "PENDING", label: "Belum Bayar", count: pendingOrders.length },
-                    { id: "PROCESSING", label: "Diproses", count: processingOrders.length },
-                    { id: "SHIPPED", label: "Dikirim", count: shippedOrders.length },
-                    { id: "COMPLETED", label: "Selesai", count: completedOrders.length },
-                    { id: "CANCELLED", label: "Dibatalkan", count: cancelledOrders.length },
-                  ].map((tab) => (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      onClick={() => setStatusFilter(tab.id)}
-                      className={`inline-flex items-center gap-1.5 shrink-0 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all ${
-                        statusFilter === tab.id
-                          ? "bg-espresso-900 text-white shadow-2xs"
-                          : "bg-espresso-50 text-espresso-600 hover:bg-espresso-100"
-                      }`}
-                    >
-                      <span>{tab.label}</span>
-                      <span
-                        className={`rounded-full px-1.5 py-0.2 text-[10px] ${
-                          statusFilter === tab.id ? "bg-white/20 text-white" : "bg-espresso-200/60 text-espresso-700"
+                {/* Filter Status Pills & Show Data */}
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-latte pt-3">
+                  <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                    {[
+                      { id: "ALL", label: "Semua", count: orders.length },
+                      { id: "PENDING", label: "Belum Bayar", count: pendingOrders.length },
+                      { id: "PROCESSING", label: "Diproses", count: processingOrders.length },
+                      { id: "SHIPPED", label: "Dikirim", count: shippedOrders.length },
+                      { id: "COMPLETED", label: "Selesai", count: completedOrders.length },
+                      { id: "CANCELLED", label: "Dibatalkan", count: cancelledOrders.length },
+                    ].map((tab) => (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => handleStatusFilterChange(tab.id)}
+                        className={`inline-flex items-center gap-1.5 shrink-0 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all ${
+                          statusFilter === tab.id
+                            ? "bg-espresso-900 text-white shadow-2xs"
+                            : "bg-espresso-50 text-espresso-600 hover:bg-espresso-100"
                         }`}
                       >
-                        {tab.count}
-                      </span>
-                    </button>
-                  ))}
+                        <span>{tab.label}</span>
+                        <span
+                          className={`rounded-full px-1.5 py-0.2 text-[10px] ${
+                            statusFilter === tab.id ? "bg-white/20 text-white" : "bg-espresso-200/60 text-espresso-700"
+                          }`}
+                        >
+                          {tab.count}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Show Data Selector */}
+                  <div className="flex items-center gap-2 text-xs shrink-0 ml-auto">
+                    <span className="text-espresso-500 font-medium">Show Data:</span>
+                    <select
+                      value={pageSize}
+                      onChange={(e) => handlePageSizeChange(e.target.value)}
+                      className="rounded-lg border border-latte bg-white px-2.5 py-1 text-xs font-semibold text-espresso-900 focus:border-caramel-500 focus:outline-hidden shadow-2xs cursor-pointer"
+                    >
+                      <option value="20">20</option>
+                      <option value="50">50</option>
+                      <option value="100">100</option>
+                      <option value="ALL">All</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
@@ -750,7 +855,7 @@ export function MemberAreaView({
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {filteredOrders.map((order) => {
+                  {paginatedOrders.map((order) => {
                     const effective = order.trackingNumber
                       ? resolveEffectiveCourier({
                           trackingNumber: order.trackingNumber,
@@ -930,6 +1035,86 @@ export function MemberAreaView({
                       </div>
                     );
                   })}
+                </div>
+              )}
+
+              {/* Pagination Footer Controls */}
+              {filteredOrders.length > 0 && (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-latte bg-white p-4 shadow-xs">
+                  {/* Keterangan & Show Data di footer */}
+                  <div className="flex flex-wrap items-center gap-3 text-xs text-espresso-600">
+                    <span>
+                      Menampilkan <strong>{filteredOrders.length > 0 ? startIndex + 1 : 0}</strong> –{" "}
+                      <strong>{Math.min(startIndex + effectivePageSize, filteredOrders.length)}</strong> dari total{" "}
+                      <strong>{filteredOrders.length}</strong> pesanan
+                    </span>
+                    <span className="text-espresso-300">|</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-espresso-500 font-medium">Show:</span>
+                      <select
+                        value={pageSize}
+                        onChange={(e) => handlePageSizeChange(e.target.value)}
+                        className="rounded-lg border border-latte bg-espresso-50/50 px-2 py-0.5 text-xs font-semibold text-espresso-900 focus:bg-white focus:border-caramel-500 focus:outline-hidden cursor-pointer"
+                      >
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                        <option value="ALL">All</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Pagination Numbers */}
+                  {pageSize !== "ALL" && totalPages > 1 && (
+                    <div className="flex items-center gap-1">
+                      {/* Tombol Sebelumnya */}
+                      <button
+                        type="button"
+                        onClick={() => handlePageChange(validCurrentPage - 1)}
+                        disabled={validCurrentPage <= 1}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-latte bg-white text-espresso-600 hover:bg-espresso-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        title="Halaman sebelumnya"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </button>
+
+                      {/* Nomor-nomor Halaman */}
+                      {getPaginationNumbers(validCurrentPage, totalPages).map((p, idx) =>
+                        typeof p === "number" ? (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => handlePageChange(p)}
+                            className={`flex h-8 min-w-[32px] px-2 items-center justify-center rounded-lg text-xs font-semibold transition-all ${
+                              validCurrentPage === p
+                                ? "bg-espresso-900 text-white font-bold shadow-2xs"
+                                : "border border-latte bg-white text-espresso-700 hover:bg-espresso-50"
+                            }`}
+                          >
+                            {p}
+                          </button>
+                        ) : (
+                          <span
+                            key={idx}
+                            className="px-1 text-xs text-espresso-400 font-bold select-none"
+                          >
+                            ...
+                          </span>
+                        )
+                      )}
+
+                      {/* Tombol Selanjutnya */}
+                      <button
+                        type="button"
+                        onClick={() => handlePageChange(validCurrentPage + 1)}
+                        disabled={validCurrentPage >= totalPages}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-latte bg-white text-espresso-600 hover:bg-espresso-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        title="Halaman selanjutnya"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
