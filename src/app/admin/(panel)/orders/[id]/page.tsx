@@ -142,7 +142,11 @@ export default async function AdminOrderDetailPage({
         {/* Kolom Kanan: Ubah Status & Pembayaran */}
         <div className="space-y-6 lg:col-span-4">
           {/* Form Ubah Status Interaktif */}
-          <OrderStatusForm orderId={order.id} currentStatus={order.status} />
+          <OrderStatusForm
+            orderId={order.id}
+            currentStatus={order.status}
+            customerEmail={order.customerEmail}
+          />
 
           {/* Form Input Resi & Tracking Otomatis */}
           <OrderTrackingForm

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useEffect } from "react";
-import { Check, Loader2, AlertCircle } from "lucide-react";
+import { Check, Loader2, AlertCircle, Mail } from "lucide-react";
 import { updateOrderStatus } from "@/actions/orders";
 import {
   ORDER_STATUSES,
@@ -13,12 +13,15 @@ import {
 export function OrderStatusForm({
   orderId,
   currentStatus,
+  customerEmail,
 }: {
   orderId: string;
   currentStatus: string;
+  customerEmail?: string | null;
 }) {
   const [selectedStatus, setSelectedStatus] = useState(currentStatus);
   const [activeStatus, setActiveStatus] = useState(currentStatus);
+  const [sendEmail, setSendEmail] = useState(true);
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
@@ -34,6 +37,7 @@ export function OrderStatusForm({
     const formData = new FormData();
     formData.set("id", orderId);
     formData.set("status", selectedStatus);
+    formData.set("sendEmail", sendEmail ? "true" : "false");
 
     startTransition(async () => {
       try {
@@ -42,9 +46,11 @@ export function OrderStatusForm({
           setActiveStatus(selectedStatus);
           setMessage({
             type: "success",
-            text: `Status pesanan berhasil diperbarui menjadi ${
-              ORDER_STATUS_LABEL[selectedStatus as OrderStatus] || selectedStatus
-            }.`,
+            text:
+              res?.message ||
+              `Status pesanan berhasil diperbarui menjadi ${
+                ORDER_STATUS_LABEL[selectedStatus as OrderStatus] || selectedStatus
+              }.`,
           });
         } else {
           setMessage({
@@ -80,7 +86,7 @@ export function OrderStatusForm({
           </span>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-3">
+        <form onSubmit={handleSubmit} className="space-y-3.5">
           <div>
             <label className="text-xs font-semibold text-espresso-600 block mb-1.5">
               Pilih Status Baru
@@ -102,25 +108,57 @@ export function OrderStatusForm({
             </select>
           </div>
 
+          {/* Opsi Kirim Notifikasi Email */}
+          <div className="rounded-lg border border-latte bg-espresso-50/40 p-3">
+            <label className="flex items-start gap-2.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                name="sendEmail"
+                checked={sendEmail}
+                onChange={(e) => setSendEmail(e.target.checked)}
+                className="h-4 w-4 rounded border-espresso-300 text-caramel-600 focus:ring-caramel-500 mt-0.5 cursor-pointer accent-caramel-600"
+              />
+              <div className="text-xs">
+                <span className="font-semibold text-espresso-900 flex items-center gap-1.5">
+                  <Mail className="h-3.5 w-3.5 text-caramel-600" />
+                  Kirim email notifikasi ke pembeli
+                </span>
+                <span className="text-[11px] text-espresso-500 block mt-0.5 leading-relaxed">
+                  {sendEmail
+                    ? customerEmail
+                      ? `Email pembaruan status akan dikirimkan ke ${customerEmail}`
+                      : "Email notifikasi pembaruan status akan dikirimkan ke pembeli"
+                    : "Hanya perbarui status di sistem internal toko (tanpa kirim email)"}
+                </span>
+              </div>
+            </label>
+          </div>
+
           <button
             type="submit"
             disabled={isPending || selectedStatus === activeStatus}
-            className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-espresso-700 py-2.5 text-xs font-semibold text-cream hover:bg-espresso-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className={`w-full inline-flex items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs ${
+              sendEmail
+                ? "bg-espresso-800 text-white hover:bg-espresso-900"
+                : "bg-espresso-100 text-espresso-800 border border-espresso-300 hover:bg-espresso-200"
+            }`}
           >
             {isPending ? (
               <>
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 <span>Menyimpan Perubahan...</span>
               </>
+            ) : sendEmail ? (
+              <span>Simpan & Kirim Email Notifikasi</span>
             ) : (
-              <span>Simpan Perubahan Status</span>
+              <span>Simpan Status Saja (Tanpa Email)</span>
             )}
           </button>
         </form>
 
         {message && (
           <div
-            className={`flex items-start gap-2 rounded-lg p-3 text-xs ${
+            className={`flex items-start gap-2 rounded-lg p-3 text-xs leading-relaxed ${
               message.type === "success"
                 ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
                 : "bg-rose-50 text-rose-800 border border-rose-200"

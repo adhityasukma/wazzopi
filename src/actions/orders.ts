@@ -13,7 +13,7 @@ import {
   sendOrderNotificationByOrderId,
   type OrderEmailStatus,
 } from "@/lib/email";
-import { generateOrderNo, ORDER_STATUSES } from "@/lib/utils";
+import { generateOrderNo, ORDER_STATUSES, ORDER_STATUS_LABEL } from "@/lib/utils";
 import { calculateDynamicRates } from "@/lib/shipping-calculator";
 import type { FormState } from "./auth";
 
@@ -275,10 +275,14 @@ export async function placeOrder(_: FormState, formData: FormData): Promise<Form
   }
 }
 
-export async function updateOrderStatus(formData: FormData): Promise<{ success: boolean; error?: string }> {
+export async function updateOrderStatus(
+  formData: FormData
+): Promise<{ success: boolean; message?: string; error?: string }> {
   await requireAdmin();
   const id = String(formData.get("id"));
   const status = String(formData.get("status"));
+  const sendEmail = formData.get("sendEmail") === "true";
+
   if (!ORDER_STATUSES.includes(status as (typeof ORDER_STATUSES)[number])) {
     return { success: false, error: "Status pesanan tidak valid" };
   }
@@ -300,21 +304,37 @@ export async function updateOrderStatus(formData: FormData): Promise<{ success: 
 
   await prisma.order.update({ where: { id }, data: updateData });
 
-  // Kirim notifikasi email status baru ke customer jika status berubah
-  if (status !== order.status) {
+  let emailSent = false;
+  let emailError: string | undefined;
+
+  // Kirim notifikasi email status baru ke customer HANYA jika dicentang oleh admin
+  if (sendEmail) {
     try {
       await sendOrderNotificationByOrderId(id, {
         forcedStatus: status as OrderEmailStatus,
       });
-    } catch (emailErr) {
+      emailSent = true;
+    } catch (emailErr: any) {
       console.error("[updateOrderStatus Email Error]:", emailErr);
+      emailError = emailErr?.message;
     }
   }
 
   revalidatePath(`/admin/orders/${id}`);
   revalidatePath("/admin/orders");
   revalidatePath("/account");
-  return { success: true };
+
+  const statusLabel = ORDER_STATUS_LABEL[status] || status;
+  let feedbackMessage = `Status pesanan berhasil diperbarui menjadi ${statusLabel}.`;
+  if (sendEmail) {
+    feedbackMessage += emailSent
+      ? ` Email notifikasi telah dikirimkan ke ${order.customerEmail}.`
+      : ` (Namun gagal mengirim email: ${emailError || "kendala mail server"}).`;
+  } else {
+    feedbackMessage += " (Disimpan tanpa mengirim email notifikasi).";
+  }
+
+  return { success: true, message: feedbackMessage };
 }
 
 export async function deleteOrder(id: string) {
