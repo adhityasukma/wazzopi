@@ -57,6 +57,45 @@ function formatApiDate(dateStr: string): string {
   return dateStr;
 }
 
+export function parseCheckpointDate(dateStr: string): number {
+  if (!dateStr) return 0;
+  const cleaned = dateStr.replace(/WIB|WITA|WIT/gi, "").trim();
+  const direct = new Date(cleaned.replace(" ", "T"));
+  if (!isNaN(direct.getTime())) return direct.getTime();
+
+  // Format DD-MM-YYYY HH:mm:ss atau DD-MM-YYYY HH:mm
+  const dmyMatch = cleaned.match(
+    /^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})(?:\s+(\d{1,2})[:.](\d{1,2})(?:[:.](\d{1,2}))?)?/
+  );
+  if (dmyMatch) {
+    const [, day, month, year, h = "0", m = "0", s = "0"] = dmyMatch;
+    return new Date(
+      Number(year),
+      Number(month) - 1,
+      Number(day),
+      Number(h),
+      Number(m),
+      Number(s)
+    ).getTime();
+  }
+
+  // Format Indo: "7 Okt 2026, 07.45"
+  const indoMonths: Record<string, number> = {
+    jan: 0, feb: 1, mar: 2, apr: 3, mei: 4, jun: 5,
+    jul: 6, agu: 7, ags: 7, sep: 8, okt: 9, nov: 10, des: 11,
+  };
+  const indoMatch = cleaned.match(
+    /^(\d{1,2})\s+([a-zA-Z]+)\s+(\d{4})(?:,\s*(\d{1,2})[:.](\d{1,2}))?/
+  );
+  if (indoMatch) {
+    const [, day, monStr, year, h = "0", m = "0"] = indoMatch;
+    const mon = indoMonths[monStr.slice(0, 3).toLowerCase()] ?? 0;
+    return new Date(Number(year), mon, Number(day), Number(h), Number(m)).getTime();
+  }
+
+  return 0;
+}
+
 /**
  * Mengambil informasi tracking resi ekspedisi.
  * Jika API Key Binderbyte tersedia, memanggil API resmi secara otomatis.
@@ -128,17 +167,48 @@ export async function trackShipment(
         const json = await res.json();
         if (json.status === 200 && json.data) {
           const d = json.data;
-          const isDelivered = d.summary?.status === "DELIVERED";
+          const isApiDelivered = d.summary?.status === "DELIVERED";
+          const isOrderCompleted = (orderContext?.status || "").toUpperCase() === "COMPLETED";
+          const isDelivered = isApiDelivered || isOrderCompleted;
+
           const rawHistory: Array<{ date: string; desc: string; location: string }> = d.history || [];
 
-          const checkpoints: TrackingCheckpoint[] = rawHistory.map((h) => ({
+          const checkpoints: TrackingCheckpoint[] = rawHistory.map((h, idx) => ({
             date: formatApiDate(h.date),
             desc: h.desc,
             location: cleanCityName(h.location, originCity),
-            status: isDelivered ? "DELIVERED" : "ON_PROCESS",
+            status: isDelivered && idx === 0 ? "DELIVERED" : "ON_PROCESS",
           }));
 
-          checkpoints.reverse();
+          // Urutkan selalu dari peristiwa terbaru (newest first) ke terlama
+          checkpoints.sort((a, b) => {
+            const timeA = parseCheckpointDate(a.date);
+            const timeB = parseCheckpointDate(b.date);
+            return timeB - timeA;
+          });
+
+          // Jika pesanan toko COMPLETED namun belum ada milestone DELIVERED dari API
+          if (
+            isOrderCompleted &&
+            !checkpoints.some(
+              (c) =>
+                c.status === "DELIVERED" ||
+                c.desc.toLowerCase().includes("diterima") ||
+                c.desc.toLowerCase().includes("terkirim")
+            )
+          ) {
+            checkpoints.unshift({
+              date: formatDateStr(new Date()),
+              desc: `Paket telah diterima di alamat tujuan oleh [${orderContext?.customerName || "Pelanggan"}]. Transaksi selesai.`,
+              location: destCity,
+              status: "DELIVERED",
+            });
+          }
+
+          // Pastikan checkpoint teratas memiliki status DELIVERED jika paket sudah sampai
+          if (isDelivered && checkpoints.length > 0) {
+            checkpoints[0].status = "DELIVERED";
+          }
 
           return {
             success: true,
@@ -147,7 +217,7 @@ export async function trackShipment(
             trackingNumber: awb,
             status: isDelivered ? "DELIVERED" : "ON_PROCESS",
             statusLabel: isDelivered ? "Paket Telah Diterima" : "Sedang Dalam Pengiriman Kurir",
-            receiverName: d.summary?.receiver,
+            receiverName: d.summary?.receiver || (isOrderCompleted ? orderContext?.customerName : undefined),
             checkpoints,
             isLive: true,
           };
