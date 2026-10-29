@@ -13,8 +13,10 @@ import {
   Clock,
   X,
   ExternalLink,
+  Info,
 } from "lucide-react";
 import { confirmOrderReceived, refreshOrderTracking } from "@/actions/orders";
+import { resolveEffectiveCourier } from "@/lib/tracking-constants";
 
 export type TrackingCheckpoint = {
   date: string;
@@ -26,6 +28,7 @@ export type TrackingCheckpoint = {
 type OrderTrackingModalProps = {
   orderId: string;
   orderNo: string;
+  courierCode?: string | null;
   courierName: string;
   trackingNumber: string;
   status: string;
@@ -38,6 +41,7 @@ type OrderTrackingModalProps = {
 export function OrderTrackingModal({
   orderId,
   orderNo,
+  courierCode,
   courierName,
   trackingNumber,
   status,
@@ -51,6 +55,13 @@ export function OrderTrackingModal({
   const [copied, setCopied] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
+
+  const effective = resolveEffectiveCourier({
+    trackingNumber,
+    courierCode,
+    courierName,
+    shippingMethod,
+  });
 
   const sanitizeHistory = (items: TrackingCheckpoint[]) => {
     return (items || []).map((cp) => ({
@@ -166,11 +177,7 @@ export function OrderTrackingModal({
                     Ekspedisi Kurir
                   </span>
                   <p className="text-sm font-bold text-espresso-900">
-                    {courierName.toLowerCase().includes("jne")
-                      ? "JNE Express (Reguler)"
-                      : shippingMethod && !courierName.toLowerCase().includes(shippingMethod.toLowerCase())
-                      ? `${courierName} (${shippingMethod})`
-                      : courierName}
+                    {effective.courierName}
                   </p>
                   <div className="flex items-center gap-2 mt-1">
                     <span className="font-mono text-xs font-bold text-caramel-700 bg-white px-2 py-0.5 rounded border border-latte">
@@ -229,6 +236,20 @@ export function OrderTrackingModal({
                   </button>
                 </div>
               </div>
+
+              {effective.isCourierSwitched && (
+                <div className="mt-3 rounded-xl border border-amber-200/90 bg-amber-50/80 p-3 text-xs text-amber-900 shadow-2xs">
+                  <div className="flex items-start gap-2.5">
+                    <Info className="h-4 w-4 shrink-0 text-amber-700 mt-0.5" />
+                    <div>
+                      <span className="font-bold text-amber-950 block">Catatan Pengiriman:</span>
+                      <p className="text-[11px] text-amber-800 leading-relaxed mt-0.5">
+                        {effective.customerNotice || `Paket Anda dikirim menggunakan ${effective.courierName} untuk rute pengantaran yang lebih optimal tanpa biaya tambahan.`}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Stepper Timeline Ala Shopee (Scrollable) */}
@@ -304,9 +325,25 @@ export function OrderTrackingModal({
 
             {/* Footer Actions */}
             <div className="border-t border-latte px-6 py-4 bg-espresso-50/50 flex flex-wrap items-center justify-between gap-3">
-              <span className="text-xs text-espresso-500">
-                Layanan Pelacakan Otomatis Wazzopi
-              </span>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                <span className="text-xs text-espresso-500">
+                  Layanan Pelacakan Otomatis Wazzopi
+                </span>
+                {effective.trackingPortalUrl && (
+                  <>
+                    <span className="hidden sm:inline text-espresso-300">|</span>
+                    <a
+                      href={effective.trackingPortalUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-caramel-700 hover:text-caramel-800 font-semibold underline decoration-caramel-300 underline-offset-2 transition-colors"
+                    >
+                      <span>Cek di Web Resmi {effective.courierName.split(" ")[0]}</span>
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </>
+                )}
+              </div>
 
               <div className="flex items-center gap-2.5">
                 {isCustomerView && !isDelivered && (

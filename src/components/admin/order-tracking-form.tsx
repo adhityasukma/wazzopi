@@ -323,6 +323,7 @@ export function OrderTrackingForm({
               <OrderTrackingModal
                 orderId={orderId}
                 orderNo={orderNo}
+                courierCode={currentCourierCode || courierCode}
                 courierName={currentCourierName || courierCode.toUpperCase()}
                 trackingNumber={currentTrackingNumber}
                 status={orderStatus}

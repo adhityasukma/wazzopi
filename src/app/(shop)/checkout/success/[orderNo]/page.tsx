@@ -12,6 +12,7 @@ import { CopyButton } from "@/components/shop/copy-button";
 import { MidtransPayButton } from "@/components/shop/midtrans-pay-button";
 import { OrderTrackingModal } from "@/components/shop/order-tracking-modal";
 import { ResendEmailButton } from "@/components/admin/resend-email-button";
+import { resolveEffectiveCourier } from "@/lib/tracking-constants";
 
 export const metadata = {
   title: "Terima Kasih Atas Pesanan Anda",
@@ -236,34 +237,55 @@ export default async function CheckoutSuccessPage({
             <span className="text-espresso-500">Metode Pengiriman</span>
             <span className="font-medium text-espresso-900">{order.shippingMethod}</span>
           </div>
-          {order.trackingNumber && (
-            <div className="flex items-center justify-between rounded-lg bg-latte/40 p-3 border border-latte">
-              <div>
-                <span className="text-espresso-500 block text-xs">Resi Pengiriman</span>
-                <span className="font-mono font-bold text-caramel-700">{order.trackingNumber}</span>
-                <span className="text-xs text-espresso-500 ml-1.5">
-                  ({order.courierName || order.courierCode?.toUpperCase()})
-                </span>
+          {order.trackingNumber && (() => {
+            const effective = resolveEffectiveCourier({
+              trackingNumber: order.trackingNumber,
+              courierCode: order.courierCode,
+              courierName: order.courierName,
+              shippingMethod: order.shippingMethod,
+            });
+            return (
+              <div className="rounded-xl bg-latte/40 p-3.5 border border-latte space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <span className="text-espresso-500 block text-xs">Resi Pengiriman</span>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="font-mono font-bold text-caramel-700 text-sm">{order.trackingNumber}</span>
+                      <span className="text-xs text-espresso-700 font-semibold">
+                        ({effective.courierName})
+                      </span>
+                    </div>
+                  </div>
+                  <OrderTrackingModal
+                    orderId={order.id}
+                    orderNo={order.orderNo}
+                    courierCode={order.courierCode}
+                    courierName={effective.courierName}
+                    trackingNumber={order.trackingNumber}
+                    status={order.status}
+                    trackingStatus={order.trackingStatus}
+                    shippingMethod={order.shippingMethod}
+                    history={(() => {
+                      try {
+                        return order.trackingHistory ? JSON.parse(order.trackingHistory) : [];
+                      } catch {
+                        return [];
+                      }
+                    })()}
+                    isCustomerView={true}
+                  />
+                </div>
+                {effective.isCourierSwitched && (
+                  <div className="rounded-lg bg-amber-50/80 border border-amber-200/80 px-3 py-2 text-xs text-amber-900 leading-relaxed">
+                    <p className="font-medium text-amber-950">Catatan Pengiriman:</p>
+                    <p className="text-[11px] text-amber-800 mt-0.5">
+                      {effective.customerNotice || `Paket Anda dikirim menggunakan ${effective.courierName} untuk rute pengantaran yang lebih optimal tanpa biaya tambahan.`}
+                    </p>
+                  </div>
+                )}
               </div>
-              <OrderTrackingModal
-                orderId={order.id}
-                orderNo={order.orderNo}
-                courierName={order.courierName || order.courierCode?.toUpperCase() || "Ekspedisi"}
-                trackingNumber={order.trackingNumber}
-                status={order.status}
-                trackingStatus={order.trackingStatus}
-                shippingMethod={order.shippingMethod}
-                history={(() => {
-                  try {
-                    return order.trackingHistory ? JSON.parse(order.trackingHistory) : [];
-                  } catch {
-                    return [];
-                  }
-                })()}
-                isCustomerView={true}
-              />
-            </div>
-          )}
+            );
+          })()}
           <div className="flex justify-between">
             <span className="text-espresso-500">Metode Pembayaran</span>
             <span className="font-medium text-espresso-900">{PAYMENT_LABEL[order.paymentMethod] || order.paymentMethod}</span>

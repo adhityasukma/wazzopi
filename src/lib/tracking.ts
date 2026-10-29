@@ -6,8 +6,11 @@ import {
   getCourierName,
   detectCourierByAwb,
   validateAwbForCourier,
+  getCourierTrackingUrl,
+  resolveEffectiveCourier,
   type TrackingCheckpoint,
   type TrackingResult,
+  type EffectiveCourierResolution,
 } from "./tracking-constants";
 
 export {
@@ -15,8 +18,11 @@ export {
   getCourierName,
   detectCourierByAwb,
   validateAwbForCourier,
+  getCourierTrackingUrl,
+  resolveEffectiveCourier,
   type TrackingCheckpoint,
   type TrackingResult,
+  type EffectiveCourierResolution,
 };
 
 function cleanCityName(raw?: string, fallback = "Tangerang"): string {

@@ -488,12 +488,35 @@ export async function refreshOrderTracking(orderId: string) {
       where: { id: orderId },
     });
 
-    if (!order || !order.trackingNumber || !order.courierCode) {
+    if (!order || !order.trackingNumber) {
       return { success: false, error: "Data resi belum lengkap" };
     }
 
+    const { resolveEffectiveCourier } = await import("@/lib/tracking-constants");
+    const effective = resolveEffectiveCourier({
+      trackingNumber: order.trackingNumber,
+      courierCode: order.courierCode,
+      courierName: order.courierName,
+      shippingMethod: order.shippingMethod,
+    });
+
+    // Auto-heal kurir di database jika terdeteksi ketidakcocokan ekspedisi
+    const needHealCourier =
+      (effective.courierCode && order.courierCode !== effective.courierCode) ||
+      (effective.courierName && order.courierName !== effective.courierName);
+
+    if (needHealCourier) {
+      await prisma.order.update({
+        where: { id: orderId },
+        data: {
+          courierCode: effective.courierCode,
+          courierName: effective.courierName,
+        },
+      });
+    }
+
     const { trackShipment } = await import("@/lib/tracking");
-    const trackingInfo = await trackShipment(order.courierCode, order.trackingNumber, {
+    const trackingInfo = await trackShipment(effective.courierCode, order.trackingNumber, {
       orderNo: order.orderNo,
       customerName: order.customerName,
       city: order.city,

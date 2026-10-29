@@ -204,3 +204,159 @@ export function validateAwbForCourier(
 
   return { valid: true };
 }
+
+/**
+ * Dapatkan tautan portal pelacakan resmi pihak ekspedisi.
+ */
+export function getCourierTrackingUrl(courierCode: string, awb?: string): string {
+  const code = (courierCode || "").toLowerCase().trim();
+  const cleanAwb = (awb || "").trim();
+
+  switch (code) {
+    case "jne":
+      return cleanAwb
+        ? `https://www.jne.co.id/id/tracking/trace`
+        : `https://www.jne.co.id`;
+    case "jnt":
+      return cleanAwb
+        ? `https://jet.co.id/track`
+        : `https://jet.co.id`;
+    case "sicepat":
+      return `https://www.sicepat.com/checkAwb`;
+    case "anteraja":
+      return `https://anteraja.id/tracking`;
+    case "lion":
+      return `https://lionparcel.com/track`;
+    case "pos":
+      return `https://www.posindonesia.co.id/id/tracking`;
+    case "tiki":
+      return `https://www.tiki.id/id/tracking`;
+    case "ninja":
+      return `https://www.ninjaxpress.co.id/id-id/tracking`;
+    case "wahana":
+      return `https://www.wahana.com`;
+    case "ide":
+      return `https://idexpress.com`;
+    case "spx":
+      return `https://spx.co.id`;
+    default:
+      return cleanAwb
+        ? `https://berdu.id/cek-resi?kurir=${encodeURIComponent(code)}&resi=${encodeURIComponent(cleanAwb)}`
+        : "https://berdu.id/cek-resi";
+  }
+}
+
+export type EffectiveCourierResolution = {
+  courierCode: string;
+  courierName: string;
+  isAutoDetected: boolean;
+  isCourierSwitched: boolean;
+  switchReason?: string;
+  customerNotice?: string;
+  trackingPortalUrl: string;
+};
+
+/**
+ * Resolusi kurir efektif berdasarkan nomor resi, kurir di database, dan opsi pengiriman saat checkout.
+ * Mencegah kebingungan customer jika admin salah memilih kurir di panel admin atau jika toko mengalihkan ekspedisi.
+ */
+export function resolveEffectiveCourier(params: {
+  trackingNumber?: string | null;
+  courierCode?: string | null;
+  courierName?: string | null;
+  shippingMethod?: string | null;
+}): EffectiveCourierResolution {
+  const awb = (params.trackingNumber || "").trim().toUpperCase();
+  const originalCode = (params.courierCode || "").trim().toLowerCase();
+  const originalName = (params.courierName || "").trim();
+  const selectedMethod = (params.shippingMethod || "").trim();
+
+  // 1. Deteksi kurir berdasarkan karakteristik nomor resi
+  const detected = awb ? detectCourierByAwb(awb) : null;
+
+  let effectiveCode = originalCode;
+  let effectiveName = originalName || (originalCode ? getCourierName(originalCode) : "");
+  let isAutoDetected = false;
+
+  if (detected) {
+    // Jika format resi cocok kuat dengan kurir tertentu dan berbeda dari yang tersimpan di DB
+    if (!effectiveCode || effectiveCode !== detected.code) {
+      effectiveCode = detected.code;
+      effectiveName = detected.name;
+      isAutoDetected = true;
+    }
+  }
+
+  // Jika effectiveCode masih kosong, tebak dari shippingMethod
+  if (!effectiveCode && selectedMethod) {
+    const smLower = selectedMethod.toLowerCase();
+    for (const sc of SUPPORTED_COURIERS) {
+      if (
+        smLower.includes(sc.code) ||
+        smLower.includes(sc.name.toLowerCase().split(" ")[0])
+      ) {
+        effectiveCode = sc.code;
+        effectiveName = sc.name;
+        break;
+      }
+    }
+  }
+
+  if (!effectiveCode) {
+    effectiveCode = "jne";
+  }
+  if (!effectiveName) {
+    effectiveName = getCourierName(effectiveCode);
+  }
+
+  // Format label JNE
+  if (effectiveCode === "jne" && !effectiveName.includes("Express")) {
+    effectiveName = "JNE Express";
+  }
+
+  // 2. Evaluasi pengalihan ekspedisi (courier switch)
+  let isCourierSwitched = false;
+  let switchReason: string | undefined;
+  let customerNotice: string | undefined;
+
+  if (selectedMethod) {
+    const methodLower = selectedMethod.toLowerCase();
+    const effCodeLower = effectiveCode.toLowerCase();
+    const effNameLower = effectiveName.toLowerCase();
+
+    const isJneFamily =
+      (methodLower.includes("jne") || methodLower.includes("reguler") || methodLower.includes("regular")) &&
+      effCodeLower === "jne";
+    const isJntFamily = methodLower.includes("j&t") && effCodeLower === "jnt";
+    const isSicepatFamily = methodLower.includes("sicepat") && effCodeLower === "sicepat";
+    const isAnterajaFamily = methodLower.includes("anteraja") && effCodeLower === "anteraja";
+    const isLionFamily = methodLower.includes("lion") && effCodeLower === "lion";
+
+    const isSameFamily =
+      isJneFamily ||
+      isJntFamily ||
+      isSicepatFamily ||
+      isAnterajaFamily ||
+      isLionFamily ||
+      methodLower.includes(effCodeLower) ||
+      effNameLower.includes(methodLower);
+
+    if (!isSameFamily) {
+      isCourierSwitched = true;
+      switchReason = `Pengiriman dialihkan dari ${selectedMethod} ke ${effectiveName}`;
+      customerNotice = `Catatan Pengiriman: Paket Anda dikirim menggunakan ${effectiveName} untuk memastikan rute pengantaran ke alamat Anda lebih optimal dan cepat sampai tanpa biaya tambahan.`;
+    }
+  }
+
+  const trackingPortalUrl = getCourierTrackingUrl(effectiveCode, awb);
+
+  return {
+    courierCode: effectiveCode,
+    courierName: effectiveName,
+    isAutoDetected,
+    isCourierSwitched,
+    switchReason,
+    customerNotice,
+    trackingPortalUrl,
+  };
+}

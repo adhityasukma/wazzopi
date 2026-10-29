@@ -11,6 +11,7 @@ import { AccountProfileForm } from "@/components/shop/account-profile-form";
 import { AccountPasswordForm } from "@/components/shop/account-password-form";
 import { MidtransPayButton } from "@/components/shop/midtrans-pay-button";
 import { OrderTrackingModal } from "@/components/shop/order-tracking-modal";
+import { resolveEffectiveCourier } from "@/lib/tracking-constants";
 
 export const metadata = {
   title: "Member Area",
@@ -109,71 +110,94 @@ export default async function AccountPage() {
                       ))}
                     </div>
 
-                    <div className="mt-3 flex items-center justify-between border-t border-latte pt-3 text-xs">
-                      <div>
-                        <span className="text-espresso-500">Pengiriman: {order.shippingMethod}</span>
-                        {order.trackingNumber && (
-                          <p className="mt-0.5 text-[11px] text-espresso-700 font-mono font-medium">
-                            Resi: <strong className="text-caramel-700 font-bold">{order.trackingNumber}</strong> ({order.courierName || order.courierCode?.toUpperCase()})
-                          </p>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <span className="text-espresso-500">Total: </span>
-                        <span className="font-display font-bold text-sm text-espresso-900">
-                          {formatCurrency(order.total, settings.currency)}
-                        </span>
-                      </div>
-                    </div>
+                    {(() => {
+                      const effective = order.trackingNumber
+                        ? resolveEffectiveCourier({
+                            trackingNumber: order.trackingNumber,
+                            courierCode: order.courierCode,
+                            courierName: order.courierName,
+                            shippingMethod: order.shippingMethod,
+                          })
+                        : null;
 
-                    <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-latte/60 pt-3">
-                      <div className="flex flex-wrap items-center gap-3">
-                        <Link
-                          href={`/checkout/success/${order.orderNo}`}
-                          className="inline-flex items-center gap-1 text-xs font-semibold text-espresso-600 hover:text-caramel-600 hover:underline"
-                        >
-                          Lihat Rincian Pesanan &rarr;
-                        </Link>
+                      return (
+                        <>
+                          <div className="mt-3 flex items-center justify-between border-t border-latte pt-3 text-xs">
+                            <div>
+                              <span className="text-espresso-500">Pengiriman: {order.shippingMethod}</span>
+                              {order.trackingNumber && effective && (
+                                <div className="mt-1 space-y-0.5">
+                                  <p className="text-[11px] text-espresso-700 font-mono font-medium">
+                                    Resi: <strong className="text-caramel-700 font-bold">{order.trackingNumber}</strong> ({effective.courierName})
+                                  </p>
+                                  {effective.isCourierSwitched && (
+                                    <span className="inline-block text-[10px] text-amber-800 bg-amber-50 border border-amber-200/70 rounded px-1.5 py-0.5">
+                                      Dialihkan ke {effective.courierName} (rute optimal)
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            <div className="text-right">
+                              <span className="text-espresso-500">Total: </span>
+                              <span className="font-display font-bold text-sm text-espresso-900">
+                                {formatCurrency(order.total, settings.currency)}
+                              </span>
+                            </div>
+                          </div>
 
-                        {order.trackingNumber && (
-                          <OrderTrackingModal
-                            orderId={order.id}
-                            orderNo={order.orderNo}
-                            courierName={order.courierName || order.courierCode?.toUpperCase() || "Ekspedisi"}
-                            trackingNumber={order.trackingNumber}
-                            status={order.status}
-                            trackingStatus={order.trackingStatus}
-                            shippingMethod={order.shippingMethod}
-                            history={(() => {
-                              try {
-                                return order.trackingHistory ? JSON.parse(order.trackingHistory) : [];
-                              } catch {
-                                return [];
-                              }
-                            })()}
-                            isCustomerView={true}
-                          />
-                        )}
-                      </div>
+                          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-latte/60 pt-3">
+                            <div className="flex flex-wrap items-center gap-3">
+                              <Link
+                                href={`/checkout/success/${order.orderNo}`}
+                                className="inline-flex items-center gap-1 text-xs font-semibold text-espresso-600 hover:text-caramel-600 hover:underline"
+                              >
+                                Lihat Rincian Pesanan &rarr;
+                              </Link>
 
-                      {order.paymentMethod === "midtrans" && order.status === "PENDING" && (
-                        <MidtransPayButton
-                          orderNo={order.orderNo}
-                          buttonLabel="Lanjutkan Pembayaran"
-                          variant="secondary"
-                          className="py-1.5 px-3 text-xs"
-                        />
-                      )}
+                              {order.trackingNumber && (
+                                <OrderTrackingModal
+                                  orderId={order.id}
+                                  orderNo={order.orderNo}
+                                  courierCode={order.courierCode}
+                                  courierName={effective?.courierName || order.courierName || "Ekspedisi"}
+                                  trackingNumber={order.trackingNumber}
+                                  status={order.status}
+                                  trackingStatus={order.trackingStatus}
+                                  shippingMethod={order.shippingMethod}
+                                  history={(() => {
+                                    try {
+                                      return order.trackingHistory ? JSON.parse(order.trackingHistory) : [];
+                                    } catch {
+                                      return [];
+                                    }
+                                  })()}
+                                  isCustomerView={true}
+                                />
+                              )}
+                            </div>
 
-                      {order.paymentMethod === "bank_transfer" && order.status === "PENDING" && (
-                        <Link
-                          href={`/checkout/success/${order.orderNo}`}
-                          className="inline-flex items-center gap-1 rounded-md bg-caramel-50 px-2.5 py-1 text-xs font-semibold text-caramel-700 border border-caramel-200 hover:bg-caramel-100"
-                        >
-                          Petunjuk Transfer Bank &rarr;
-                        </Link>
-                      )}
-                    </div>
+                            {order.paymentMethod === "midtrans" && order.status === "PENDING" && (
+                              <MidtransPayButton
+                                orderNo={order.orderNo}
+                                buttonLabel="Lanjutkan Pembayaran"
+                                variant="secondary"
+                                className="py-1.5 px-3 text-xs"
+                              />
+                            )}
+
+                            {order.paymentMethod === "bank_transfer" && order.status === "PENDING" && (
+                              <Link
+                                href={`/checkout/success/${order.orderNo}`}
+                                className="inline-flex items-center gap-1 rounded-md bg-caramel-50 px-2.5 py-1 text-xs font-semibold text-caramel-700 border border-caramel-200 hover:bg-caramel-100"
+                              >
+                                Petunjuk Transfer Bank &rarr;
+                              </Link>
+                            )}
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
                 ))}
               </div>
