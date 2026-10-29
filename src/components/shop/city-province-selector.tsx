@@ -47,8 +47,19 @@ export function CityProvinceSelector({
 }: CityProvinceSelectorProps) {
   const [cityInput, setCityInput] = useState(defaultCity || "");
   const [selectedCity, setSelectedCity] = useState(defaultCity || "");
-  const [selectedProvince, setSelectedProvince] = useState(defaultProvince || "");
-  const [postalCode, setPostalCode] = useState(defaultPostalCode || "");
+  const [selectedProvince, setSelectedProvince] = useState(() => {
+    if (defaultProvince) return defaultProvince;
+    if (defaultCity) return findProvinceByCity(defaultCity) || "";
+    return "";
+  });
+  const [postalCode, setPostalCode] = useState(() => {
+    if (defaultPostalCode) return defaultPostalCode;
+    if (defaultCity) {
+      const prov = defaultProvince || findProvinceByCity(defaultCity) || undefined;
+      return findPostalCodeByCity(defaultCity, prov) || "";
+    }
+    return "";
+  });
   const [isOpen, setIsOpen] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(0);
 
@@ -56,21 +67,19 @@ export function CityProvinceSelector({
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
 
-  // Jika initial city ada tapi provinsi belum ada, deteksi provinsinya otomatis
+  // Sinkronisasi hanya jika prop defaultCity benar-benar berganti dari luar
+  const prevDefaultCityRef = useRef(defaultCity);
   useEffect(() => {
-    if (defaultCity && !selectedProvince) {
-      const autoProv = findProvinceByCity(defaultCity);
-      if (autoProv) {
-        setSelectedProvince(autoProv);
-        const autoPostal = defaultPostalCode || findPostalCodeByCity(defaultCity, autoProv) || "";
-        if (autoPostal && !postalCode) {
-          setPostalCode(autoPostal);
-          onPostalCodeChange?.(autoPostal);
-        }
-        onChange?.({ city: defaultCity, province: autoProv, postalCode: autoPostal || postalCode });
-      }
+    if (defaultCity !== prevDefaultCityRef.current) {
+      prevDefaultCityRef.current = defaultCity;
+      setCityInput(defaultCity || "");
+      setSelectedCity(defaultCity || "");
+      const prov = defaultProvince || (defaultCity ? findProvinceByCity(defaultCity) || "" : "");
+      setSelectedProvince(prov);
+      const post = defaultPostalCode || (defaultCity ? findPostalCodeByCity(defaultCity, prov) || "" : "");
+      setPostalCode(post);
     }
-  }, [defaultCity, selectedProvince, defaultPostalCode, postalCode, onChange, onPostalCodeChange]);
+  }, [defaultCity, defaultProvince, defaultPostalCode]);
 
   // Filter daftar kota
   const suggestions = useMemo(() => {
