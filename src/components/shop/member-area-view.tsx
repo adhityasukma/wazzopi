@@ -138,12 +138,8 @@ export function MemberAreaView({
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 md:py-12">
       {/* Header Profil & Ringkasan Akun */}
-      <div className="rounded-2xl border border-latte bg-gradient-to-br from-espresso-900 via-espresso-800 to-espresso-950 p-6 md:p-8 text-white shadow-md relative overflow-hidden">
-        {/* Dekorasi Aksen Latar Belakang */}
-        <div className="absolute right-0 top-0 translate-x-8 -translate-y-8 w-64 h-64 rounded-full bg-caramel-500/10 blur-2xl pointer-events-none" />
-        <div className="absolute left-1/3 bottom-0 translate-y-10 w-80 h-80 rounded-full bg-caramel-600/10 blur-3xl pointer-events-none" />
-
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="rounded-2xl border border-espresso-800 bg-espresso-900 p-6 md:p-8 text-white shadow-xs">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-center gap-4 md:gap-5">
             {/* Avatar Inisial */}
             <div className="flex h-16 w-16 md:h-18 md:w-18 shrink-0 items-center justify-center rounded-2xl bg-caramel-600 text-white font-bold text-2xl md:text-3xl shadow-inner border border-caramel-400/30">
