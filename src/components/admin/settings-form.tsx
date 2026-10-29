@@ -29,6 +29,7 @@ import {
   testSmtpAction,
 } from "@/actions/settings";
 import { Alert, Button, Field, Input, Select, Textarea } from "@/components/ui";
+import { CityProvinceSelector } from "@/components/shop/city-province-selector";
 import { CURRENCIES, formatCurrency, type CurrencyPosition, type CurrencySettings } from "@/lib/currency";
 import type { AllSettings, BankAccount, ShippingMethod, SmtpSettings } from "@/lib/settings-types";
 
@@ -308,18 +309,19 @@ export function SettingsForm({
                   <Field label="Alamat Fisik Toko" className="sm:col-span-2">
                     <Textarea name="address" defaultValue={initialSettings.general.address} rows={2} />
                   </Field>
-                  <Field label="Kota">
-                    <Input name="city" defaultValue={initialSettings.general.city} />
-                  </Field>
-                  <Field label="Provinsi">
-                    <Input name="province" defaultValue={initialSettings.general.province} />
-                  </Field>
-                  <Field label="Kode Pos">
-                    <Input name="postalCode" defaultValue={initialSettings.general.postalCode} />
-                  </Field>
+                  <div className="sm:col-span-2">
+                    <CityProvinceSelector
+                      defaultCity={initialSettings.general.city}
+                      defaultProvince={initialSettings.general.province}
+                      defaultPostalCode={initialSettings.general.postalCode}
+                      showPostalCode={true}
+                      required={false}
+                    />
+                  </div>
                   <Field
                     label="URL Google Maps / Tautan Peta Lokasi"
                     hint="Jika diisi, klik pada alamat di footer akan membuka peta ini"
+                    className="sm:col-span-2"
                   >
                     <Input
                       name="mapUrl"

@@ -38,13 +38,11 @@ export function AccountProfileForm({ user }: { user: UserProps }) {
         <CityProvinceSelector
           defaultCity={user.city || ""}
           defaultProvince={user.province || ""}
+          defaultPostalCode={user.postalCode || ""}
+          showPostalCode={true}
           required={false}
         />
       </div>
-
-      <Field label="Kode Pos">
-        <Input name="postalCode" defaultValue={user.postalCode || ""} />
-      </Field>
 
       <Button type="submit" disabled={isPending} className="w-full justify-center">
         {isPending ? "Menyimpan..." : "Simpan Profil"}

@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Search, MapPin, Check, Lock, ChevronDown, X } from "lucide-react";
+import { Search, MapPin, Check, Lock, ChevronDown, X, Hash } from "lucide-react";
 import {
   searchIndonesianRegions,
   findProvinceByCity,
-  INDONESIAN_REGIONS,
+  findPostalCodeByCity,
   type IndonesianRegion,
 } from "@/lib/indonesia-regions";
 import { cn } from "@/lib/utils";
@@ -13,13 +13,18 @@ import { cn } from "@/lib/utils";
 interface CityProvinceSelectorProps {
   defaultCity?: string | null;
   defaultProvince?: string | null;
+  defaultPostalCode?: string | null;
   required?: boolean;
-  onChange?: (data: { city: string; province: string }) => void;
+  showPostalCode?: boolean;
+  postalCodeRequired?: boolean;
+  onChange?: (data: { city: string; province: string; postalCode?: string }) => void;
+  onPostalCodeChange?: (postalCode: string) => void;
 }
 
 // Rekomendasi kota populer saat input pertama kali difokuskan
 const POPULAR_CITIES: IndonesianRegion[] = [
   { city: "Jakarta Selatan", province: "DKI Jakarta" },
+  { city: "Kota Tangerang", province: "Banten" },
   { city: "Kota Bandung", province: "Jawa Barat" },
   { city: "Kota Surabaya", province: "Jawa Timur" },
   { city: "Kota Semarang", province: "Jawa Tengah" },
@@ -33,12 +38,17 @@ const POPULAR_CITIES: IndonesianRegion[] = [
 export function CityProvinceSelector({
   defaultCity = "",
   defaultProvince = "",
+  defaultPostalCode = "",
   required = true,
+  showPostalCode = false,
+  postalCodeRequired = false,
   onChange,
+  onPostalCodeChange,
 }: CityProvinceSelectorProps) {
   const [cityInput, setCityInput] = useState(defaultCity || "");
   const [selectedCity, setSelectedCity] = useState(defaultCity || "");
   const [selectedProvince, setSelectedProvince] = useState(defaultProvince || "");
+  const [postalCode, setPostalCode] = useState(defaultPostalCode || "");
   const [isOpen, setIsOpen] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(0);
 
@@ -52,10 +62,15 @@ export function CityProvinceSelector({
       const autoProv = findProvinceByCity(defaultCity);
       if (autoProv) {
         setSelectedProvince(autoProv);
-        onChange?.({ city: defaultCity, province: autoProv });
+        const autoPostal = defaultPostalCode || findPostalCodeByCity(defaultCity, autoProv) || "";
+        if (autoPostal && !postalCode) {
+          setPostalCode(autoPostal);
+          onPostalCodeChange?.(autoPostal);
+        }
+        onChange?.({ city: defaultCity, province: autoProv, postalCode: autoPostal || postalCode });
       }
     }
-  }, [defaultCity, selectedProvince, onChange]);
+  }, [defaultCity, selectedProvince, defaultPostalCode, postalCode, onChange, onPostalCodeChange]);
 
   // Filter daftar kota
   const suggestions = useMemo(() => {
@@ -77,7 +92,12 @@ export function CityProvinceSelector({
           if (matched) {
             setSelectedCity(cityInput.trim());
             setSelectedProvince(matched);
-            onChange?.({ city: cityInput.trim(), province: matched });
+            const autoPostal = findPostalCodeByCity(cityInput.trim(), matched) || "";
+            if (autoPostal) {
+              setPostalCode(autoPostal);
+              onPostalCodeChange?.(autoPostal);
+            }
+            onChange?.({ city: cityInput.trim(), province: matched, postalCode: autoPostal || postalCode });
           }
         }
       }
@@ -85,23 +105,33 @@ export function CityProvinceSelector({
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [cityInput, selectedCity, onChange]);
+  }, [cityInput, selectedCity, postalCode, onChange, onPostalCodeChange]);
 
   const handleSelect = (item: IndonesianRegion) => {
     setCityInput(item.city);
     setSelectedCity(item.city);
     setSelectedProvince(item.province);
+
+    // Otomatis isi kode pos sesuai kota yang dipilih
+    const autoPostal = item.postalCode || findPostalCodeByCity(item.city, item.province) || "";
+    if (autoPostal) {
+      setPostalCode(autoPostal);
+      onPostalCodeChange?.(autoPostal);
+    }
+
     setIsOpen(false);
-    onChange?.({ city: item.city, province: item.province });
+    onChange?.({ city: item.city, province: item.province, postalCode: autoPostal || postalCode });
   };
 
   const handleClear = () => {
     setCityInput("");
     setSelectedCity("");
     setSelectedProvince("");
+    setPostalCode("");
     setIsOpen(true);
     inputRef.current?.focus();
-    onChange?.({ city: "", province: "" });
+    onPostalCodeChange?.("");
+    onChange?.({ city: "", province: "", postalCode: "" });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -130,9 +160,17 @@ export function CityProvinceSelector({
   };
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <div
+      className={cn(
+        "grid grid-cols-1 gap-4",
+        showPostalCode ? "sm:grid-cols-12" : "sm:grid-cols-2"
+      )}
+    >
       {/* 1. Field Pilihan Kota / Kabupaten */}
-      <div className="relative" ref={containerRef}>
+      <div
+        className={cn("relative", showPostalCode ? "sm:col-span-5" : "sm:col-span-1")}
+        ref={containerRef}
+      >
         <label className="mb-1.5 flex items-center justify-between text-sm font-medium text-espresso-800">
           <span>
             Kota / Kabupaten {required && <span className="text-rose-500">*</span>}
@@ -154,7 +192,7 @@ export function CityProvinceSelector({
             }}
             onFocus={() => setIsOpen(true)}
             onKeyDown={handleKeyDown}
-            placeholder="Cari Kota/Kabupaten (cth: Bandung, Sleman)..."
+            placeholder="Cari Kota/Kabupaten (cth: Tangerang, Bandung)..."
             autoComplete="off"
             className="w-full h-10 rounded-lg border border-espresso-100 bg-white pl-9 pr-16 text-sm text-espresso-900 placeholder:text-espresso-300 transition-colors focus:border-caramel-400 focus:outline-none focus:ring-2 focus:ring-caramel-100"
           />
@@ -251,8 +289,8 @@ export function CityProvinceSelector({
         )}
       </div>
 
-      {/* 2. Field Provinsi (Otomatis Terisi & Sinkron) */}
-      <div>
+      {/* 2. Field Provinsi (Otomatis Terisi & Terkunci) */}
+      <div className={cn(showPostalCode ? "sm:col-span-4" : "sm:col-span-1")}>
         <label className="mb-1.5 flex items-center justify-between text-sm font-medium text-espresso-800">
           <span>
             Provinsi {required && <span className="text-rose-500">*</span>}
@@ -282,6 +320,47 @@ export function CityProvinceSelector({
         {/* Input Tersembunyi untuk Form Submit */}
         <input type="hidden" name="province" value={selectedProvince} required={required} />
       </div>
+
+      {/* 3. Field Kode Pos (Opsional Terintegrasi: Otomatis Terisi & Bisa Diedit) */}
+      {showPostalCode && (
+        <div className="sm:col-span-3">
+          <label className="mb-1.5 flex items-center justify-between text-sm font-medium text-espresso-800">
+            <span>
+              Kode Pos {postalCodeRequired && <span className="text-rose-500">*</span>}
+            </span>
+            <span className="text-[11px] font-normal text-espresso-400">
+              Dapat diedit
+            </span>
+          </label>
+
+          <div className="relative">
+            <input
+              type="text"
+              name="postalCode"
+              value={postalCode}
+              onChange={(e) => {
+                const val = e.target.value;
+                setPostalCode(val);
+                onPostalCodeChange?.(val);
+                onChange?.({
+                  city: selectedCity,
+                  province: selectedProvince,
+                  postalCode: val,
+                });
+              }}
+              placeholder="Contoh: 15111"
+              required={postalCodeRequired}
+              maxLength={10}
+              className="w-full h-10 rounded-lg border border-espresso-100 bg-white px-3 text-sm text-espresso-900 placeholder:text-espresso-300 transition-colors focus:border-caramel-400 focus:outline-none focus:ring-2 focus:ring-caramel-100"
+            />
+            {postalCode && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center text-xs text-emerald-600 font-medium pointer-events-none">
+                <Check className="h-3.5 w-3.5" />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

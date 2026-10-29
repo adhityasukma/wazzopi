@@ -226,18 +226,13 @@ export function CheckoutForm({
                 <CityProvinceSelector
                   defaultCity={customer?.city || ""}
                   defaultProvince={customer?.province || ""}
+                  defaultPostalCode={customer?.postalCode || ""}
+                  showPostalCode={true}
+                  postalCodeRequired={true}
                   required
                   onChange={handleDestinationChange}
                 />
               </div>
-              <Field label="Kode Pos" className="sm:col-span-2">
-                <Input
-                  name="postalCode"
-                  required
-                  defaultValue={customer?.postalCode || ""}
-                  placeholder="40115"
-                />
-              </Field>
               <Field label="Catatan untuk Toko/Kurir (Opsional)" className="sm:col-span-2">
                 <Input
                   name="notes"
