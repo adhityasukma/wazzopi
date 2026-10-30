@@ -14,12 +14,11 @@ export const MIDTRANS_CHANNEL_LIST: MidtransChannelDef[] = [
   // QRIS & E-Wallet
   {
     id: "qris",
-    snapCode: "qris",
+    snapCode: "other_qris",
     name: "QRIS",
     category: "qris",
     categoryLabel: "QRIS & E-Wallet",
     desc: "BCA QRIS, GoPay, OVO, DANA, ShopeePay, LinkAja, & semua mobile banking",
-    badge: "Otomatis",
   },
   {
     id: "gopay",
@@ -154,10 +153,16 @@ export function isMidtransPayment(method?: string | null): boolean {
   return method === "midtrans" || method.startsWith("midtrans_");
 }
 
-export function getSnapCodeFromPaymentMethod(method?: string | null): string | null {
+export function getSnapCodeFromPaymentMethod(method?: string | null): string[] | null {
   if (!method) return null;
   if (!method.startsWith("midtrans_")) return null;
   const channelId = method.replace("midtrans_", "");
+
+  // QRIS pada Midtrans Snap didukung lewat other_qris, gopay, dan shopeepay
+  if (channelId === "qris") {
+    return ["other_qris", "gopay", "shopeepay"];
+  }
+
   const channel = getChannelById(channelId);
-  return channel?.snapCode || null;
+  return channel?.snapCode ? [channel.snapCode] : null;
 }

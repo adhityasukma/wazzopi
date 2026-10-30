@@ -38,7 +38,7 @@ export async function getMidtransSnapToken(orderNo: string): Promise<SnapTokenRe
     }
 
     const isProduction = midtrans.mode === "production";
-    const cacheKey = `snap_${orderNo}`;
+    const cacheKey = `snap_${orderNo}_${order.paymentMethod || "midtrans"}_v2`;
 
     // 1. Cek apakah token Snap sudah pernah dibuat sebelumnya
     const cachedToken = await prisma.setting.findUnique({
@@ -89,15 +89,21 @@ export async function getMidtransSnapToken(orderNo: string): Promise<SnapTokenRe
 
     const authHeader = `Basic ${Buffer.from(`${midtrans.serverKey}:`).toString("base64")}`;
 
-    const snapCode = getSnapCodeFromPaymentMethod(order.paymentMethod);
+    const snapCodes = getSnapCodeFromPaymentMethod(order.paymentMethod);
     let enabledPayments: string[] | undefined;
 
-    if (snapCode) {
-      enabledPayments = [snapCode];
+    if (snapCodes && snapCodes.length > 0) {
+      enabledPayments = snapCodes;
     } else if (midtrans.channels && midtrans.channels.length > 0) {
-      enabledPayments = midtrans.channels
-        .map((chId) => getChannelById(chId)?.snapCode)
-        .filter(Boolean) as string[];
+      enabledPayments = Array.from(
+        new Set(
+          midtrans.channels.flatMap((chId) => {
+            if (chId === "qris") return ["other_qris", "gopay", "shopeepay"];
+            const code = getChannelById(chId)?.snapCode;
+            return code ? [code] : [];
+          })
+        )
+      );
     }
 
     const payload: Record<string, any> = {
