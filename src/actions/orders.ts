@@ -12,6 +12,8 @@ import {
   sendOrderStatusEmail,
   sendOrderNotificationByOrderId,
   sendNewAccountEmail,
+  sendAdminNewUserEmail,
+  sendAdminNewOrderEmail,
   type OrderEmailStatus,
 } from "@/lib/email";
 import { generateOrderNo, ORDER_STATUSES, ORDER_STATUS_LABEL } from "@/lib/utils";
@@ -242,7 +244,7 @@ export async function placeOrder(_: FormState, formData: FormData): Promise<Form
   }
 
   // Kirim notifikasi email sesuai kondisi:
-  // 1. Jika user belum login & dibuatkan akun baru, kirim Notifikasi 1: Detail Akses Login Member
+  // 1. Jika user belum login & dibuatkan akun baru, kirim Notifikasi 1 ke Customer & Notifikasi User Baru ke Admin
   if (newAccountInfo) {
     try {
       await sendNewAccountEmail({
@@ -254,6 +256,18 @@ export async function placeOrder(_: FormState, formData: FormData): Promise<Form
       });
     } catch (accountEmailErr) {
       console.error("[placeOrder newAccount Email Error]:", accountEmailErr);
+    }
+
+    try {
+      await sendAdminNewUserEmail({
+        customerName: d.customerName,
+        customerEmail: newAccountInfo.email,
+        customerPhone: d.customerPhone,
+        registrationSource: "Pemesanan Pertama (Checkout Otomatis)",
+        storeName: settings.general.storeName,
+      });
+    } catch (adminUserErr) {
+      console.error("[placeOrder Admin New User Email Error]:", adminUserErr);
     }
   }
 
@@ -281,6 +295,30 @@ export async function placeOrder(_: FormState, formData: FormData): Promise<Form
     });
   } catch (emailErr) {
     console.error("[placeOrder Email Error]:", emailErr);
+  }
+
+  // 3. Kirim notifikasi pesanan baru masuk ke Admin Toko
+  try {
+    await sendAdminNewOrderEmail({
+      orderNo,
+      customerName: d.customerName,
+      customerEmail: finalCustomerEmail,
+      customerPhone: d.customerPhone,
+      items: lines.map((l) => ({
+        productName: l.productName,
+        variantName: l.variantName,
+        quantity: l.quantity,
+        price: l.price,
+        total: l.total,
+      })),
+      totalAmount: total,
+      shippingAddress: `${d.address}, ${d.city}, ${d.province} ${d.postalCode}`,
+      shippingMethod: shippingName,
+      paymentMethod: d.paymentMethod,
+      storeName: settings.general.storeName,
+    });
+  } catch (adminOrderErr) {
+    console.error("[placeOrder Admin Order Email Error]:", adminOrderErr);
   }
 
   // Simpan info akun baru di cookie singkat untuk ditampilkan langsung di halaman /checkout/success/[orderNo]

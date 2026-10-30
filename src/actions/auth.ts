@@ -70,6 +70,19 @@ export async function register(_: FormState, formData: FormData): Promise<FormSt
       role: "CUSTOMER",
     },
   });
+
+  try {
+    const { sendAdminNewUserEmail } = await import("@/lib/email");
+    await sendAdminNewUserEmail({
+      customerName: user.name,
+      customerEmail: user.email,
+      customerPhone: user.phone,
+      registrationSource: "Pendaftaran Akun Baru (Halaman Register)",
+    });
+  } catch (adminRegErr) {
+    console.error("[register Admin Email Error]:", adminRegErr);
+  }
+
   await createSession({ id: user.id, name: user.name, email: user.email, role: "CUSTOMER" });
   redirect("/account");
 }

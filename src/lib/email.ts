@@ -702,7 +702,7 @@ export async function sendOrderNotificationByOrderId(
     const settings = await getSettings();
     const effectiveStatus = (options?.forcedStatus || order.status) as OrderEmailStatus;
 
-    return await sendOrderStatusEmail({
+    const customerRes = await sendOrderStatusEmail({
       status: effectiveStatus,
       customerName: order.customerName,
       customerEmail: order.customerEmail,
@@ -725,8 +725,450 @@ export async function sendOrderNotificationByOrderId(
       storeName: settings.general.storeName,
       whatsappContact: settings.other.whatsapp || settings.general.phone,
     });
+
+    // Jika status pesanan berubah menjadi LUNAS (PAID), kirimkan juga notifikasi ke Admin
+    if (effectiveStatus === "PAID") {
+      try {
+        await sendAdminOrderPaidEmail({
+          orderNo: order.orderNo,
+          customerName: order.customerName,
+          customerEmail: order.customerEmail,
+          customerPhone: order.customerPhone,
+          items: order.items.map((it) => ({
+            productName: it.productName,
+            variantName: it.variantName,
+            quantity: it.quantity,
+            price: it.price,
+            total: it.total,
+          })),
+          totalAmount: order.total,
+          shippingAddress: `${order.address}, ${order.city}, ${order.province} ${order.postalCode}`,
+          shippingMethod: order.shippingMethod,
+          paymentMethod: order.paymentMethod,
+          storeName: settings.general.storeName,
+        });
+      } catch (adminPaidErr) {
+        console.error("[sendAdminOrderPaidEmail Error]:", adminPaidErr);
+      }
+    }
+
+    return customerRes;
   } catch (error: any) {
     console.error("[sendOrderNotificationByOrderId error]:", error);
     return { success: false, error: error?.message || "Gagal mengirim notifikasi email" };
+  }
+}
+
+/**
+ * Mengambil email resmi admin/toko untuk pengiriman notifikasi internal
+ */
+export async function getAdminNotificationEmail(): Promise<string | null> {
+  try {
+    const settings = await getSettings();
+    if (settings.general.email && settings.general.email.trim()) {
+      return settings.general.email.trim();
+    }
+    const adminUser = await prisma.user.findFirst({
+      where: { role: "ADMIN" },
+      select: { email: true },
+    });
+    return adminUser?.email || null;
+  } catch {
+    return null;
+  }
+}
+
+export type SendAdminNewUserEmailParams = {
+  customerName: string;
+  customerEmail: string;
+  customerPhone?: string | null;
+  registrationSource: string;
+  storeName?: string;
+};
+
+export type SendAdminOrderNotificationParams = {
+  orderNo: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  items: OrderEmailItem[];
+  totalAmount: number;
+  shippingAddress: string;
+  shippingMethod: string;
+  paymentMethod: string;
+  storeName?: string;
+};
+
+/**
+ * Notifikasi ke Email Admin: Pelanggan Baru Terdaftar
+ */
+export async function sendAdminNewUserEmail(
+  params: SendAdminNewUserEmailParams
+): Promise<{ success: boolean; id?: string; error?: string }> {
+  try {
+    const adminEmail = await getAdminNotificationEmail();
+    if (!adminEmail) {
+      return { success: false, error: "Email admin belum dikonfigurasi" };
+    }
+
+    const storeName = params.storeName || "Wazzopi";
+    const subject = `[Member Baru] ${params.customerName} Telah Terdaftar di ${storeName}`;
+    const nowStr = new Date().toLocaleString("id-ID", {
+      dateStyle: "full",
+      timeStyle: "short",
+    });
+
+    const html = `
+      <!DOCTYPE html>
+      <html lang="id">
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${subject}</title>
+      </head>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f7f3ee; margin: 0; padding: 24px 12px; color: #2a120c;">
+        <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; background-color: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #efe3d0; box-shadow: 0 4px 12px rgba(42, 18, 12, 0.05);">
+          <tr>
+            <td style="background-color: #381a12; padding: 24px; text-align: center;">
+              <h1 style="color: #fbf5ea; margin: 0; font-size: 22px; font-weight: bold;">
+                ${storeName} &mdash; Panel Administrator
+              </h1>
+              <p style="color: #d39f6f; margin: 4px 0 0 0; font-size: 12px;">Notifikasi Pelanggan Baru</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 28px 24px;">
+              <div style="display: inline-block; background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 20px; padding: 4px 12px; font-size: 11px; font-weight: bold; color: #1e40af; margin-bottom: 16px; text-transform: uppercase;">
+                Member Baru
+              </div>
+              <h2 style="margin: 0 0 12px 0; color: #2a120c; font-size: 18px; font-weight: bold;">
+                Pelanggan Baru Telah Terdaftar!
+              </h2>
+              <p style="margin: 0 0 20px 0; font-size: 13px; color: #6e3a28; line-height: 1.5;">
+                Ada akun member baru yang terdaftar di toko online ${storeName}. Berikut adalah rincian data pelanggan:
+              </p>
+              <table style="width: 100%; border-collapse: collapse; background: #faf5ee; border-radius: 8px; overflow: hidden; border: 1px solid #efe3d0; font-size: 13px;">
+                <tr>
+                  <td style="padding: 10px 14px; color: #8f5a43; width: 38%; border-bottom: 1px solid #f0e6dc;">Nama Lengkap</td>
+                  <td style="padding: 10px 14px; color: #2a120c; font-weight: 600; border-bottom: 1px solid #f0e6dc;">${params.customerName}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 14px; color: #8f5a43; border-bottom: 1px solid #f0e6dc;">Email</td>
+                  <td style="padding: 10px 14px; color: #2a120c; font-weight: 600; border-bottom: 1px solid #f0e6dc;">${params.customerEmail}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 14px; color: #8f5a43; border-bottom: 1px solid #f0e6dc;">No. Telepon / WA</td>
+                  <td style="padding: 10px 14px; color: #2a120c; border-bottom: 1px solid #f0e6dc;">${params.customerPhone || "-"}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 14px; color: #8f5a43; border-bottom: 1px solid #f0e6dc;">Metode Pendaftaran</td>
+                  <td style="padding: 10px 14px; color: #2a120c; border-bottom: 1px solid #f0e6dc;">${params.registrationSource}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 14px; color: #8f5a43;">Waktu Terdaftar</td>
+                  <td style="padding: 10px 14px; color: #2a120c;">${nowStr}</td>
+                </tr>
+              </table>
+              <div style="margin-top: 24px; text-align: center;">
+                <a href="https://wazzopi.vercel.app/admin/customers" style="display: inline-block; background-color: #4a2117; color: #fbf5ea; text-decoration: none; padding: 10px 24px; border-radius: 8px; font-size: 13px; font-weight: bold;">
+                  Lihat Daftar Pelanggan di Admin &rarr;
+                </a>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td style="background-color: #2a120c; padding: 16px; text-align: center;">
+              <p style="margin: 0; font-size: 11px; color: #e4c5a0;">
+                Email pemberitahuan sistem internal ${storeName}.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `;
+
+    return await sendRawMail({ to: adminEmail, subject, html });
+  } catch (err: any) {
+    console.error("[sendAdminNewUserEmail Error]:", err);
+    return { success: false, error: err?.message || "Gagal mengirim email admin" };
+  }
+}
+
+/**
+ * Notifikasi ke Email Admin: Pesanan Baru Masuk (Order Dibuat)
+ */
+export async function sendAdminNewOrderEmail(
+  params: SendAdminOrderNotificationParams
+): Promise<{ success: boolean; id?: string; error?: string }> {
+  try {
+    const adminEmail = await getAdminNotificationEmail();
+    if (!adminEmail) {
+      return { success: false, error: "Email admin belum dikonfigurasi" };
+    }
+
+    const storeName = params.storeName || "Wazzopi";
+    const paymentLabel = PAYMENT_LABEL[params.paymentMethod] || params.paymentMethod;
+    const subject = `[Pesanan Masuk] #${params.orderNo} - ${formatIDR(params.totalAmount)} (${params.customerName})`;
+    const nowStr = new Date().toLocaleString("id-ID", {
+      dateStyle: "full",
+      timeStyle: "short",
+    });
+
+    const itemsHtml = params.items
+      .map(
+        (it) => `
+        <tr>
+          <td style="padding: 8px 0; border-bottom: 1px solid #efe3d0; font-size: 13px; color: #2a120c;">
+            <strong>${it.productName}</strong>
+            ${it.variantName ? `<br><span style="font-size: 11px; color: #8f5a43;">${it.variantName}</span>` : ""}
+          </td>
+          <td style="padding: 8px 0; border-bottom: 1px solid #efe3d0; font-size: 13px; text-align: center;">
+            ${it.quantity}x
+          </td>
+          <td style="padding: 8px 0; border-bottom: 1px solid #efe3d0; font-size: 13px; text-align: right; font-weight: 600;">
+            ${formatIDR(it.total)}
+          </td>
+        </tr>
+      `
+      )
+      .join("");
+
+    const html = `
+      <!DOCTYPE html>
+      <html lang="id">
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${subject}</title>
+      </head>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f7f3ee; margin: 0; padding: 24px 12px; color: #2a120c;">
+        <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; background-color: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #efe3d0; box-shadow: 0 4px 12px rgba(42, 18, 12, 0.05);">
+          <tr>
+            <td style="background-color: #381a12; padding: 24px; text-align: center;">
+              <h1 style="color: #fbf5ea; margin: 0; font-size: 22px; font-weight: bold;">
+                ${storeName} &mdash; Panel Administrator
+              </h1>
+              <p style="color: #d39f6f; margin: 4px 0 0 0; font-size: 12px;">Pesanan Baru Masuk</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 28px 24px;">
+              <div style="display: inline-block; background-color: #fffbeb; border: 1px solid #fde68a; border-radius: 20px; padding: 4px 12px; font-size: 11px; font-weight: bold; color: #92400e; margin-bottom: 16px; text-transform: uppercase;">
+                Menunggu Pembayaran
+              </div>
+              <h2 style="margin: 0 0 8px 0; color: #2a120c; font-size: 18px; font-weight: bold;">
+                Pesanan Baru #${params.orderNo}
+              </h2>
+              <p style="margin: 0 0 20px 0; font-size: 13px; color: #6e3a28;">
+                Ada pesanan baru masuk pada ${nowStr}.
+              </p>
+
+              <!-- Informasi Customer -->
+              <table style="width: 100%; border-collapse: collapse; background: #faf5ee; border-radius: 8px; overflow: hidden; border: 1px solid #efe3d0; font-size: 13px; margin-bottom: 20px;">
+                <tr>
+                  <td style="padding: 10px 14px; color: #8f5a43; width: 35%; border-bottom: 1px solid #f0e6dc;">Pelanggan</td>
+                  <td style="padding: 10px 14px; color: #2a120c; font-weight: 600; border-bottom: 1px solid #f0e6dc;">${params.customerName} (${params.customerEmail})</td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 14px; color: #8f5a43; border-bottom: 1px solid #f0e6dc;">No. Telepon / WA</td>
+                  <td style="padding: 10px 14px; color: #2a120c; border-bottom: 1px solid #f0e6dc;">${params.customerPhone}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 14px; color: #8f5a43; border-bottom: 1px solid #f0e6dc;">Alamat Kirim</td>
+                  <td style="padding: 10px 14px; color: #2a120c; border-bottom: 1px solid #f0e6dc;">${params.shippingAddress}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 14px; color: #8f5a43; border-bottom: 1px solid #f0e6dc;">Kurir</td>
+                  <td style="padding: 10px 14px; color: #2a120c; border-bottom: 1px solid #f0e6dc;">${params.shippingMethod}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 14px; color: #8f5a43;">Metode Bayar</td>
+                  <td style="padding: 10px 14px; color: #2a120c; font-weight: 600;">${paymentLabel}</td>
+                </tr>
+              </table>
+
+              <!-- Tabel Item -->
+              <h3 style="margin: 0 0 10px 0; color: #5a2c1e; font-size: 14px; font-weight: bold;">
+                Rincian Produk
+              </h3>
+              <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
+                <thead>
+                  <tr style="border-bottom: 2px solid #efe3d0; text-align: left; font-size: 11px; color: #8f5a43; text-transform: uppercase;">
+                    <th style="padding: 6px 0;">Produk</th>
+                    <th style="padding: 6px 0; text-align: center;">Qty</th>
+                    <th style="padding: 6px 0; text-align: right;">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${itemsHtml}
+                </tbody>
+              </table>
+
+              <div style="background-color: #faf5ee; border-radius: 8px; padding: 14px; border: 1px solid #efe3d0; display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <span style="font-size: 13px; font-weight: 600; color: #5a2c1e;">Total Tagihan Pesanan:</span>
+                <span style="font-size: 18px; font-weight: bold; color: #2a120c;">${formatIDR(params.totalAmount)}</span>
+              </div>
+
+              <div style="text-align: center;">
+                <a href="https://wazzopi.vercel.app/admin/orders" style="display: inline-block; background-color: #4a2117; color: #fbf5ea; text-decoration: none; padding: 10px 24px; border-radius: 8px; font-size: 13px; font-weight: bold;">
+                  Buka Pesanan di Panel Admin &rarr;
+                </a>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td style="background-color: #2a120c; padding: 16px; text-align: center;">
+              <p style="margin: 0; font-size: 11px; color: #e4c5a0;">
+                Email pemberitahuan sistem internal ${storeName}.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `;
+
+    return await sendRawMail({ to: adminEmail, subject, html });
+  } catch (err: any) {
+    console.error("[sendAdminNewOrderEmail Error]:", err);
+    return { success: false, error: err?.message || "Gagal mengirim email pesanan admin" };
+  }
+}
+
+/**
+ * Notifikasi ke Email Admin: Pembayaran Pesanan Telah Lunas (PAID)
+ */
+export async function sendAdminOrderPaidEmail(
+  params: SendAdminOrderNotificationParams
+): Promise<{ success: boolean; id?: string; error?: string }> {
+  try {
+    const adminEmail = await getAdminNotificationEmail();
+    if (!adminEmail) {
+      return { success: false, error: "Email admin belum dikonfigurasi" };
+    }
+
+    const storeName = params.storeName || "Wazzopi";
+    const paymentLabel = PAYMENT_LABEL[params.paymentMethod] || params.paymentMethod;
+    const subject = `[Pembayaran Lunas] Pesanan #${params.orderNo} Telah Lunas - ${formatIDR(params.totalAmount)} (${params.customerName})`;
+    const nowStr = new Date().toLocaleString("id-ID", {
+      dateStyle: "full",
+      timeStyle: "short",
+    });
+
+    const itemsHtml = params.items
+      .map(
+        (it) => `
+        <tr>
+          <td style="padding: 8px 0; border-bottom: 1px solid #efe3d0; font-size: 13px; color: #2a120c;">
+            <strong>${it.productName}</strong>
+            ${it.variantName ? `<br><span style="font-size: 11px; color: #8f5a43;">${it.variantName}</span>` : ""}
+          </td>
+          <td style="padding: 8px 0; border-bottom: 1px solid #efe3d0; font-size: 13px; text-align: center;">
+            ${it.quantity}x
+          </td>
+          <td style="padding: 8px 0; border-bottom: 1px solid #efe3d0; font-size: 13px; text-align: right; font-weight: 600;">
+            ${formatIDR(it.total)}
+          </td>
+        </tr>
+      `
+      )
+      .join("");
+
+    const html = `
+      <!DOCTYPE html>
+      <html lang="id">
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${subject}</title>
+      </head>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f7f3ee; margin: 0; padding: 24px 12px; color: #2a120c;">
+        <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; background-color: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #efe3d0; box-shadow: 0 4px 12px rgba(42, 18, 12, 0.05);">
+          <tr>
+            <td style="background-color: #381a12; padding: 24px; text-align: center;">
+              <h1 style="color: #fbf5ea; margin: 0; font-size: 22px; font-weight: bold;">
+                ${storeName} &mdash; Panel Administrator
+              </h1>
+              <p style="color: #d39f6f; margin: 4px 0 0 0; font-size: 12px;">Notifikasi Pembayaran Lunas</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 28px 24px;">
+              <div style="display: inline-block; background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 20px; padding: 4px 12px; font-size: 11px; font-weight: bold; color: #065f46; margin-bottom: 16px; text-transform: uppercase;">
+                Pembayaran Lunas
+              </div>
+              <h2 style="margin: 0 0 8px 0; color: #2a120c; font-size: 18px; font-weight: bold;">
+                Pembayaran Diterima untuk Pesanan #${params.orderNo}!
+              </h2>
+              <p style="margin: 0 0 20px 0; font-size: 13px; color: #6e3a28; line-height: 1.5;">
+                Pembayaran dari <strong>${params.customerName}</strong> sebesar <strong>${formatIDR(params.totalAmount)}</strong> telah berhasil diverifikasi pada ${nowStr}. Silakan siapkan produk dan proses pesanan untuk pengiriman.
+              </p>
+
+              <!-- Informasi Ringkas -->
+              <table style="width: 100%; border-collapse: collapse; background: #faf5ee; border-radius: 8px; overflow: hidden; border: 1px solid #efe3d0; font-size: 13px; margin-bottom: 20px;">
+                <tr>
+                  <td style="padding: 10px 14px; color: #8f5a43; width: 35%; border-bottom: 1px solid #f0e6dc;">No. Pesanan</td>
+                  <td style="padding: 10px 14px; color: #2a120c; font-weight: bold; border-bottom: 1px solid #f0e6dc;">#${params.orderNo}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 14px; color: #8f5a43; border-bottom: 1px solid #f0e6dc;">Metode Pembayaran</td>
+                  <td style="padding: 10px 14px; color: #2a120c; font-weight: 600; border-bottom: 1px solid #f0e6dc;">${paymentLabel}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 14px; color: #8f5a43; border-bottom: 1px solid #f0e6dc;">Kurir Pengiriman</td>
+                  <td style="padding: 10px 14px; color: #2a120c; border-bottom: 1px solid #f0e6dc;">${params.shippingMethod}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 14px; color: #8f5a43;">Alamat Penerima</td>
+                  <td style="padding: 10px 14px; color: #2a120c;">${params.shippingAddress} (HP: ${params.customerPhone})</td>
+                </tr>
+              </table>
+
+              <!-- Tabel Item -->
+              <h3 style="margin: 0 0 10px 0; color: #5a2c1e; font-size: 14px; font-weight: bold;">
+                Produk yang Perlu Dikemas
+              </h3>
+              <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
+                <thead>
+                  <tr style="border-bottom: 2px solid #efe3d0; text-align: left; font-size: 11px; color: #8f5a43; text-transform: uppercase;">
+                    <th style="padding: 6px 0;">Produk</th>
+                    <th style="padding: 6px 0; text-align: center;">Qty</th>
+                    <th style="padding: 6px 0; text-align: right;">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${itemsHtml}
+                </tbody>
+              </table>
+
+              <div style="background-color: #ecfdf5; border-radius: 8px; padding: 14px; border: 1px solid #a7f3d0; display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <span style="font-size: 13px; font-weight: 600; color: #065f46;">Total Dana Masuk:</span>
+                <span style="font-size: 18px; font-weight: bold; color: #065f46;">${formatIDR(params.totalAmount)}</span>
+              </div>
+
+              <div style="text-align: center;">
+                <a href="https://wazzopi.vercel.app/admin/orders" style="display: inline-block; background-color: #065f46; color: #ffffff; text-decoration: none; padding: 10px 24px; border-radius: 8px; font-size: 13px; font-weight: bold;">
+                  Proses & Cetak Label Pengiriman &rarr;
+                </a>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td style="background-color: #2a120c; padding: 16px; text-align: center;">
+              <p style="margin: 0; font-size: 11px; color: #e4c5a0;">
+                Email pemberitahuan sistem internal ${storeName}.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `;
+
+    return await sendRawMail({ to: adminEmail, subject, html });
+  } catch (err: any) {
+    console.error("[sendAdminOrderPaidEmail Error]:", err);
+    return { success: false, error: err?.message || "Gagal mengirim email lunas admin" };
   }
 }
