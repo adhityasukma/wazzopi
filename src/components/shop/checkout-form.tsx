@@ -3,13 +3,29 @@
 import { useActionState, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, CreditCard, MapPin, MessageSquare, Scale, ShieldCheck, Truck, Zap } from "lucide-react";
+import {
+  ArrowLeft,
+  Banknote,
+  CheckCircle2,
+  CreditCard,
+  Landmark,
+  MapPin,
+  MessageSquare,
+  QrCode,
+  Scale,
+  ShieldCheck,
+  Store,
+  Truck,
+  Wallet,
+  Zap,
+} from "lucide-react";
 import { placeOrder } from "@/actions/orders";
 import { useMoney, useHydrated } from "@/components/currency-provider";
 import { useAppLoading } from "@/components/loading-provider";
 import { Alert, Button, Field, Input, Textarea } from "@/components/ui";
 import { CityProvinceSelector } from "@/components/shop/city-province-selector";
 import { estimateCartWeight, calculateDynamicRates } from "@/lib/shipping-calculator";
+import { getChannelById, DEFAULT_MIDTRANS_CHANNELS } from "@/lib/midtrans-channels";
 import { cartSubtotal, useCart } from "@/store/cart";
 import type { AllSettings } from "@/lib/settings-types";
 import { cn } from "@/lib/utils";
@@ -122,27 +138,68 @@ export function CheckoutForm({
     }
   }, [enabledShippings, selectedShipping, hasSelectedCity]);
 
-  const paymentOptions = [
-    settings.payment.bankTransfer.enabled && {
-      id: "bank_transfer",
-      name: "Transfer Bank Manual",
-      desc: "BCA, Mandiri, dan bank lainnya. Verifikasi manual.",
-    },
-    settings.payment.cod.enabled && {
-      id: "cod",
-      name: "Bayar di Tempat (COD)",
-      desc: `Biaya penanganan ${money(settings.payment.cod.fee)}`,
-    },
-    settings.payment.midtrans.enabled && {
-      id: "midtrans",
-      name: "Pembayaran Otomatis (Midtrans)",
-      desc: "QRIS, Virtual Account, Kartu Kredit (Instant)",
-    },
-  ].filter(Boolean) as { id: string; name: string; desc: string }[];
+  const paymentOptions = useMemo(() => {
+    const list: Array<{
+      id: string;
+      name: string;
+      desc: string;
+      badge?: string;
+      iconType: "bank" | "cod" | "qris" | "va" | "ewallet" | "card" | "cstore";
+    }> = [];
+
+    // 1. Transfer Bank Manual
+    if (settings.payment.bankTransfer.enabled) {
+      list.push({
+        id: "bank_transfer",
+        name: "Transfer Bank Manual",
+        desc: "BCA, Mandiri, dan rekening bank toko lainnya. Verifikasi manual admin.",
+        iconType: "bank",
+      });
+    }
+
+    // 2. Bayar di Tempat (COD)
+    if (settings.payment.cod.enabled) {
+      list.push({
+        id: "cod",
+        name: "Bayar di Tempat (COD)",
+        desc: `Biaya penanganan ${money(settings.payment.cod.fee)}. Bayar tunai saat kurir tiba.`,
+        iconType: "cod",
+      });
+    }
+
+    // 3. Channel Pembayaran Otomatis Midtrans
+    if (settings.payment.midtrans.enabled) {
+      const activeChannels =
+        settings.payment.midtrans.channels && settings.payment.midtrans.channels.length > 0
+          ? settings.payment.midtrans.channels
+          : DEFAULT_MIDTRANS_CHANNELS;
+
+      for (const chId of activeChannels) {
+        const def = getChannelById(chId);
+        if (def) {
+          list.push({
+            id: `midtrans_${def.id}`,
+            name: def.name,
+            desc: def.desc,
+            badge: "Verifikasi Otomatis",
+            iconType: def.category,
+          });
+        }
+      }
+    }
+
+    return list;
+  }, [settings.payment, money]);
 
   const [selectedPayment, setSelectedPayment] = useState<string>(
     paymentOptions[0]?.id || ""
   );
+
+  useEffect(() => {
+    if (!selectedPayment && paymentOptions.length > 0) {
+      setSelectedPayment(paymentOptions[0].id);
+    }
+  }, [paymentOptions, selectedPayment]);
 
   const subtotal = hydrated ? cartSubtotal(items) : 0;
 
@@ -515,35 +572,86 @@ export function CheckoutForm({
 
           {/* Pilihan Pembayaran */}
           <div className="rounded-xl border border-latte bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-lg font-semibold text-espresso-900">3. Metode Pembayaran</h2>
-            <div className="space-y-3">
-              {paymentOptions.map((p) => (
-                <label
-                  key={p.id}
-                  className={cn(
-                    "flex cursor-pointer items-start justify-between rounded-lg border p-4 transition-all",
-                    selectedPayment === p.id
-                      ? "border-caramel-500 bg-caramel-50/30 ring-1 ring-caramel-500"
-                      : "border-espresso-100 hover:border-espresso-300"
-                  )}
-                >
-                  <div className="flex items-start gap-3">
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value={p.id}
-                      checked={selectedPayment === p.id}
-                      onChange={() => setSelectedPayment(p.id)}
-                      className="mt-1 text-caramel-600 focus:ring-caramel-500"
-                    />
-                    <div>
-                      <p className="font-semibold text-espresso-900">{p.name}</p>
-                      <p className="text-xs text-espresso-400">{p.desc}</p>
-                    </div>
-                  </div>
-                </label>
-              ))}
+            <div className="flex items-center justify-between border-b border-espresso-100 pb-3 mb-4">
+              <div className="flex items-center gap-2">
+                <CreditCard className="h-4 w-4 text-caramel-600" />
+                <h2 className="text-base font-bold text-espresso-900">3. Metode Pembayaran</h2>
+              </div>
+              <span className="text-[11px] text-espresso-500">
+                Pilih salah satu metode
+              </span>
             </div>
+
+            {paymentOptions.length === 0 ? (
+              <p className="text-xs text-rose-600">
+                Belum ada metode pembayaran yang diaktifkan oleh admin toko.
+              </p>
+            ) : (
+              <div className="space-y-2.5">
+                {paymentOptions.map((p) => {
+                  const isSelected = selectedPayment === p.id;
+                  return (
+                    <label
+                      key={p.id}
+                      className={cn(
+                        "flex cursor-pointer items-start justify-between rounded-xl border p-3.5 transition-all",
+                        isSelected
+                          ? "border-caramel-500 bg-caramel-50/30 ring-1 ring-caramel-500"
+                          : "border-espresso-100 hover:border-espresso-300 bg-white"
+                      )}
+                    >
+                      <div className="flex items-start gap-3">
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value={p.id}
+                          checked={isSelected}
+                          onChange={() => setSelectedPayment(p.id)}
+                          className="mt-1 text-caramel-600 focus:ring-caramel-500 h-4 w-4"
+                        />
+                        <div className="flex items-start gap-3">
+                          <div
+                            className={cn(
+                              "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border",
+                              isSelected
+                                ? "bg-caramel-100/70 border-caramel-300 text-caramel-800"
+                                : "bg-cream/60 border-latte text-espresso-600"
+                            )}
+                          >
+                            {p.iconType === "qris" ? (
+                              <QrCode className="h-4 w-4" />
+                            ) : p.iconType === "va" ? (
+                              <Landmark className="h-4 w-4" />
+                            ) : p.iconType === "ewallet" ? (
+                              <Wallet className="h-4 w-4" />
+                            ) : p.iconType === "card" ? (
+                              <CreditCard className="h-4 w-4" />
+                            ) : p.iconType === "cstore" ? (
+                              <Store className="h-4 w-4" />
+                            ) : p.iconType === "cod" ? (
+                              <Truck className="h-4 w-4" />
+                            ) : (
+                              <Banknote className="h-4 w-4" />
+                            )}
+                          </div>
+                          <div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="font-semibold text-sm text-espresso-900">{p.name}</p>
+                              {p.badge && (
+                                <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-700 border border-emerald-200">
+                                  {p.badge}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-espresso-500 leading-relaxed mt-0.5">{p.desc}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
 

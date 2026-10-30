@@ -15,6 +15,7 @@ import {
 } from "@/lib/email";
 import { generateOrderNo, ORDER_STATUSES, ORDER_STATUS_LABEL } from "@/lib/utils";
 import { calculateDynamicRates } from "@/lib/shipping-calculator";
+import { isMidtransPayment, DEFAULT_MIDTRANS_CHANNELS } from "@/lib/midtrans-channels";
 import type { FormState } from "./auth";
 
 const checkoutSchema = z.object({
@@ -27,7 +28,7 @@ const checkoutSchema = z.object({
   postalCode: z.string().trim().min(4, "Kode pos wajib diisi"),
   notes: z.string().optional(),
   shippingMethod: z.string().min(1, "Pilih metode pengiriman"),
-  paymentMethod: z.enum(["bank_transfer", "cod", "midtrans"], { message: "Pilih metode pembayaran" }),
+  paymentMethod: z.string().min(1, "Pilih metode pembayaran"),
   items: z
     .array(z.object({ productId: z.string(), variantId: z.string().nullable().optional(), quantity: z.number().int().min(1) }))
     .min(1, "Keranjang belanja kosong"),
@@ -49,12 +50,25 @@ export async function placeOrder(_: FormState, formData: FormData): Promise<Form
 
   // Validasi metode pembayaran
   const pay = settings.payment;
+  const isMidtrans = isMidtransPayment(d.paymentMethod);
   if (
     (d.paymentMethod === "bank_transfer" && !pay.bankTransfer.enabled) ||
     (d.paymentMethod === "cod" && !pay.cod.enabled) ||
-    (d.paymentMethod === "midtrans" && !pay.midtrans.enabled)
+    (isMidtrans && !pay.midtrans.enabled) ||
+    (!isMidtrans && d.paymentMethod !== "bank_transfer" && d.paymentMethod !== "cod")
   ) {
     return { error: "Metode pembayaran tidak tersedia" };
+  }
+
+  if (d.paymentMethod.startsWith("midtrans_")) {
+    const channelId = d.paymentMethod.replace("midtrans_", "");
+    const activeChannels =
+      pay.midtrans.channels && pay.midtrans.channels.length > 0
+        ? pay.midtrans.channels
+        : DEFAULT_MIDTRANS_CHANNELS;
+    if (!activeChannels.includes(channelId)) {
+      return { error: "Metode pembayaran yang dipilih tidak aktif" };
+    }
   }
 
   // Hitung ulang harga dari database

@@ -2,6 +2,7 @@ import "server-only";
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
+import { getSnapCodeFromPaymentMethod, getChannelById } from "@/lib/midtrans-channels";
 
 export type SnapTokenResult =
   | {
@@ -88,7 +89,18 @@ export async function getMidtransSnapToken(orderNo: string): Promise<SnapTokenRe
 
     const authHeader = `Basic ${Buffer.from(`${midtrans.serverKey}:`).toString("base64")}`;
 
-    const payload = {
+    const snapCode = getSnapCodeFromPaymentMethod(order.paymentMethod);
+    let enabledPayments: string[] | undefined;
+
+    if (snapCode) {
+      enabledPayments = [snapCode];
+    } else if (midtrans.channels && midtrans.channels.length > 0) {
+      enabledPayments = midtrans.channels
+        .map((chId) => getChannelById(chId)?.snapCode)
+        .filter(Boolean) as string[];
+    }
+
+    const payload: Record<string, any> = {
       transaction_details: {
         order_id: order.orderNo,
         gross_amount: order.total,
@@ -107,6 +119,10 @@ export async function getMidtransSnapToken(orderNo: string): Promise<SnapTokenRe
       },
       item_details: itemsList,
     };
+
+    if (enabledPayments && enabledPayments.length > 0) {
+      payload.enabled_payments = enabledPayments;
+    }
 
     const res = await fetch(snapUrl, {
       method: "POST",

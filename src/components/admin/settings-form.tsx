@@ -9,14 +9,17 @@ import {
   CreditCard,
   Eye,
   EyeOff,
+  Landmark,
   Loader2,
   Mail,
   Plus,
+  QrCode,
   Send,
   Sliders,
   Store,
   Trash2,
   Truck,
+  Wallet,
 } from "lucide-react";
 import { useAppLoading } from "@/components/loading-provider";
 import {
@@ -31,6 +34,7 @@ import {
 import { Alert, Button, Field, Input, Select, Textarea } from "@/components/ui";
 import { CityProvinceSelector } from "@/components/shop/city-province-selector";
 import { CURRENCIES, formatCurrency, type CurrencyPosition, type CurrencySettings } from "@/lib/currency";
+import { MIDTRANS_CHANNEL_LIST, DEFAULT_MIDTRANS_CHANNELS } from "@/lib/midtrans-channels";
 import type { AllSettings, BankAccount, ShippingMethod, SmtpSettings } from "@/lib/settings-types";
 
 export function SettingsForm({
@@ -84,6 +88,33 @@ export function SettingsForm({
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>(
     initialSettings.payment.bankTransfer.accounts
   );
+
+  // Midtrans channels state
+  const [selectedChannels, setSelectedChannels] = useState<string[]>(
+    initialSettings.payment.midtrans.channels && initialSettings.payment.midtrans.channels.length > 0
+      ? initialSettings.payment.midtrans.channels
+      : DEFAULT_MIDTRANS_CHANNELS
+  );
+
+  useEffect(() => {
+    if (initialSettings.payment.midtrans.channels && initialSettings.payment.midtrans.channels.length > 0) {
+      setSelectedChannels(initialSettings.payment.midtrans.channels);
+    }
+  }, [initialSettings.payment.midtrans.channels]);
+
+  function toggleChannel(id: string) {
+    setSelectedChannels((prev) =>
+      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
+    );
+  }
+
+  function selectAllChannels() {
+    setSelectedChannels(MIDTRANS_CHANNEL_LIST.map((c) => c.id));
+  }
+
+  function clearAllChannels() {
+    setSelectedChannels([]);
+  }
 
   // Shipping methods state
   const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>(
@@ -625,6 +656,179 @@ export function SettingsForm({
                       placeholder="SB-Mid-server-..."
                     />
                   </Field>
+                </div>
+
+                {/* Centang Channel Midtrans yang Aktif */}
+                <div className="mt-4 pt-4 border-t border-latte/80 space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-caramel-800">
+                        Channel Pembayaran Midtrans yang Ditampilkan di Checkout
+                      </h4>
+                      <p className="text-[11px] text-espresso-500 mt-0.5">
+                        Centang channel yang aktif di portal Midtrans Anda untuk ditampilkan secara jelas seperti pilihan di Shopee.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={selectAllChannels}
+                        className="text-[11px] font-semibold text-caramel-700 hover:text-caramel-900 underline cursor-pointer"
+                      >
+                        Pilih Semua
+                      </button>
+                      <span className="text-espresso-300">|</span>
+                      <button
+                        type="button"
+                        onClick={clearAllChannels}
+                        className="text-[11px] font-semibold text-espresso-500 hover:text-espresso-700 underline cursor-pointer"
+                      >
+                        Hapus Semua
+                      </button>
+                    </div>
+                  </div>
+
+                  <input
+                    type="hidden"
+                    name="midtransChannels"
+                    value={JSON.stringify(selectedChannels)}
+                  />
+
+                  {/* Kategori 1: QRIS & E-Wallet */}
+                  <div>
+                    <span className="text-[11px] font-bold text-espresso-700 block mb-2">
+                      1. QRIS & E-Wallet
+                    </span>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {MIDTRANS_CHANNEL_LIST.filter(
+                        (c) => c.category === "qris" || c.category === "ewallet"
+                      ).map((c) => {
+                        const isChecked = selectedChannels.includes(c.id);
+                        return (
+                          <label
+                            key={c.id}
+                            className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors ${
+                              isChecked
+                                ? "border-caramel-500 bg-caramel-50/25 ring-1 ring-caramel-400"
+                                : "border-espresso-100 hover:border-espresso-200 bg-white"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => toggleChannel(c.id)}
+                              className="mt-0.5 rounded border-espresso-300 text-caramel-600 focus:ring-caramel-500 h-4 w-4"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-1.5">
+                                <span className="font-semibold text-xs text-espresso-900">
+                                  {c.name}
+                                </span>
+                                {c.badge && (
+                                  <span className="rounded bg-emerald-50 px-1.5 py-0.2 text-[9px] font-semibold text-emerald-700 border border-emerald-200">
+                                    {c.badge}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-espresso-500 leading-tight mt-0.5">
+                                {c.desc}
+                              </p>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Kategori 2: Virtual Account (Transfer Otomatis) */}
+                  <div className="pt-2">
+                    <span className="text-[11px] font-bold text-espresso-700 block mb-2">
+                      2. Virtual Account (Verifikasi Otomatis)
+                    </span>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {MIDTRANS_CHANNEL_LIST.filter((c) => c.category === "va").map((c) => {
+                        const isChecked = selectedChannels.includes(c.id);
+                        return (
+                          <label
+                            key={c.id}
+                            className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors ${
+                              isChecked
+                                ? "border-caramel-500 bg-caramel-50/25 ring-1 ring-caramel-400"
+                                : "border-espresso-100 hover:border-espresso-200 bg-white"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => toggleChannel(c.id)}
+                              className="mt-0.5 rounded border-espresso-300 text-caramel-600 focus:ring-caramel-500 h-4 w-4"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-1.5">
+                                <span className="font-semibold text-xs text-espresso-900">
+                                  {c.name}
+                                </span>
+                                {c.badge && (
+                                  <span className="rounded bg-emerald-50 px-1.5 py-0.2 text-[9px] font-semibold text-emerald-700 border border-emerald-200">
+                                    {c.badge}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-espresso-500 leading-tight mt-0.5">
+                                {c.desc}
+                              </p>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Kategori 3: Kartu Kredit & Retail */}
+                  <div className="pt-2">
+                    <span className="text-[11px] font-bold text-espresso-700 block mb-2">
+                      3. Kartu Kredit & Gerai Retail
+                    </span>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {MIDTRANS_CHANNEL_LIST.filter(
+                        (c) => c.category === "card" || c.category === "cstore"
+                      ).map((c) => {
+                        const isChecked = selectedChannels.includes(c.id);
+                        return (
+                          <label
+                            key={c.id}
+                            className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors ${
+                              isChecked
+                                ? "border-caramel-500 bg-caramel-50/25 ring-1 ring-caramel-400"
+                                : "border-espresso-100 hover:border-espresso-200 bg-white"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => toggleChannel(c.id)}
+                              className="mt-0.5 rounded border-espresso-300 text-caramel-600 focus:ring-caramel-500 h-4 w-4"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-1.5">
+                                <span className="font-semibold text-xs text-espresso-900">
+                                  {c.name}
+                                </span>
+                                {c.badge && (
+                                  <span className="rounded bg-caramel-50 px-1.5 py-0.2 text-[9px] font-semibold text-caramel-700 border border-caramel-200">
+                                    {c.badge}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-espresso-500 leading-tight mt-0.5">
+                                {c.desc}
+                              </p>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               </div>
 

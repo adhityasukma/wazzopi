@@ -19,7 +19,14 @@ export type BankAccount = { bank: string; number: string; holder: string };
 export type PaymentSettings = {
   bankTransfer: { enabled: boolean; accounts: BankAccount[] };
   cod: { enabled: boolean; fee: number };
-  midtrans: { enabled: boolean; mode: "sandbox" | "production"; merchantId: string; clientKey: string; serverKey: string };
+  midtrans: {
+    enabled: boolean;
+    mode: "sandbox" | "production";
+    merchantId: string;
+    clientKey: string;
+    serverKey: string;
+    channels?: string[];
+  };
 };
 
 export type ShippingMethod = { id: string; name: string; cost: number; etd: string; enabled: boolean };
@@ -89,7 +96,14 @@ export const DEFAULT_SETTINGS: AllSettings = {
       ],
     },
     cod: { enabled: true, fee: 5000 },
-    midtrans: { enabled: false, mode: "sandbox", merchantId: "", clientKey: "", serverKey: "" },
+    midtrans: {
+      enabled: false,
+      mode: "sandbox",
+      merchantId: "",
+      clientKey: "",
+      serverKey: "",
+      channels: ["qris", "bca_va", "mandiri_va", "bni_va", "bri_va"],
+    },
   },
   shipping: {
     originCity: "Tangerang",

@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 import { formatCurrency } from "@/lib/currency";
 import { formatDate, ORDER_STATUS_LABEL, ORDER_STATUS_STYLE, PAYMENT_LABEL } from "@/lib/utils";
+import { isMidtransPayment } from "@/lib/midtrans-channels";
 import { LinkButton } from "@/components/ui";
 import { ClearCartOnSuccess } from "@/components/shop/clear-cart";
 import { CopyButton } from "@/components/shop/copy-button";
@@ -120,7 +121,7 @@ export default async function CheckoutSuccessPage({
       )}
 
       {/* Kartu Pembayaran Midtrans jika memilih Midtrans */}
-      {order.paymentMethod === "midtrans" && order.status === "PENDING" && (
+      {isMidtransPayment(order.paymentMethod) && order.status === "PENDING" && (
         <div className="mt-8 rounded-2xl border-2 border-caramel-300 bg-gradient-to-br from-caramel-50/90 via-white to-cream p-6 shadow-sm">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-caramel-200/80 pb-5">
             <div className="flex items-center gap-3">
@@ -132,7 +133,7 @@ export default async function CheckoutSuccessPage({
                   Menunggu Pembayaran
                 </span>
                 <h2 className="mt-0.5 text-lg font-bold text-espresso-900">
-                  Pembayaran Online Midtrans
+                  {PAYMENT_LABEL[order.paymentMethod] || "Pembayaran Online Midtrans"}
                 </h2>
               </div>
             </div>
@@ -148,7 +149,7 @@ export default async function CheckoutSuccessPage({
 
           <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <p className="text-xs text-espresso-600 leading-relaxed max-w-md">
-              Selesaikan pembayaran Anda menggunakan QRIS (GoPay, OVO, ShopeePay, DANA), Virtual Account Bank (BCA, Mandiri, BNI, BRI, Permata), atau Kartu Kredit.
+              Selesaikan pembayaran Anda menggunakan {PAYMENT_LABEL[order.paymentMethod] || "metode pembayaran yang dipilih"}. Sistem akan memverifikasi transaksi Anda secara instan dan otomatis tanpa perlu konfirmasi manual.
             </p>
             <MidtransPayButton
               orderNo={order.orderNo}
@@ -165,7 +166,7 @@ export default async function CheckoutSuccessPage({
         </div>
       )}
 
-      {order.paymentMethod === "midtrans" && order.status === "PAID" && (
+      {isMidtransPayment(order.paymentMethod) && order.status === "PAID" && (
         <div className="mt-8 rounded-xl border border-emerald-200 bg-emerald-50/60 p-5">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">

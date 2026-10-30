@@ -37,6 +37,7 @@ import { logout } from "@/actions/auth";
 import { AccountProfileForm } from "@/components/shop/account-profile-form";
 import { AccountPasswordForm } from "@/components/shop/account-password-form";
 import { MidtransPayButton } from "@/components/shop/midtrans-pay-button";
+import { isMidtransPayment } from "@/lib/midtrans-channels";
 import { OrderTrackingModal } from "@/components/shop/order-tracking-modal";
 import { resolveEffectiveCourier } from "@/lib/tracking-constants";
 
@@ -594,7 +595,7 @@ export function MemberAreaView({
                         </div>
 
                         <div className="flex items-center gap-2.5">
-                          {latestOrder.paymentMethod === "midtrans" && latestOrder.status === "PENDING" && (
+                          {isMidtransPayment(latestOrder.paymentMethod) && latestOrder.status === "PENDING" && (
                             <MidtransPayButton
                               orderNo={latestOrder.orderNo}
                               buttonLabel="Bayar Sekarang"
@@ -1005,7 +1006,7 @@ export function MemberAreaView({
                           </div>
 
                           <div className="flex flex-wrap items-center gap-2">
-                            {order.paymentMethod === "midtrans" && order.status === "PENDING" && (
+                            {isMidtransPayment(order.paymentMethod) && order.status === "PENDING" && (
                               <MidtransPayButton
                                 orderNo={order.orderNo}
                                 buttonLabel="Lanjutkan Pembayaran"

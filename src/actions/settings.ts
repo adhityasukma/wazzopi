@@ -61,6 +61,15 @@ export async function savePayment(_: FormState, f: FormData): Promise<FormState>
   } catch {
     return { error: "Data rekening tidak valid" };
   }
+  let channels: string[] = [];
+  try {
+    const rawChannels = f.get("midtransChannels");
+    if (rawChannels) {
+      channels = JSON.parse(String(rawChannels));
+    }
+  } catch {
+    channels = [];
+  }
   const settings = {
     bankTransfer: { enabled: bool(f, "bankEnabled"), accounts },
     cod: { enabled: bool(f, "codEnabled"), fee: num(f, "codFee") },
@@ -70,6 +79,7 @@ export async function savePayment(_: FormState, f: FormData): Promise<FormState>
       merchantId: str(f, "merchantId"),
       clientKey: str(f, "clientKey"),
       serverKey: str(f, "serverKey"),
+      channels,
     },
   };
   if (!settings.bankTransfer.enabled && !settings.cod.enabled && !settings.midtrans.enabled) {
@@ -77,6 +87,9 @@ export async function savePayment(_: FormState, f: FormData): Promise<FormState>
   }
   if (settings.midtrans.enabled && (!settings.midtrans.clientKey || !settings.midtrans.serverKey)) {
     return { error: "Client Key dan Server Key Midtrans wajib diisi" };
+  }
+  if (settings.midtrans.enabled && settings.midtrans.channels.length === 0) {
+    return { error: "Pilih minimal satu channel pembayaran Midtrans yang ingin ditampilkan" };
   }
   await saveSetting("payment", settings);
   return done();

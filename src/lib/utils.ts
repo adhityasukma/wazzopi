@@ -57,7 +57,20 @@ export const ORDER_STATUS_STYLE: Record<string, string> = {
 export const SALES_STATUSES = ["PAID", "PROCESSING", "SHIPPED", "COMPLETED"];
 
 export const PAYMENT_LABEL: Record<string, string> = {
-  bank_transfer: "Transfer Bank",
+  bank_transfer: "Transfer Bank Manual",
   cod: "Bayar di Tempat (COD)",
   midtrans: "Pembayaran Online (Midtrans)",
+  midtrans_qris: "QRIS",
+  midtrans_gopay: "GoPay / GoPay Later",
+  midtrans_shopeepay: "ShopeePay / SPayLater",
+  midtrans_bca_va: "BCA Virtual Account",
+  midtrans_mandiri_va: "Mandiri Virtual Account",
+  midtrans_bni_va: "BNI Virtual Account",
+  midtrans_bri_va: "BRI Virtual Account",
+  midtrans_permata_va: "Permata Virtual Account",
+  midtrans_cimb_va: "CIMB Niaga Virtual Account",
+  midtrans_other_va: "Bank Lainnya (Virtual Account)",
+  midtrans_credit_card: "Kartu Kredit / Debit",
+  midtrans_alfamart: "Gerai Alfamart",
+  midtrans_indomaret: "Gerai Indomaret",
 };
