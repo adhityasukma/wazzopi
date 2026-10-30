@@ -8,6 +8,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { createSession, getSession, requireAdmin } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
+import { getStoreWhatsApp } from "@/lib/settings-types";
 import {
   sendOrderStatusEmail,
   sendOrderNotificationByOrderId,
@@ -252,7 +253,7 @@ export async function placeOrder(_: FormState, formData: FormData): Promise<Form
         email: newAccountInfo.email,
         tempPassword: newAccountInfo.tempPassword,
         storeName: settings.general.storeName,
-        whatsappContact: settings.other.whatsapp || settings.general.phone,
+        whatsappContact: getStoreWhatsApp(settings),
       });
     } catch (accountEmailErr) {
       console.error("[placeOrder newAccount Email Error]:", accountEmailErr);
@@ -291,7 +292,7 @@ export async function placeOrder(_: FormState, formData: FormData): Promise<Form
       paymentMethod: d.paymentMethod,
       bankAccounts: settings.payment.bankTransfer.accounts,
       storeName: settings.general.storeName,
-      whatsappContact: settings.other.whatsapp || settings.general.phone,
+      whatsappContact: getStoreWhatsApp(settings),
     });
   } catch (emailErr) {
     console.error("[placeOrder Email Error]:", emailErr);

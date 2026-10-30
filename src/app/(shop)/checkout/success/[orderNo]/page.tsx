@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { CheckCircle2, Copy, CreditCard, Package, Store, UserCheck } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
+import { getStoreWhatsApp } from "@/lib/settings-types";
 import { formatCurrency } from "@/lib/currency";
 import { formatDate, ORDER_STATUS_LABEL, ORDER_STATUS_STYLE, PAYMENT_LABEL } from "@/lib/utils";
 import { isMidtransPayment } from "@/lib/midtrans-channels";
@@ -208,16 +209,14 @@ export default async function CheckoutSuccessPage({
           </div>
           <p className="mt-4 text-xs text-espresso-500">
             *Konfirmasi bukti transfer ke WhatsApp admin kami{" "}
-            {settings.other.whatsapp && (
-              <a
-                href={`https://wa.me/${settings.other.whatsapp}?text=Halo%20Admin%20Wazzopi,%20saya%20sudah%20transfer%20untuk%20pesanan%20${order.orderNo}`}
-                target="_blank"
-                rel="noreferrer"
-                className="font-semibold text-caramel-600 underline"
-              >
-                (+{settings.other.whatsapp})
-              </a>
-            )}
+            <a
+              href={`https://wa.me/${getStoreWhatsApp(settings)}?text=Halo%20Admin%20Wazzopi,%20saya%20sudah%20transfer%20untuk%20pesanan%20${order.orderNo}`}
+              target="_blank"
+              rel="noreferrer"
+              className="font-semibold text-caramel-600 underline"
+            >
+              (+{getStoreWhatsApp(settings)})
+            </a>
           </p>
         </div>
       )}

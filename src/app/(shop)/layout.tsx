@@ -2,11 +2,13 @@ import { cookies } from "next/headers";
 import { CurrencyProvider } from "@/components/currency-provider";
 import { SiteHeader } from "@/components/shop/site-header";
 import { SiteFooter } from "@/components/shop/site-footer";
+import { FloatingWhatsApp } from "@/components/shop/floating-whatsapp";
 import { SessionPurge } from "@/components/shop/session-purge";
 import { getSession } from "@/lib/auth";
 import { SESSION_COOKIE } from "@/lib/jwt";
 import { formatCurrency } from "@/lib/currency";
 import { getSettings } from "@/lib/settings";
+import { getStoreWhatsApp } from "@/lib/settings-types";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -23,6 +25,7 @@ export default async function ShopLayout({ children }: LayoutProps<"/">) {
 
   const isFreeActive = settings.shipping.freeShippingEnabled && settings.shipping.freeShippingMin > 0;
   const isStaleSession = hasSessionCookie && !session;
+  const waPhone = getStoreWhatsApp(settings);
 
   return (
     <CurrencyProvider value={settings.currency}>
@@ -37,6 +40,7 @@ export default async function ShopLayout({ children }: LayoutProps<"/">) {
         }
       />
       <main className="flex-1">{children}</main>
+      <FloatingWhatsApp waPhone={waPhone} storeName={settings.general.storeName} />
       <SiteFooter settings={settings} categories={categories} />
     </CurrencyProvider>
   );

@@ -1,6 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
+import { getStoreWhatsApp } from "@/lib/settings-types";
 import { sendSmtpMail } from "@/lib/smtp";
 import { PAYMENT_LABEL } from "@/lib/utils";
 
@@ -146,7 +147,7 @@ export function generateOrderEmailHtml(params: SendOrderStatusEmailParams): stri
     bankAccounts = [],
     newAccount,
     storeName = "Wazzopi",
-    whatsappContact = "6281234567890",
+    whatsappContact = "6282353538212",
   } = params;
 
   const badgeConfig = getStatusBadgeConfig(status);
@@ -465,7 +466,7 @@ export function generateNewAccountEmailHtml(params: SendNewAccountEmailParams): 
     email,
     tempPassword,
     storeName = "Wazzopi",
-    whatsappContact = "6281234567890",
+    whatsappContact = "6282353538212",
   } = params;
 
   return `
@@ -723,7 +724,7 @@ export async function sendOrderNotificationByOrderId(
       bankAccounts: settings.payment.bankTransfer.accounts,
       newAccount: options?.newAccount ?? null,
       storeName: settings.general.storeName,
-      whatsappContact: settings.other.whatsapp || settings.general.phone,
+      whatsappContact: getStoreWhatsApp(settings),
     });
 
     // Jika status pesanan berubah menjadi LUNAS (PAID), kirimkan juga notifikasi ke Admin

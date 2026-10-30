@@ -31,7 +31,7 @@ import {
 } from "lucide-react";
 import { useLoading } from "@/components/loading-provider";
 import { formatCurrency, type CurrencySettings, DEFAULT_CURRENCY } from "@/lib/currency";
-import type { AllSettings } from "@/lib/settings-types";
+import { type AllSettings, getStoreWhatsApp } from "@/lib/settings-types";
 import { formatDate, ORDER_STATUS_LABEL, ORDER_STATUS_STYLE } from "@/lib/utils";
 import { logout } from "@/actions/auth";
 import { AccountProfileForm } from "@/components/shop/account-profile-form";
@@ -708,25 +708,15 @@ export function MemberAreaView({
                   </div>
 
                   <div className="mt-4 pt-3 border-t border-latte/60">
-                    {settings.other?.whatsapp ? (
-                      <a
-                        href={`https://wa.me/${settings.other.whatsapp}?text=Halo%20Admin%20Wazzopi,%20saya%20${encodeURIComponent(user.name)}%20ingin%20bertanya%20seputar%20pesanan.`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-emerald-600 py-2 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors shadow-2xs"
-                      >
-                        <MessageCircle className="h-3.5 w-3.5" />
-                        Chat WhatsApp Admin
-                      </a>
-                    ) : (
-                      <Link
-                        href="/products"
-                        className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-caramel-600 py-2 text-xs font-semibold text-white hover:bg-caramel-700 transition-colors shadow-2xs"
-                      >
-                        <Coffee className="h-3.5 w-3.5" />
-                        Lihat Katalog Kopi
-                      </Link>
-                    )}
+                    <a
+                      href={`https://wa.me/${getStoreWhatsApp(settings)}?text=Halo%20Admin%20Wazzopi,%20saya%20${encodeURIComponent(user.name)}%20ingin%20bertanya%20seputar%20pesanan.`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-emerald-600 py-2 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors shadow-2xs"
+                    >
+                      <MessageCircle className="h-3.5 w-3.5" />
+                      Chat WhatsApp Admin
+                    </a>
                   </div>
                 </div>
               </div>

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { RefreshCcw, ArrowLeft, Mail, Phone, CheckCircle2, AlertCircle } from "lucide-react";
 import { getSettings } from "@/lib/settings";
+import { getStoreWhatsApp } from "@/lib/settings-types";
 
 export const metadata: Metadata = {
   title: "Kebijakan Pengembalian Dana & Produk",
@@ -86,7 +87,7 @@ export default async function ReturnPolicyPage() {
           <div className="rounded-xl bg-cream/70 p-4 border border-latte space-y-2 text-xs">
             <p className="flex items-center gap-2 text-espresso-800">
               <Phone className="h-4 w-4 text-caramel-600 shrink-0" />
-              <span><strong>WhatsApp Customer Service:</strong> {g.phone}</span>
+              <span><strong>WhatsApp Customer Service:</strong> +{getStoreWhatsApp(settings)}</span>
             </p>
             <p className="flex items-center gap-2 text-espresso-800">
               <Mail className="h-4 w-4 text-caramel-600 shrink-0" />

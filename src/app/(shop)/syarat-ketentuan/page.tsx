@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ShieldCheck, FileText, ArrowLeft, Mail, Phone, MapPin } from "lucide-react";
 import { getSettings } from "@/lib/settings";
+import { getStoreWhatsApp } from "@/lib/settings-types";
 
 export const metadata: Metadata = {
   title: "Syarat dan Ketentuan",
@@ -93,7 +94,7 @@ export default async function TermsPage() {
             </p>
             <p className="flex items-center gap-2 text-espresso-800">
               <Phone className="h-4 w-4 text-caramel-600 shrink-0" />
-              <span><strong>Telepon / WhatsApp:</strong> {g.phone}</span>
+              <span><strong>WhatsApp Customer Service:</strong> +{getStoreWhatsApp(settings)}</span>
             </p>
             <p className="flex items-center gap-2 text-espresso-800">
               <Mail className="h-4 w-4 text-caramel-600 shrink-0" />

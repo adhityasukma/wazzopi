@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { Clock, Mail, MapPin, MessageCircle, Phone, AtSign, Globe } from "lucide-react";
 import { Logo } from "@/components/logo";
-import type { AllSettings } from "@/lib/settings-types";
+import { type AllSettings, getStoreWhatsApp } from "@/lib/settings-types";
 
 export function SiteFooter({ settings, categories }: { settings: AllSettings; categories: { name: string; slug: string }[] }) {
   const g = settings.general;
   const o = settings.other;
+  const waPhone = getStoreWhatsApp(settings);
   return (
     <footer className="mt-24 bg-espresso-800 text-espresso-100">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 md:grid-cols-2 lg:grid-cols-4">
@@ -25,8 +26,15 @@ export function SiteFooter({ settings, categories }: { settings: AllSettings; ca
                 <Globe className="h-4 w-4" />
               </a>
             )}
-            {o.whatsapp && (
-              <a href={`https://wa.me/${o.whatsapp}`} target="_blank" rel="noreferrer" className="rounded-lg border border-espresso-600 p-2 hover:bg-espresso-700" aria-label="WhatsApp">
+            {waPhone && (
+              <a
+                href={`https://wa.me/${waPhone}?text=Halo%20Admin%20${encodeURIComponent(g.storeName)},%20saya%20ingin%20bertanya%20seputar%20produk.`}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-lg border border-espresso-600 p-2 hover:bg-espresso-700 transition-colors"
+                aria-label="WhatsApp"
+                title="Chat dengan WhatsApp"
+              >
                 <MessageCircle className="h-4 w-4" />
               </a>
             )}
@@ -93,6 +101,19 @@ export function SiteFooter({ settings, categories }: { settings: AllSettings; ca
                 {g.phone}
               </a>
             </li>
+            {waPhone && (
+              <li className="flex gap-3">
+                <MessageCircle className="mt-0.5 h-4 w-4 shrink-0 text-caramel-300" />
+                <a
+                  href={`https://wa.me/${waPhone}?text=Halo%20Admin%20${encodeURIComponent(g.storeName)},%20saya%20ingin%20bertanya%20seputar%20produk.`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-cream transition-colors underline-offset-2 hover:underline"
+                >
+                  WhatsApp: +{waPhone}
+                </a>
+              </li>
+            )}
             <li className="flex gap-3">
               <Mail className="mt-0.5 h-4 w-4 shrink-0 text-caramel-300" />
               <a

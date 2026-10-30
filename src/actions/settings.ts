@@ -21,11 +21,15 @@ function done(msg = "Pengaturan berhasil disimpan"): FormState {
 export async function saveGeneral(_: FormState, f: FormData): Promise<FormState> {
   await requireAdmin();
   if (!str(f, "storeName")) return { error: "Nama toko wajib diisi" };
+  const rawWa = str(f, "whatsapp").replace(/[^0-9]/g, "");
+  const wa = rawWa.length >= 8 ? rawWa : "6282353538212";
+
   await saveSetting("general", {
     storeName: str(f, "storeName"),
     tagline: str(f, "tagline"),
     email: str(f, "email"),
     phone: str(f, "phone"),
+    whatsapp: wa,
     address: str(f, "address"),
     city: str(f, "city"),
     province: str(f, "province"),
@@ -127,13 +131,16 @@ export async function saveShipping(_: FormState, f: FormData): Promise<FormState
 export async function saveOther(_: FormState, f: FormData): Promise<FormState> {
   await requireAdmin();
   const current = await getSettings();
+  const rawWa = str(f, "whatsapp").replace(/[^0-9]/g, "");
+  const wa = rawWa.length >= 8 ? rawWa : "6282353538212";
+
   await saveSetting("other", {
     ...current.other,
     metaTitle: str(f, "metaTitle"),
     metaDescription: str(f, "metaDescription"),
     instagram: str(f, "instagram"),
     facebook: str(f, "facebook"),
-    whatsapp: str(f, "whatsapp"),
+    whatsapp: wa,
     taxPercent: Math.max(0, Math.min(100, num(f, "taxPercent"))),
     orderPrefix: str(f, "orderPrefix").toUpperCase() || "WZ",
     lowStockThreshold: num(f, "lowStockThreshold"),

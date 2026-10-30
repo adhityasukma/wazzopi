@@ -5,6 +5,7 @@ export type GeneralSettings = {
   tagline: string;
   email: string;
   phone: string;
+  whatsapp?: string;
   address: string;
   city: string;
   province: string;
@@ -78,6 +79,7 @@ export const DEFAULT_SETTINGS: AllSettings = {
     tagline: "Satu Teguk, Banyak Cerita",
     email: "halo@wazzopi.com",
     phone: "0812-3456-7890",
+    whatsapp: "6282353538212",
     address: "Jl. Kopi Nusantara No. 17",
     city: "Tangerang",
     province: "Banten",
@@ -122,7 +124,7 @@ export const DEFAULT_SETTINGS: AllSettings = {
     metaDescription: "Kopi pilihan Nusantara, disangrai segar setiap minggu.",
     instagram: "https://instagram.com/wazzopi",
     facebook: "https://facebook.com/wazzopi",
-    whatsapp: "6281234567890",
+    whatsapp: "6282353538212",
     taxPercent: 0,
     orderPrefix: "WZ",
     lowStockThreshold: 10,
@@ -141,3 +143,21 @@ export const DEFAULT_SETTINGS: AllSettings = {
 };
 
 export type SettingsKey = keyof AllSettings;
+
+/**
+ * Helper untuk mendapatkan nomor WhatsApp toko yang bersih dan terstandarisasi (contoh: 6282353538212)
+ */
+export function getStoreWhatsApp(
+  settings?: {
+    general?: { whatsapp?: string; phone?: string };
+    other?: { whatsapp?: string };
+  } | null
+): string {
+  const num =
+    settings?.general?.whatsapp ||
+    settings?.other?.whatsapp ||
+    settings?.general?.phone ||
+    "6282353538212";
+  const clean = num.replace(/[^0-9]/g, "");
+  return clean.length >= 8 ? clean : "6282353538212";
+}

@@ -320,10 +320,21 @@ export function SettingsForm({
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Nomor Telepon / CS" hint="Ditampilkan dengan ikon telepon di footer">
+                  <Field label="Nomor Telepon CS" hint="Ditampilkan dengan ikon telepon di footer">
                     <Input name="phone" defaultValue={initialSettings.general.phone} required />
                   </Field>
-                  <Field label="Email Resmi Toko" hint="Ditampilkan dengan ikon email di footer">
+                  <Field
+                    label="Nomor WhatsApp Toko (WA Phone)"
+                    hint="Nomor WA aktif untuk tombol 'Chat dengan WA' & konfirmasi pesanan (contoh: 6282353538212)"
+                  >
+                    <Input
+                      name="whatsapp"
+                      defaultValue={initialSettings.general.whatsapp || initialSettings.other.whatsapp || "6282353538212"}
+                      placeholder="6282353538212"
+                      required
+                    />
+                  </Field>
+                  <Field label="Email Resmi Toko" hint="Ditampilkan dengan ikon email di footer & penerima notifikasi admin">
                     <Input name="email" type="email" defaultValue={initialSettings.general.email} required />
                   </Field>
                   <Field
@@ -1273,8 +1284,12 @@ export function SettingsForm({
                 <Field label="URL Akun Instagram">
                   <Input name="instagram" defaultValue={initialSettings.other.instagram} />
                 </Field>
-                <Field label="Nomor WhatsApp CS (Tanpa +)">
-                  <Input name="whatsapp" defaultValue={initialSettings.other.whatsapp} placeholder="6281234567890" />
+                <Field label="Nomor WhatsApp CS (WA Phone)" hint="Nomor WhatsApp aktif untuk tombol 'Chat dengan WA'">
+                  <Input
+                    name="whatsapp"
+                    defaultValue={initialSettings.other.whatsapp || initialSettings.general.whatsapp || "6282353538212"}
+                    placeholder="6282353538212"
+                  />
                 </Field>
                 <Field label="Persentase Pajak / PPN (%)">
                   <Input
