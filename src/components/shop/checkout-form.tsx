@@ -152,7 +152,7 @@ export function CheckoutForm({
       list.push({
         id: "bank_transfer",
         name: "Transfer Bank Manual",
-        desc: "BCA, Mandiri, dan rekening bank toko lainnya. Verifikasi manual admin.",
+        desc: "BCA, Mandiri, dan rekening bank toko lainnya.",
         iconType: "bank",
       });
     }
@@ -181,7 +181,6 @@ export function CheckoutForm({
             id: `midtrans_${def.id}`,
             name: def.name,
             desc: def.desc,
-            badge: "Verifikasi Otomatis",
             iconType: def.category,
           });
         }
@@ -635,14 +634,7 @@ export function CheckoutForm({
                             )}
                           </div>
                           <div>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <p className="font-semibold text-sm text-espresso-900">{p.name}</p>
-                              {p.badge && (
-                                <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-700 border border-emerald-200">
-                                  {p.badge}
-                                </span>
-                              )}
-                            </div>
+                            <p className="font-semibold text-sm text-espresso-900">{p.name}</p>
                             <p className="text-xs text-espresso-500 leading-relaxed mt-0.5">{p.desc}</p>
                           </div>
                         </div>
