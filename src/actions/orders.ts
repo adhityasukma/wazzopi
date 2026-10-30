@@ -11,6 +11,7 @@ import { getSettings } from "@/lib/settings";
 import {
   sendOrderStatusEmail,
   sendOrderNotificationByOrderId,
+  sendNewAccountEmail,
   type OrderEmailStatus,
 } from "@/lib/email";
 import { generateOrderNo, ORDER_STATUSES, ORDER_STATUS_LABEL } from "@/lib/utils";
@@ -240,7 +241,23 @@ export async function placeOrder(_: FormState, formData: FormData): Promise<Form
     }
   }
 
-  // Kirim email rincian pesanan (Status: Menunggu Pembayaran) & akses akun member
+  // Kirim notifikasi email sesuai kondisi:
+  // 1. Jika user belum login & dibuatkan akun baru, kirim Notifikasi 1: Detail Akses Login Member
+  if (newAccountInfo) {
+    try {
+      await sendNewAccountEmail({
+        customerName: d.customerName,
+        email: newAccountInfo.email,
+        tempPassword: newAccountInfo.tempPassword,
+        storeName: settings.general.storeName,
+        whatsappContact: settings.other.whatsapp || settings.general.phone,
+      });
+    } catch (accountEmailErr) {
+      console.error("[placeOrder newAccount Email Error]:", accountEmailErr);
+    }
+  }
+
+  // 2. Kirim Notifikasi 2 (atau tunggal untuk user yang sudah login): Detail Pesanan Baru (Status: Menunggu Pembayaran)
   try {
     await sendOrderStatusEmail({
       status: "PENDING",
@@ -259,7 +276,6 @@ export async function placeOrder(_: FormState, formData: FormData): Promise<Form
       shippingMethod: shippingName,
       paymentMethod: d.paymentMethod,
       bankAccounts: settings.payment.bankTransfer.accounts,
-      newAccount: newAccountInfo,
       storeName: settings.general.storeName,
       whatsappContact: settings.other.whatsapp || settings.general.phone,
     });

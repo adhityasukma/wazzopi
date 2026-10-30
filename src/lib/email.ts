@@ -2,6 +2,7 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 import { sendSmtpMail } from "@/lib/smtp";
+import { PAYMENT_LABEL } from "@/lib/utils";
 
 export type OrderEmailStatus =
   | "PENDING"
@@ -150,12 +151,7 @@ export function generateOrderEmailHtml(params: SendOrderStatusEmailParams): stri
 
   const badgeConfig = getStatusBadgeConfig(status);
 
-  const paymentLabel =
-    paymentMethod === "bank_transfer"
-      ? "Transfer Bank Manual"
-      : paymentMethod === "cod"
-      ? "Bayar di Tempat (COD)"
-      : "Pembayaran Otomatis (Midtrans)";
+  const paymentLabel = PAYMENT_LABEL[paymentMethod] || paymentMethod || "Transfer Bank";
 
   const itemsHtml = items
     .map(
@@ -435,15 +431,13 @@ export function generateOrderEmailHtml(params: SendOrderStatusEmailParams): stri
 }
 
 function getSubjectByStatus(params: SendOrderStatusEmailParams): string {
-  const { status, orderNo, newAccount, trackingNumber } = params;
+  const { status, orderNo, trackingNumber } = params;
   switch (status) {
     case "PENDING":
-      return newAccount
-        ? `[Menunggu Pembayaran] Pesanan #${orderNo} & Akses Akun Member Wazzopi`
-        : `[Menunggu Pembayaran] Menunggu Pembayaran Pesanan #${orderNo}`;
+      return `[Menunggu Pembayaran] Detail Pesanan #${orderNo}`;
     case "PAID":
     case "PROCESSING":
-      return `[Pembayaran Diterima] Pesanan #${orderNo} Sedang Diproses`;
+      return `[Pembayaran Diterima] Pesanan #${orderNo} Telah Lunas & Sedang Diproses`;
     case "SHIPPED":
       return trackingNumber
         ? `[Dalam Pengiriman] Pesanan #${orderNo} Telah Dikirim (Resi: ${trackingNumber})`
@@ -457,26 +451,133 @@ function getSubjectByStatus(params: SendOrderStatusEmailParams): string {
   }
 }
 
+export type SendNewAccountEmailParams = {
+  customerName: string;
+  email: string;
+  tempPassword: string;
+  storeName?: string;
+  whatsappContact?: string;
+};
+
+export function generateNewAccountEmailHtml(params: SendNewAccountEmailParams): string {
+  const {
+    customerName,
+    email,
+    tempPassword,
+    storeName = "Wazzopi",
+    whatsappContact = "6281234567890",
+  } = params;
+
+  return `
+    <!DOCTYPE html>
+    <html lang="id">
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Akses Akun Member ${storeName}</title>
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f7f3ee; margin: 0; padding: 24px 12px; color: #2a120c;">
+      <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; background-color: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #efe3d0; box-shadow: 0 4px 12px rgba(42, 18, 12, 0.05);">
+        <!-- Header -->
+        <tr>
+          <td style="background-color: #381a12; padding: 32px 24px; text-align: center;">
+            <h1 style="color: #fbf5ea; margin: 0; font-size: 26px; font-weight: bold; letter-spacing: -0.5px;">
+              ${storeName}
+            </h1>
+            <p style="color: #d39f6f; margin: 6px 0 0 0; font-size: 13px; letter-spacing: 0.5px;">
+              Satu Teguk, Banyak Cerita
+            </p>
+          </td>
+        </tr>
+
+        <!-- Body Content -->
+        <tr>
+          <td style="padding: 32px 28px;">
+            <div style="display: inline-block; background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 20px; padding: 4px 12px; font-size: 11px; font-weight: bold; color: #065f46; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px;">
+              Akun Member Aktif
+            </div>
+
+            <h2 style="margin: 0 0 12px 0; color: #2a120c; font-size: 20px; font-weight: bold;">
+              Halo, ${customerName}!
+            </h2>
+            <p style="margin: 0 0 20px 0; font-size: 14px; color: #6e3a28; line-height: 1.6;">
+              Terima kasih telah berbelanja di <strong>${storeName}</strong>. Untuk memudahkan Anda memantau status pesanan, nomor resi pengiriman, dan riwayat pembelian kapan saja, akun Member Anda telah berhasil dibuat secara otomatis saat Anda melakukan pemesanan.
+            </p>
+
+            <!-- Box Akses Login -->
+            <div style="background-color: #faf2ea; border: 1.5px solid #d39f6f; border-radius: 12px; padding: 22px; margin: 24px 0;">
+              <h3 style="margin: 0 0 14px 0; color: #5a2c1e; font-size: 15px; font-weight: bold;">
+                Detail Akses Login Member Area:
+              </h3>
+              <table style="width: 100%; border-collapse: collapse; background: #ffffff; border-radius: 8px; overflow: hidden; border: 1px solid #efe3d0;">
+                <tr>
+                  <td style="padding: 12px 16px; font-size: 13px; color: #8f5a43; width: 38%; border-bottom: 1px solid #f8f1ec;">Email Login</td>
+                  <td style="padding: 12px 16px; font-size: 13px; color: #2a120c; font-weight: 600; border-bottom: 1px solid #f8f1ec;">${email}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 12px 16px; font-size: 13px; color: #8f5a43;">Password Sementara</td>
+                  <td style="padding: 12px 16px; font-size: 14px; color: #a8673c; font-family: monospace; font-weight: bold; letter-spacing: 1px;">${tempPassword}</td>
+                </tr>
+              </table>
+              <div style="margin-top: 20px; text-align: center;">
+                <a href="https://wazzopi.vercel.app/login" style="display: inline-block; background-color: #4a2117; color: #fbf5ea; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-size: 13px; font-weight: bold; box-shadow: 0 2px 6px rgba(74, 33, 23, 0.2);">
+                  Masuk ke Member Area &rarr;
+                </a>
+              </div>
+            </div>
+
+            <div style="background-color: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 14px 16px; margin: 20px 0;">
+              <p style="margin: 0; font-size: 12px; color: #92400e; line-height: 1.5;">
+                <strong>Tips Keamanan:</strong> Demi kenyamanan Anda, segera perbarui password Anda di menu <strong>Pengaturan Akun</strong> setelah Anda berhasil masuk ke Member Area.
+              </p>
+            </div>
+
+            <!-- Bantuan / Kontak -->
+            <div style="margin-top: 28px; padding-top: 20px; border-top: 1px solid #efe3d0; text-align: center;">
+              <p style="margin: 0 0 8px 0; font-size: 12px; color: #8f5a43;">
+                Butuh bantuan terkait akun atau pesanan Anda?
+              </p>
+              <a href="https://wa.me/${whatsappContact.replace(/[^0-9]/g, "")}" style="display: inline-block; color: #4a2117; font-weight: 600; font-size: 13px; text-decoration: none;">
+                Hubungi Customer Care via WhatsApp &rarr;
+              </a>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="background-color: #2a120c; padding: 24px; text-align: center;">
+            <p style="margin: 0; font-size: 12px; color: #e4c5a0;">
+              &copy; ${new Date().getFullYear()} ${storeName}. Hak cipta dilindungi.
+            </p>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `;
+}
+
 /**
- * Mengirim email transaksional berdasarkan status pesanan
+ * Helper terpadu untuk pengiriman email via Custom SMTP atau Resend API fallback
  */
-export async function sendOrderStatusEmail(
-  params: SendOrderStatusEmailParams
-): Promise<{ success: boolean; id?: string; error?: string }> {
+async function sendRawMail(options: {
+  to: string;
+  subject: string;
+  html: string;
+}): Promise<{ success: boolean; id?: string; error?: string }> {
   try {
-    const htmlContent = generateOrderEmailHtml(params);
-    const subject = getSubjectByStatus(params);
     const settings = await getSettings();
 
-    // 1. Prioritas Utama: Jika Custom Mail Server (SMTP) diaktifkan di Admin
+    // 1. Prioritas Utama: Custom Mail Server (SMTP) di Pengaturan Admin
     if (settings.smtp?.enabled && settings.smtp?.host) {
       console.log(
-        `[Email] Mengirim email status (${params.status}) untuk order #${params.orderNo} via Custom SMTP (${settings.smtp.host}) ke ${params.customerEmail}`
+        `[Email] Mengirim email "${options.subject}" via Custom SMTP (${settings.smtp.host}) ke ${options.to}`
       );
       const smtpRes = await sendSmtpMail(settings.smtp, {
-        to: params.customerEmail,
-        subject,
-        html: htmlContent,
+        to: options.to,
+        subject: options.subject,
+        html: options.html,
       });
 
       if (smtpRes.success) {
@@ -486,9 +587,8 @@ export async function sendOrderStatusEmail(
       }
     }
 
-    // 2. Alternatif: Jika SMTP tidak aktif, gunakan Resend API jika API Key tersedia
+    // 2. Alternatif: Resend API jika RESEND_API_KEY disetel di environment
     const resendApiKey = process.env.RESEND_API_KEY?.trim();
-
     if (resendApiKey) {
       const fromEmail = process.env.EMAIL_FROM || "Wazzopi <onboarding@resend.dev>";
       const res = await fetch("https://api.resend.com/emails", {
@@ -499,27 +599,70 @@ export async function sendOrderStatusEmail(
         },
         body: JSON.stringify({
           from: fromEmail,
-          to: [params.customerEmail],
-          subject,
-          html: htmlContent,
+          to: [options.to],
+          subject: options.subject,
+          html: options.html,
         }),
       });
 
       if (res.ok) {
         const data = await res.json();
-        console.log(`[Email] Sukses mengirim email status (${params.status}) ke ${params.customerEmail} via Resend. ID: ${data.id}`);
+        console.log(`[Email] Sukses via Resend ke ${options.to}. ID: ${data.id}`);
         return { success: true, id: data.id };
       } else {
         const errText = await res.text();
-        console.warn(`[Email] Gagal mengirim via Resend (${res.status}): ${errText}`);
+        console.warn(`[Email] Gagal via Resend (${res.status}): ${errText}`);
         return { success: false, error: `Resend HTTP ${res.status}: ${errText}` };
       }
-    } else {
-      console.log(
-        `[Email Preview] (RESEND_API_KEY belum dikonfigurasi). Email status (${params.status}) pesanan #${params.orderNo} siap dikirim ke: ${params.customerEmail}`
-      );
-      return { success: false, error: "Mail Server (SMTP) atau RESEND_API_KEY belum dikonfigurasi di server." };
     }
+
+    console.warn(
+      `[Email Warning] Tidak ada mail provider aktif (SMTP belum diaktifkan di Admin dan RESEND_API_KEY belum disetel di .env). Email siap kirim ke: ${options.to} ("${options.subject}")`
+    );
+    return {
+      success: false,
+      error: "Mail Server (SMTP) belum diaktifkan di Admin Toko atau RESEND_API_KEY belum dikonfigurasi.",
+    };
+  } catch (err: any) {
+    console.error("[Email Raw Error]:", err);
+    return { success: false, error: err?.message || "Gagal memproses pengiriman email" };
+  }
+}
+
+/**
+ * Mengirim email detail akses login member baru
+ */
+export async function sendNewAccountEmail(
+  params: SendNewAccountEmailParams
+): Promise<{ success: boolean; id?: string; error?: string }> {
+  try {
+    const htmlContent = generateNewAccountEmailHtml(params);
+    const subject = `Detail Akses Login Member ${params.storeName || "Wazzopi"}`;
+    return await sendRawMail({
+      to: params.email,
+      subject,
+      html: htmlContent,
+    });
+  } catch (error: any) {
+    console.error("[sendNewAccountEmail error]:", error);
+    return { success: false, error: error?.message || "Gagal mengirim email akses akun" };
+  }
+}
+
+/**
+ * Mengirim email transaksional berdasarkan status pesanan
+ */
+export async function sendOrderStatusEmail(
+  params: SendOrderStatusEmailParams
+): Promise<{ success: boolean; id?: string; error?: string }> {
+  try {
+    const htmlContent = generateOrderEmailHtml(params);
+    const subject = getSubjectByStatus(params);
+    return await sendRawMail({
+      to: params.customerEmail,
+      subject,
+      html: htmlContent,
+    });
   } catch (error: any) {
     console.error("[Email Error] Terjadi kesalahan saat memproses pengiriman email:", error);
     return { success: false, error: error?.message || "Terjadi kesalahan saat mengirim email." };
