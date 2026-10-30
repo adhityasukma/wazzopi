@@ -106,6 +106,11 @@ export async function getMidtransSnapToken(orderNo: string): Promise<SnapTokenRe
       );
     }
 
+    const baseUrl =
+      process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://wazzopi.vercel.app");
+    const returnUrl = `${baseUrl}/checkout/success/${order.orderNo}`;
+
     const payload: Record<string, any> = {
       transaction_details: {
         order_id: order.orderNo,
@@ -124,6 +129,11 @@ export async function getMidtransSnapToken(orderNo: string): Promise<SnapTokenRe
         },
       },
       item_details: itemsList,
+      callbacks: {
+        finish: returnUrl,
+        unfinish: returnUrl,
+        error: returnUrl,
+      },
     };
 
     if (enabledPayments && enabledPayments.length > 0) {

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import { CheckCircle2, Copy, CreditCard, Package, Store, UserCheck } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Copy, CreditCard, Package, Store, UserCheck } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 import { getStoreWhatsApp } from "@/lib/settings-types";
@@ -22,8 +22,14 @@ export const metadata = {
 
 export default async function CheckoutSuccessPage({
   params,
-}: PageProps<"/checkout/success/[orderNo]">) {
+  searchParams,
+}: {
+  params: Promise<{ orderNo: string }>;
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   const { orderNo } = await params;
+  const sp = searchParams ? await searchParams : {};
+  const isRedirectFromMidtrans = Boolean(sp.order_id || sp.transaction_status || sp.status_code);
   const cookieStore = await cookies();
 
   const [order, settings] = await Promise.all([
@@ -52,18 +58,66 @@ export default async function CheckoutSuccessPage({
       <ClearCartOnSuccess />
 
       <div className="text-center">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
-          <CheckCircle2 className="h-10 w-10" />
+        <div
+          className={`mx-auto flex h-16 w-16 items-center justify-center rounded-full ${
+            order.status === "CANCELLED"
+              ? "bg-amber-100 text-amber-700"
+              : "bg-emerald-100 text-emerald-700"
+          }`}
+        >
+          {order.status === "CANCELLED" ? (
+            <AlertTriangle className="h-10 w-10" />
+          ) : (
+            <CheckCircle2 className="h-10 w-10" />
+          )}
         </div>
-        <h1 className="mt-4 text-3xl font-semibold text-espresso-900 md:text-4xl">Terima Kasih!</h1>
-        <p className="mt-2 text-espresso-600">Pesanan Anda telah berhasil dibuat.</p>
+        <h1 className="mt-4 text-3xl font-semibold text-espresso-900 md:text-4xl">
+          {order.status === "CANCELLED" ? "Pesanan Kedaluwarsa" : "Terima Kasih!"}
+        </h1>
+        <p className="mt-2 text-espresso-600">
+          {order.status === "CANCELLED"
+            ? "Batas waktu pembayaran untuk pesanan ini telah habis atau dibatalkan."
+            : "Pesanan Anda telah berhasil dibuat."}
+        </p>
         <p className="mt-1 text-sm font-semibold text-espresso-900">
           Nomor Pesanan: <span className="text-caramel-600">{order.orderNo}</span>
         </p>
-        <div className="mt-3 flex items-center justify-center">
-          <ResendEmailButton orderId={order.id} customerEmail={order.customerEmail} />
-        </div>
+        {order.status !== "CANCELLED" && (
+          <div className="mt-3 flex items-center justify-center">
+            <ResendEmailButton orderId={order.id} customerEmail={order.customerEmail} />
+          </div>
+        )}
       </div>
+
+      {/* Kartu Status Jika Pesanan Dibatalkan / Kedaluwarsa */}
+      {order.status === "CANCELLED" && (
+        <div className="mt-8 rounded-2xl border-2 border-amber-300 bg-amber-50/70 p-6 shadow-xs">
+          <div className="flex items-start gap-3.5">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-600 text-white shadow-xs">
+              <AlertTriangle className="h-6 w-6" />
+            </div>
+            <div className="flex-1">
+              <span className="inline-block rounded-full bg-amber-200/80 px-2.5 py-0.5 text-[10px] font-bold text-amber-900 uppercase tracking-wider">
+                Pembayaran Kedaluwarsa
+              </span>
+              <h2 className="mt-1 text-lg font-bold text-amber-950">
+                Waktu Pembayaran Telah Berakhir
+              </h2>
+              <p className="mt-1 text-xs text-amber-900 leading-relaxed">
+                Batas waktu pembayaran untuk transaksi ini telah habis. Stok barang telah otomatis dikembalikan ke sistem. Jika Anda masih berminat untuk membeli produk ini, silakan buat pesanan baru.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-3">
+                <LinkButton href="/shop" variant="secondary" size="sm">
+                  Belanja Kembali
+                </LinkButton>
+                <LinkButton href="/" variant="outline" size="sm">
+                  Ke Halaman Utama
+                </LinkButton>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Kartu Informasi Akun Member Baru (jika otomatis dibuatkan akun) */}
       {newAccount && (
@@ -155,7 +209,7 @@ export default async function CheckoutSuccessPage({
             <MidtransPayButton
               orderNo={order.orderNo}
               buttonLabel="Bayar Sekarang"
-              autoOpen={true}
+              autoOpen={!isRedirectFromMidtrans}
               variant="secondary"
               className="px-6 py-3 text-sm font-bold shadow-md"
             />
