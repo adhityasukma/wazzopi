@@ -3,6 +3,8 @@
 import { useActionState, useEffect, useState } from "react";
 import {
   AlertCircle,
+  ArrowLeft,
+  ArrowRight,
   Banknote,
   CheckCircle2,
   Coins,
@@ -12,6 +14,8 @@ import {
   Landmark,
   Loader2,
   Mail,
+  MapPin,
+  PhoneCall,
   Plus,
   QrCode,
   Send,
@@ -34,6 +38,7 @@ import {
 } from "@/actions/settings";
 import { Alert, Button, Field, Input, Select, Textarea } from "@/components/ui";
 import { CityProvinceSelector } from "@/components/shop/city-province-selector";
+import { cn } from "@/lib/utils";
 import { CURRENCIES, formatCurrency, type CurrencyPosition, type CurrencySettings } from "@/lib/currency";
 import { MIDTRANS_CHANNEL_LIST, DEFAULT_MIDTRANS_CHANNELS } from "@/lib/midtrans-channels";
 import type { AllSettings, BankAccount, ShippingMethod, SmtpSettings } from "@/lib/settings-types";
@@ -45,6 +50,7 @@ export function SettingsForm({
 }) {
   const { locale } = useI18n();
   const isEn = locale === "en";
+  const [generalSubTab, setGeneralSubTab] = useState<"identity" | "contact" | "address">("identity");
   const [activeTab, setActiveTab] = useState<
     "general" | "currency" | "payment" | "shipping" | "smtp" | "other"
   >("general");
@@ -285,50 +291,158 @@ export function SettingsForm({
       <div className="lg:col-span-9">
         {/* TAB 1: GENERAL */}
         {activeTab === "general" && (
-          <div className="rounded-xl border border-latte bg-white p-6 shadow-xs">
-            <h2 className="text-base font-bold text-espresso-900 border-b border-latte pb-3">
-              {isEn ? "General Store Information & Contact" : "Informasi Umum Toko & Kontak"}
-            </h2>
-            {generalState?.error && <Alert tone="error" className="mt-4">{generalState.error}</Alert>}
-            {generalState?.success && <Alert tone="success" className="mt-4">{generalState.success}</Alert>}
-
-            <form action={generalAction} className="mt-6 space-y-6">
-              {/* Grup 1: Identitas Brand & Toko */}
+          <div className="rounded-xl border border-latte bg-white p-6 shadow-xs space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-latte pb-4">
               <div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-caramel-800 mb-3">
-                  {isEn ? "Brand & Store Identity" : "Identitas Brand & Toko"}
-                </h3>
+                <h2 className="text-base font-bold text-espresso-900">
+                  {isEn ? "General Store Information & Contact" : "Informasi Umum Toko & Kontak"}
+                </h2>
+                <p className="text-xs text-espresso-500 mt-0.5">
+                  {isEn
+                    ? "Manage your brand identity, contact channels, and physical storefront address without clutter."
+                    : "Kelola identitas brand, saluran kontak pelanggan, dan alamat fisik toko secara rapi dan terorganisir."}
+                </p>
+              </div>
+
+              {/* Sub-tab pills */}
+              <div className="inline-flex rounded-xl border border-latte bg-cream/40 p-1">
+                {[
+                  { id: "identity", label: isEn ? "Brand Identity" : "Identitas Brand", icon: Store },
+                  { id: "contact", label: isEn ? "Contact & Hours" : "Kontak & Jam Buka", icon: PhoneCall },
+                  { id: "address", label: isEn ? "Store Address" : "Alamat Toko", icon: MapPin },
+                ].map((s) => {
+                  const SIcon = s.icon;
+                  const active = generalSubTab === s.id;
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => setGeneralSubTab(s.id as any)}
+                      className={cn(
+                        "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition cursor-pointer",
+                        active
+                          ? "bg-espresso-900 text-white shadow-xs"
+                          : "text-espresso-700 hover:bg-latte/60"
+                      )}
+                    >
+                      <SIcon className={cn("h-3.5 w-3.5", active ? "text-caramel-300" : "text-caramel-600")} />
+                      <span>{s.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {generalState?.error && <Alert tone="error">{generalState.error}</Alert>}
+            {generalState?.success && <Alert tone="success">{generalState.success}</Alert>}
+
+            <form action={generalAction} className="space-y-6">
+              {/* SUB-SECTION 1: BRAND IDENTITY */}
+              <div
+                className={cn(
+                  "space-y-5 rounded-xl border border-latte/80 bg-latte/10 p-5",
+                  generalSubTab === "identity" ? "block animate-in fade-in-50 duration-200" : "hidden"
+                )}
+              >
+                <div className="flex items-center gap-2.5 pb-2 border-b border-latte/60">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-caramel-100 text-caramel-800">
+                    <Store className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-espresso-900">
+                      {isEn ? "Brand & Store Identity" : "Identitas Brand & Toko"}
+                    </h3>
+                    <p className="text-[11px] text-espresso-500">
+                      {isEn
+                        ? "Displayed across your public storefront navigation header and footer"
+                        : "Tampil di header navigasi beranda dan footer toko online"}
+                    </p>
+                  </div>
+                </div>
+
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label={isEn ? "Brand / Store Name" : "Nama Brand / Toko"}>
-                    <Input name="storeName" defaultValue={initialSettings.general.storeName} required />
+                  <Field label={isEn ? "Brand / Store Name *" : "Nama Brand / Toko *"}>
+                    <Input
+                      name="storeName"
+                      defaultValue={initialSettings.general.storeName}
+                      placeholder={isEn ? "e.g. Wazzopi Artisan Coffee" : "Contoh: Wazzopi"}
+                      required
+                    />
                   </Field>
                   <Field label={isEn ? "Store Tagline" : "Tagline Toko"}>
-                    <Input name="tagline" defaultValue={initialSettings.general.tagline} />
+                    <Input
+                      name="tagline"
+                      defaultValue={initialSettings.general.tagline}
+                      placeholder={isEn ? "e.g. One Sip, Endless Stories" : "Contoh: Satu Teguk, Banyak Cerita"}
+                    />
                   </Field>
-                  <Field label={isEn ? "Country" : "Negara"}>
-                    <Input name="country" defaultValue={initialSettings.general.country} />
-                  </Field>
+                </div>
+
+                {/* Mini Preview Box */}
+                <div className="rounded-lg border border-latte bg-white p-3.5 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-espresso-900 text-white font-bold text-xs">
+                      WP
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-espresso-900">
+                        {initialSettings.general.storeName || "Wazzopi"}
+                      </p>
+                      <p className="text-[11px] text-caramel-700">
+                        {initialSettings.general.tagline || "One Sip, Endless Stories"}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] uppercase font-semibold text-espresso-400 bg-latte/40 px-2 py-0.5 rounded">
+                    {isEn ? "Storefront Preview" : "Pratinjau Toko"}
+                  </span>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setGeneralSubTab("contact")}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-caramel-700 hover:text-caramel-900 cursor-pointer"
+                  >
+                    <span>{isEn ? "Next: Contact & Hours" : "Lanjut: Kontak & Jam Buka"}</span>
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </button>
                 </div>
               </div>
 
-              {/* Grup 2: Kontak & Lokasi Toko (Ditampilkan di Footer "Kunjungi Kami") */}
-              <div className="pt-5 border-t border-latte">
-                <div className="mb-3">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-caramel-800">
-                    {isEn ? "Contact & Location (\"Visit Us\" Footer)" : "Kontak & Lokasi (Footer \"Kunjungi Kami\")"}
-                  </h3>
-                  <p className="text-[11px] text-espresso-500 mt-0.5">
-                    {isEn ? "The information below is displayed directly in your store's \"Visit Us\" footer." : "Data di bawah ini ditampilkan langsung di bagian footer \"Kunjungi Kami\" toko Anda."}
-                  </p>
+              {/* SUB-SECTION 2: CONTACT & OPERATING HOURS */}
+              <div
+                className={cn(
+                  "space-y-5 rounded-xl border border-latte/80 bg-latte/10 p-5",
+                  generalSubTab === "contact" ? "block animate-in fade-in-50 duration-200" : "hidden"
+                )}
+              >
+                <div className="flex items-center gap-2.5 pb-2 border-b border-latte/60">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-caramel-100 text-caramel-800">
+                    <PhoneCall className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-espresso-900">
+                      {isEn ? "Customer Contact & Operating Hours" : "Kontak Pelanggan & Jam Operasional"}
+                    </h3>
+                    <p className="text-[11px] text-espresso-500">
+                      {isEn
+                        ? "Contact info shown in footer 'Visit Us' and automated customer notification emails"
+                        : "Informasi kontak di bagian footer 'Kunjungi Kami' dan email rincian pesanan"}
+                    </p>
+                  </div>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label={isEn ? "CS Phone Number" : "Nomor Telepon CS"} hint={isEn ? "Displayed with phone icon in footer" : "Ditampilkan dengan ikon telepon di footer"}>
-                    <Input name="phone" defaultValue={initialSettings.general.phone} required />
+                  <Field
+                    label={isEn ? "CS Phone Number" : "Nomor Telepon CS"}
+                    hint={isEn ? "Displayed with phone icon in footer" : "Ditampilkan dengan ikon telepon di footer"}
+                  >
+                    <Input name="phone" defaultValue={initialSettings.general.phone} placeholder="6282353538212" required />
                   </Field>
                   <Field
                     label={isEn ? "Store WhatsApp (WA Phone)" : "Nomor WhatsApp Toko (WA Phone)"}
-                    hint={isEn ? "Active WA number for 'Chat on WhatsApp' & order confirmation (e.g.: 6282353538212)" : "Nomor WA aktif untuk tombol 'Chat dengan WA' & konfirmasi pesanan (contoh: 6282353538212)"}
+                    hint={isEn ? "Active WA number for 'Chat on WhatsApp' button & order confirmation" : "Nomor WA aktif untuk tombol 'Chat dengan WA' & konfirmasi pesanan"}
                   >
                     <Input
                       name="whatsapp"
@@ -337,13 +451,15 @@ export function SettingsForm({
                       required
                     />
                   </Field>
-                  <Field label={isEn ? "Official Store Email" : "Email Resmi Toko"} hint={isEn ? "Displayed with email icon in footer & recipient of admin notifications" : "Ditampilkan dengan ikon email di footer & penerima notifikasi admin"}>
-                    <Input name="email" type="email" defaultValue={initialSettings.general.email} required />
+                  <Field
+                    label={isEn ? "Official Store Email" : "Email Resmi Toko"}
+                    hint={isEn ? "Displayed in footer & receives admin notifications" : "Ditampilkan di footer & penerima notifikasi admin"}
+                  >
+                    <Input name="email" type="email" defaultValue={initialSettings.general.email} placeholder="halo@wazzopi.com" required />
                   </Field>
                   <Field
                     label={isEn ? "Store Operating Hours" : "Jam Operasional Toko"}
-                    hint={isEn ? "Displayed with clock icon in 'Visit Us' footer" : "Ditampilkan dengan ikon jam di footer 'Kunjungi Kami'"}
-                    className="sm:col-span-2"
+                    hint={isEn ? "Displayed with clock icon in footer 'Visit Us'" : "Ditampilkan dengan ikon jam di footer 'Kunjungi Kami'"}
                   >
                     <Input
                       name="openingHours"
@@ -351,11 +467,66 @@ export function SettingsForm({
                       placeholder={isEn ? "E.g.: Every day, 08.00 - 22.00" : "Contoh: Setiap hari, 08.00 - 22.00"}
                     />
                   </Field>
-                  <Field label={isEn ? "Physical Store Address" : "Alamat Fisik Toko"} className="sm:col-span-2">
-                    <Textarea name="address" defaultValue={initialSettings.general.address} rows={2} />
+                </div>
+
+                <div className="flex items-center justify-between pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setGeneralSubTab("identity")}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-espresso-600 hover:text-espresso-900 cursor-pointer"
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                    <span>{isEn ? "Back: Brand Identity" : "Kembali: Identitas Brand"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGeneralSubTab("address")}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-caramel-700 hover:text-caramel-900 cursor-pointer"
+                  >
+                    <span>{isEn ? "Next: Store Address" : "Lanjut: Alamat Toko"}</span>
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* SUB-SECTION 3: STORE PHYSICAL ADDRESS & REGIONAL LOCATION */}
+              <div
+                className={cn(
+                  "space-y-5 rounded-xl border border-latte/80 bg-latte/10 p-5",
+                  generalSubTab === "address" ? "block animate-in fade-in-50 duration-200" : "hidden"
+                )}
+              >
+                <div className="flex items-center gap-2.5 pb-2 border-b border-latte/60">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-caramel-100 text-caramel-800">
+                    <MapPin className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-espresso-900">
+                      {isEn ? "Physical Store Address & Location" : "Alamat Fisik & Lokasi Toko"}
+                    </h3>
+                    <p className="text-[11px] text-espresso-500">
+                      {isEn
+                        ? "Street address, country, city, province, postal code, and Google Maps location"
+                        : "Alamat jalan, negara, kota, provinsi, kode pos, dan tautan lokasi Google Maps"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <Field label={isEn ? "Street Address / Building" : "Alamat Jalan / Gedung"}>
+                    <Textarea
+                      name="address"
+                      defaultValue={initialSettings.general.address}
+                      rows={2}
+                      placeholder={isEn ? "e.g. Jl. Kopi Nusantara No. 17" : "Contoh: Jl. Kopi Nusantara No. 17"}
+                    />
                   </Field>
-                  <div className="sm:col-span-2">
+
+                  {/* CityProvinceSelector with WooCommerce-style Country dropdown placed BEFORE City */}
+                  <div className="rounded-xl border border-latte bg-white p-4 shadow-2xs">
                     <CityProvinceSelector
+                      showCountry={true}
+                      defaultCountry={initialSettings.general.country || "Indonesia"}
                       defaultCity={initialSettings.general.city}
                       defaultProvince={initialSettings.general.province}
                       defaultPostalCode={initialSettings.general.postalCode}
@@ -363,10 +534,10 @@ export function SettingsForm({
                       required={false}
                     />
                   </div>
+
                   <Field
                     label={isEn ? "Google Maps URL / Map Link" : "URL Google Maps / Tautan Peta Lokasi"}
-                    hint={isEn ? "If filled, clicking the address in the footer opens this map" : "Jika diisi, klik pada alamat di footer akan membuka peta ini"}
-                    className="sm:col-span-2"
+                    hint={isEn ? "If filled, clicking the address in the footer will open this map link" : "Jika diisi, klik pada alamat di footer akan membuka tautan peta ini"}
                   >
                     <Input
                       name="mapUrl"
@@ -376,12 +547,34 @@ export function SettingsForm({
                     />
                   </Field>
                 </div>
+
+                <div className="flex items-center justify-between pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setGeneralSubTab("contact")}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-espresso-600 hover:text-espresso-900 cursor-pointer"
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                    <span>{isEn ? "Back: Contact & Hours" : "Kembali: Kontak & Jam Buka"}</span>
+                  </button>
+                </div>
               </div>
 
-              <div className="pt-4 border-t border-latte">
-                <Button type="submit" disabled={generalPending} className="justify-center">
-                  {generalPending ? (isEn ? "Saving..." : "Menyimpan...") : (isEn ? "Save General & Contact Settings" : "Simpan Pengaturan Umum & Kontak")}
-                </Button>
+              {/* Action Bar (Always accessible) */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-latte">
+                <div className="text-xs text-espresso-500 font-medium">
+                  {generalSubTab === "identity" && (isEn ? "Step 1 of 3: Brand & Identity" : "Langkah 1 dari 3: Identitas Brand")}
+                  {generalSubTab === "contact" && (isEn ? "Step 2 of 3: Contact & Hours" : "Langkah 2 dari 3: Kontak & Jam Buka")}
+                  {generalSubTab === "address" && (isEn ? "Step 3 of 3: Store Address" : "Langkah 3 dari 3: Alamat Toko")}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button type="submit" disabled={generalPending} className="justify-center h-10 px-6 font-semibold">
+                    {generalPending
+                      ? (isEn ? "Saving Settings..." : "Menyimpan Pengaturan...")
+                      : (isEn ? "Save General & Contact Settings" : "Simpan Pengaturan Umum & Kontak")}
+                  </Button>
+                </div>
               </div>
             </form>
           </div>
