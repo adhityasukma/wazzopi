@@ -9,6 +9,7 @@ import { setLocaleAction } from "@/actions/locale";
 type I18nContextType = {
   locale: Locale;
   t: Dictionary;
+  dict: Dictionary;
   isPending: boolean;
   setLocale: (nextLocale: Locale) => void;
 };
@@ -40,6 +41,7 @@ export function I18nProvider({
       value={{
         locale: locale || DEFAULT_LOCALE,
         t: dictionary,
+        dict: dictionary,
         isPending,
         setLocale: handleSetLocale,
       }}
@@ -56,6 +58,7 @@ export function useI18n() {
     return {
       locale: DEFAULT_LOCALE,
       t: getDictionary(DEFAULT_LOCALE),
+      dict: getDictionary(DEFAULT_LOCALE),
       isPending: false,
       setLocale: () => {},
     };

@@ -25,6 +25,8 @@ export async function getServerLocale(): Promise<Locale> {
   return DEFAULT_LOCALE;
 }
 
+export const getLocale = getServerLocale;
+
 export async function getServerDictionary(): Promise<Dictionary> {
   const locale = await getServerLocale();
   return getDictionary(locale);

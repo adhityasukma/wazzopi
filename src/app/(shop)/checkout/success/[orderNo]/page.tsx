@@ -15,10 +15,14 @@ import { MidtransPayButton } from "@/components/shop/midtrans-pay-button";
 import { OrderTrackingModal } from "@/components/shop/order-tracking-modal";
 import { ResendEmailButton } from "@/components/admin/resend-email-button";
 import { resolveEffectiveCourier } from "@/lib/tracking-constants";
+import { getLocale } from "@/i18n/server";
 
-export const metadata = {
-  title: "Terima Kasih Atas Pesanan Anda",
-};
+export async function generateMetadata() {
+  const locale = await getLocale();
+  return {
+    title: locale === "en" ? "Thank You for Your Order — Wazzopi" : "Terima Kasih Atas Pesanan Anda — Wazzopi",
+  };
+}
 
 export default async function CheckoutSuccessPage({
   params,
@@ -31,6 +35,8 @@ export default async function CheckoutSuccessPage({
   const sp = searchParams ? await searchParams : {};
   const isRedirectFromMidtrans = Boolean(sp.order_id || sp.transaction_status || sp.status_code);
   const cookieStore = await cookies();
+  const locale = await getLocale();
+  const isEn = locale === "en";
 
   const [order, settings] = await Promise.all([
     prisma.order.findUnique({
@@ -72,15 +78,19 @@ export default async function CheckoutSuccessPage({
           )}
         </div>
         <h1 className="mt-4 text-3xl font-semibold text-espresso-900 md:text-4xl">
-          {order.status === "CANCELLED" ? "Pesanan Kedaluwarsa" : "Terima Kasih!"}
+          {order.status === "CANCELLED"
+            ? (isEn ? "Order Expired" : "Pesanan Kedaluwarsa")
+            : (isEn ? "Thank You!" : "Terima Kasih!")}
         </h1>
         <p className="mt-2 text-espresso-600">
           {order.status === "CANCELLED"
-            ? "Batas waktu pembayaran untuk pesanan ini telah habis atau dibatalkan."
-            : "Pesanan Anda telah berhasil dibuat."}
+            ? (isEn
+                ? "The payment time limit for this order has expired or it was cancelled."
+                : "Batas waktu pembayaran untuk pesanan ini telah habis atau dibatalkan.")
+            : (isEn ? "Your order has been placed successfully." : "Pesanan Anda telah berhasil dibuat.")}
         </p>
         <p className="mt-1 text-sm font-semibold text-espresso-900">
-          Nomor Pesanan: <span className="text-caramel-600">{order.orderNo}</span>
+          {isEn ? "Order Number:" : "Nomor Pesanan:"} <span className="text-caramel-600">{order.orderNo}</span>
         </p>
         {order.status !== "CANCELLED" && (
           <div className="mt-3 flex items-center justify-center">
@@ -98,20 +108,22 @@ export default async function CheckoutSuccessPage({
             </div>
             <div className="flex-1">
               <span className="inline-block rounded-full bg-amber-200/80 px-2.5 py-0.5 text-[10px] font-bold text-amber-900 uppercase tracking-wider">
-                Pembayaran Kedaluwarsa
+                {isEn ? "Payment Expired" : "Pembayaran Kedaluwarsa"}
               </span>
               <h2 className="mt-1 text-lg font-bold text-amber-950">
-                Waktu Pembayaran Telah Berakhir
+                {isEn ? "Payment Window Has Elapsed" : "Waktu Pembayaran Telah Berakhir"}
               </h2>
               <p className="mt-1 text-xs text-amber-900 leading-relaxed">
-                Batas waktu pembayaran untuk transaksi ini telah habis. Stok barang telah otomatis dikembalikan ke sistem. Jika Anda masih berminat untuk membeli produk ini, silakan buat pesanan baru.
+                {isEn
+                  ? "The payment window for this order has expired. Reserved inventory has been automatically released back to stock. If you still wish to complete this purchase, please place a new order."
+                  : "Batas waktu pembayaran untuk transaksi ini telah habis. Stok barang telah otomatis dikembalikan ke sistem. Jika Anda masih berminat untuk membeli produk ini, silakan buat pesanan baru."}
               </p>
               <div className="mt-4 flex flex-wrap gap-3">
-                <LinkButton href="/shop" variant="secondary" size="sm">
-                  Belanja Kembali
+                <LinkButton href="/products" variant="secondary" size="sm">
+                  {isEn ? "Continue Shopping" : "Belanja Kembali"}
                 </LinkButton>
                 <LinkButton href="/" variant="outline" size="sm">
-                  Ke Halaman Utama
+                  {isEn ? "Home Page" : "Ke Halaman Utama"}
                 </LinkButton>
               </div>
             </div>
@@ -128,19 +140,21 @@ export default async function CheckoutSuccessPage({
             </div>
             <div className="flex-1">
               <span className="inline-block rounded-full bg-caramel-100 px-2.5 py-0.5 text-[10px] font-bold text-caramel-800 uppercase tracking-wider">
-                Akun Member Baru Dibuat
+                {isEn ? "New Member Account Created" : "Akun Member Baru Dibuat"}
               </span>
               <h2 className="mt-1 text-lg font-bold text-espresso-900">
-                Akses Login Member Area Anda
+                {isEn ? "Your Member Area Login" : "Akses Login Member Area Anda"}
               </h2>
               <p className="mt-1 text-xs text-espresso-600 leading-relaxed">
-                Kami telah otomatis membuatkan akun Member agar Anda dapat melacak paket pengiriman dan melihat riwayat belanja. Anda saat ini sudah otomatis masuk (login).
+                {isEn
+                  ? "We automatically set up a member account so you can track your shipments and review purchase history. You are currently logged in."
+                  : "Kami telah otomatis membuatkan akun Member agar Anda dapat melacak paket pengiriman dan melihat riwayat belanja. Anda saat ini sudah otomatis masuk (login)."}
               </p>
 
               <div className="mt-4 grid gap-3 sm:grid-cols-2 rounded-xl border border-latte bg-cream/50 p-4">
                 <div>
                   <span className="text-[11px] font-semibold text-espresso-400 uppercase tracking-wider block">
-                    Email Akun
+                    {isEn ? "Account Email" : "Email Akun"}
                   </span>
                   <p className="mt-0.5 text-sm font-semibold text-espresso-900 font-mono select-all">
                     {newAccount.email}
@@ -148,7 +162,7 @@ export default async function CheckoutSuccessPage({
                 </div>
                 <div>
                   <span className="text-[11px] font-semibold text-espresso-400 uppercase tracking-wider block">
-                    Password Sementara
+                    {isEn ? "Temporary Password" : "Password Sementara"}
                   </span>
                   <div className="mt-0.5 flex items-center gap-2">
                     <p className="text-sm font-bold text-caramel-700 font-mono tracking-wider bg-white px-2.5 py-1 rounded-md border border-latte select-all">
@@ -164,10 +178,12 @@ export default async function CheckoutSuccessPage({
                   href="/account"
                   className="inline-flex items-center gap-1.5 rounded-lg bg-espresso-700 px-4 py-2 text-xs font-semibold text-cream hover:bg-espresso-800 transition-colors"
                 >
-                  Buka Member Area &rarr;
+                  {isEn ? "Open Member Area →" : "Buka Member Area →"}
                 </Link>
                 <span className="text-xs text-espresso-400">
-                  *Anda dapat mengganti password ini kapan saja di menu Akun Saya.
+                  {isEn
+                    ? "*You can update this password anytime in My Account."
+                    : "*Anda dapat mengganti password ini kapan saja di menu Akun Saya."}
                 </span>
               </div>
             </div>
@@ -216,7 +232,9 @@ export default async function CheckoutSuccessPage({
           </div>
 
           <p className="mt-3 text-[11px] text-espresso-400 border-t border-latte/60 pt-3">
-            *Pop-up pembayaran Midtrans akan terbuka secara otomatis. Jika pop-up tertutup atau Anda ingin membayar nanti, Anda cukup menekan tombol <strong>Bayar Sekarang</strong> di atas kapan saja.
+            {isEn
+              ? "*Midtrans payment pop-up opens automatically. If closed, you can reopen it anytime by clicking Pay Now above."
+              : "*Pop-up pembayaran Midtrans akan terbuka secara otomatis. Jika pop-up tertutup atau Anda ingin membayar nanti, Anda cukup menekan tombol Bayar Sekarang di atas kapan saja."}
           </p>
         </div>
       )}
@@ -231,7 +249,7 @@ export default async function CheckoutSuccessPage({
               </div>
               <div>
                 <span className="inline-block rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-bold text-amber-800 uppercase tracking-wider">
-                  Menunggu Pembayaran
+                  {isEn ? "Awaiting Payment" : "Menunggu Pembayaran"}
                 </span>
                 <h2 className="mt-0.5 text-lg font-bold text-espresso-900">
                   {order.paymentMethod === "stripe" ? "Stripe Payment" : "PayPal Checkout"}
@@ -240,7 +258,7 @@ export default async function CheckoutSuccessPage({
             </div>
             <div className="text-left sm:text-right">
               <span className="text-[11px] font-semibold text-espresso-400 uppercase tracking-wider block">
-                Total Tagihan
+                {isEn ? "Total Amount" : "Total Tagihan"}
               </span>
               <p className="font-display text-xl font-bold text-espresso-900">
                 {formatCurrency(order.total, settings.currency)}
@@ -251,16 +269,21 @@ export default async function CheckoutSuccessPage({
           <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <p className="text-xs text-espresso-600 leading-relaxed max-w-md">
               {order.paymentMethod === "stripe"
-                ? "Selesaikan pembayaran aman menggunakan kartu kredit internasional (Visa, Mastercard, Amex) yang diproses melalui gateway Stripe."
-                : "Selesaikan pembayaran dengan menghubungkan akun PayPal atau saldo Anda secara aman via PayPal Checkout."}
+                ? (isEn
+                    ? "Complete your payment securely with international credit or debit cards (Visa, Mastercard, Amex) processed through Stripe."
+                    : "Selesaikan pembayaran aman menggunakan kartu kredit internasional (Visa, Mastercard, Amex) yang diproses melalui gateway Stripe.")
+                : (isEn
+                    ? "Complete your payment seamlessly with your PayPal balance or linked global payment method."
+                    : "Selesaikan pembayaran dengan menghubungkan akun PayPal atau saldo Anda secara aman via PayPal Checkout.")}
             </p>
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => {}}
                 className="rounded-xl bg-caramel-600 px-6 py-3 text-sm font-bold text-white shadow-md hover:bg-caramel-700 transition"
               >
-                {order.paymentMethod === "stripe" ? "Bayar via Stripe" : "Bayar via PayPal"}
+                {isEn
+                  ? (order.paymentMethod === "stripe" ? "Pay via Stripe" : "Pay with PayPal")
+                  : (order.paymentMethod === "stripe" ? "Bayar via Stripe" : "Bayar via PayPal")}
               </button>
             </div>
           </div>
@@ -275,10 +298,12 @@ export default async function CheckoutSuccessPage({
             </div>
             <div>
               <h2 className="text-base font-semibold text-emerald-950">
-                Pembayaran Midtrans Berhasil Dikonfirmasi
+                {isEn ? "Payment Successfully Confirmed" : "Pembayaran Midtrans Berhasil Dikonfirmasi"}
               </h2>
               <p className="text-xs text-emerald-700 mt-0.5">
-                Terima kasih, pembayaran pesanan Anda telah kami terima secara otomatis. Kami akan segera memproses pengiriman pesanan Anda.
+                {isEn
+                  ? "Thank you! Your payment was automatically verified. We will prepare your shipment shortly."
+                  : "Terima kasih, pembayaran pesanan Anda telah kami terima secara otomatis. Kami akan segera memproses pengiriman pesanan Anda."}
               </p>
             </div>
           </div>
@@ -288,13 +313,15 @@ export default async function CheckoutSuccessPage({
       {/* Instruksi Transfer Bank jika memilih Transfer */}
       {order.paymentMethod === "bank_transfer" && (
         <div className="mt-8 rounded-xl border border-caramel-200 bg-caramel-50/40 p-6">
-          <h2 className="text-base font-semibold text-espresso-900">Petunjuk Pembayaran Transfer Bank:</h2>
+          <h2 className="text-base font-semibold text-espresso-900">
+            {isEn ? "Bank Transfer Instructions:" : "Petunjuk Pembayaran Transfer Bank:"}
+          </h2>
           <p className="mt-1 text-sm text-espresso-600">
-            Silakan lakukan transfer sejumlah{" "}
+            {isEn ? "Please transfer exactly " : "Silakan lakukan transfer sejumlah "}
             <strong className="text-espresso-900">
               {formatCurrency(order.total, settings.currency)}
             </strong>{" "}
-            ke salah satu rekening resmi Wazzopi di bawah ini:
+            {isEn ? "to one of our official bank accounts below:" : "ke salah satu rekening resmi Wazzopi di bawah ini:"}
           </p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {settings.payment.bankTransfer.accounts.map((acc, i) => (
@@ -303,12 +330,12 @@ export default async function CheckoutSuccessPage({
                 <p className="mt-1 font-mono text-lg font-bold tracking-wider text-espresso-900">
                   {acc.number}
                 </p>
-                <p className="text-xs text-espresso-500">a.n. {acc.holder}</p>
+                <p className="text-xs text-espresso-500">{isEn ? "Account name:" : "a.n."} {acc.holder}</p>
               </div>
             ))}
           </div>
           <p className="mt-4 text-xs text-espresso-500">
-            *Konfirmasi bukti transfer ke WhatsApp admin kami{" "}
+            {isEn ? "*Send payment proof to our WhatsApp customer support " : "*Konfirmasi bukti transfer ke WhatsApp admin kami "}
             <a
               href={`https://wa.me/${getStoreWhatsApp(settings)}?text=Halo%20Admin%20Wazzopi,%20saya%20sudah%20transfer%20untuk%20pesanan%20${order.orderNo}`}
               target="_blank"
@@ -323,18 +350,20 @@ export default async function CheckoutSuccessPage({
 
       {/* Rincian Pesanan */}
       <div className="mt-8 rounded-xl border border-latte bg-white p-6 shadow-sm">
-        <h2 className="border-b border-latte pb-4 text-lg font-semibold text-espresso-900">Detail Pesanan</h2>
+        <h2 className="border-b border-latte pb-4 text-lg font-semibold text-espresso-900">
+          {isEn ? "Order Details" : "Detail Pesanan"}
+        </h2>
         <div className="mt-4 space-y-3 text-sm">
           <div className="flex justify-between">
-            <span className="text-espresso-500">Tanggal Pesan</span>
+            <span className="text-espresso-500">{isEn ? "Order Date" : "Tanggal Pesan"}</span>
             <span className="font-medium text-espresso-900">{formatDate(order.createdAt, true)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-espresso-500">Status Pesanan</span>
+            <span className="text-espresso-500">{isEn ? "Order Status" : "Status Pesanan"}</span>
             <span className="font-medium text-espresso-900">{ORDER_STATUS_LABEL[order.status]}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-espresso-500">Metode Pengiriman</span>
+            <span className="text-espresso-500">{isEn ? "Shipping Method" : "Metode Pengiriman"}</span>
             <span className="font-medium text-espresso-900">{order.shippingMethod}</span>
           </div>
           {order.trackingNumber && (() => {
@@ -348,7 +377,7 @@ export default async function CheckoutSuccessPage({
               <div className="rounded-xl bg-latte/40 p-3.5 border border-latte space-y-2">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <span className="text-espresso-500 block text-xs">Resi Pengiriman</span>
+                    <span className="text-espresso-500 block text-xs">{isEn ? "Tracking Number" : "Resi Pengiriman"}</span>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="font-mono font-bold text-caramel-700 text-sm">{order.trackingNumber}</span>
                       <span className="text-xs text-espresso-700 font-semibold">
@@ -377,7 +406,7 @@ export default async function CheckoutSuccessPage({
                 </div>
                 {effective.isCourierSwitched && (
                   <div className="rounded-lg bg-amber-50/80 border border-amber-200/80 px-3 py-2 text-xs text-amber-900 leading-relaxed">
-                    <p className="font-medium text-amber-950">Catatan Pengiriman:</p>
+                    <p className="font-medium text-amber-950">{isEn ? "Shipping Notice:" : "Catatan Pengiriman:"}</p>
                     <p className="text-[11px] text-amber-800 mt-0.5">
                       {effective.customerNotice || `Paket Anda dikirim menggunakan ${effective.courierName} untuk rute pengantaran yang lebih optimal tanpa biaya tambahan.`}
                     </p>
@@ -387,11 +416,11 @@ export default async function CheckoutSuccessPage({
             );
           })()}
           <div className="flex justify-between">
-            <span className="text-espresso-500">Metode Pembayaran</span>
+            <span className="text-espresso-500">{isEn ? "Payment Method" : "Metode Pembayaran"}</span>
             <span className="font-medium text-espresso-900">{PAYMENT_LABEL[order.paymentMethod] || order.paymentMethod}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-espresso-500">Alamat Pengiriman</span>
+            <span className="text-espresso-500">{isEn ? "Shipping Address" : "Alamat Pengiriman"}</span>
             <span className="max-w-xs text-right font-medium text-espresso-900">
               {order.address}, {order.city}, {order.province} {order.postalCode}
             </span>
@@ -399,14 +428,16 @@ export default async function CheckoutSuccessPage({
         </div>
 
         <div className="mt-6 border-t border-latte pt-4">
-          <h3 className="mb-3 text-sm font-semibold text-espresso-900">Produk yang Dibeli</h3>
+          <h3 className="mb-3 text-sm font-semibold text-espresso-900">
+            {isEn ? "Order Items" : "Produk yang Dibeli"}
+          </h3>
           <div className="divide-y divide-latte">
             {order.items.map((it) => (
               <div key={it.id} className="flex items-center justify-between py-2 text-sm">
                 <div>
                   <p className="font-medium text-espresso-900">{it.productName}</p>
                   {it.variantName && (
-                    <p className="text-xs text-espresso-500">Varian: {it.variantName}</p>
+                    <p className="text-xs text-espresso-500">{isEn ? "Variant:" : "Varian:"} {it.variantName}</p>
                   )}
                   <p className="text-xs text-espresso-400">
                     {it.quantity} x {formatCurrency(it.price, settings.currency)}
@@ -421,17 +452,17 @@ export default async function CheckoutSuccessPage({
 
           <div className="mt-4 space-y-2 border-t border-latte pt-3 text-sm">
             <div className="flex justify-between text-espresso-600">
-              <span>Subtotal</span>
+              <span>{isEn ? "Subtotal" : "Subtotal"}</span>
               <span>{formatCurrency(order.subtotal, settings.currency)}</span>
             </div>
             <div className="flex justify-between text-espresso-600">
-              <span>Ongkos Kirim</span>
+              <span>{isEn ? "Shipping" : "Ongkos Kirim"}</span>
               <span>
-                {order.shippingCost === 0 ? "Gratis" : formatCurrency(order.shippingCost, settings.currency)}
+                {order.shippingCost === 0 ? (isEn ? "Free" : "Gratis") : formatCurrency(order.shippingCost, settings.currency)}
               </span>
             </div>
             <div className="flex items-baseline justify-between border-t border-latte pt-2 font-bold text-espresso-900">
-              <span>Total Akhir</span>
+              <span>{isEn ? "Total Amount" : "Total Akhir"}</span>
               <span className="text-xl">{formatCurrency(order.total, settings.currency)}</span>
             </div>
           </div>
@@ -440,10 +471,10 @@ export default async function CheckoutSuccessPage({
 
       <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
         <LinkButton href="/products" variant="outline" className="justify-center">
-          Belanja Produk Lainnya
+          {isEn ? "Continue Shopping" : "Belanja Produk Lainnya"}
         </LinkButton>
         <LinkButton href="/account" className="justify-center">
-          Lihat Riwayat Pesanan
+          {isEn ? "View Order History" : "Lihat Riwayat Pesanan"}
         </LinkButton>
       </div>
     </div>

@@ -29,6 +29,7 @@ import { getChannelById, DEFAULT_MIDTRANS_CHANNELS } from "@/lib/midtrans-channe
 import { cartSubtotal, useCart } from "@/store/cart";
 import type { AllSettings } from "@/lib/settings-types";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/i18n/provider";
 
 type CustomerInitial = {
   name?: string;
@@ -52,14 +53,16 @@ export function CheckoutForm({
   const { items, clear } = useCart();
   const hydrated = useHydrated();
   const money = useMoney();
+  const { dict, locale } = useI18n();
+  const isEn = locale === "en";
 
   useEffect(() => {
     if (isPending) {
-      showLoading("Sedang memproses pesanan Anda...");
+      showLoading(isEn ? "Processing your order..." : "Sedang memproses pesanan Anda...");
     } else {
       hideLoading();
     }
-  }, [isPending, showLoading, hideLoading]);
+  }, [isPending, showLoading, hideLoading, isEn]);
 
   const isLoggedIn = Boolean(customer?.email);
   const hasSavedAddress = Boolean(customer?.address && customer?.city && customer?.name);
@@ -151,8 +154,10 @@ export function CheckoutForm({
     if (settings.payment.bankTransfer.enabled) {
       list.push({
         id: "bank_transfer",
-        name: "Transfer Bank Manual",
-        desc: "BCA, Mandiri, dan rekening bank toko lainnya.",
+        name: isEn ? "Manual Bank Transfer" : "Transfer Bank Manual",
+        desc: isEn
+          ? "Direct bank transfer to store official bank accounts."
+          : "BCA, Mandiri, dan rekening bank toko lainnya.",
         iconType: "bank",
       });
     }
@@ -161,8 +166,10 @@ export function CheckoutForm({
     if (settings.payment.cod.enabled) {
       list.push({
         id: "cod",
-        name: "Bayar di Tempat (COD)",
-        desc: `Biaya penanganan ${money(settings.payment.cod.fee)}. Bayar tunai saat kurir tiba.`,
+        name: isEn ? "Cash on Delivery (COD)" : "Bayar di Tempat (COD)",
+        desc: isEn
+          ? `Handling fee ${money(settings.payment.cod.fee)}. Pay cash upon courier delivery.`
+          : `Biaya penanganan ${money(settings.payment.cod.fee)}. Bayar tunai saat kurir tiba.`,
         iconType: "cod",
       });
     }
@@ -192,7 +199,9 @@ export function CheckoutForm({
       list.push({
         id: "stripe",
         name: "Credit / Debit Card (Stripe)",
-        desc: "Visa, Mastercard, American Express, Apple Pay, Google Pay",
+        desc: isEn
+          ? "Visa, Mastercard, American Express, Apple Pay, Google Pay"
+          : "Visa, Mastercard, American Express, Apple Pay, Google Pay",
         iconType: "card",
       });
     }
@@ -202,13 +211,15 @@ export function CheckoutForm({
       list.push({
         id: "paypal",
         name: "PayPal Checkout",
-        desc: "Bayar aman dengan saldo akun PayPal atau kartu debit/kredit global",
+        desc: isEn
+          ? "Pay securely with PayPal balance or international debit/credit cards"
+          : "Bayar aman dengan saldo akun PayPal atau kartu debit/kredit global",
         iconType: "ewallet",
       });
     }
 
     return list;
-  }, [settings.payment, money]);
+  }, [settings.payment, money, isEn]);
 
   const [selectedPayment, setSelectedPayment] = useState<string>(
     paymentOptions[0]?.id || ""
@@ -241,15 +252,15 @@ export function CheckoutForm({
   const total = subtotal + shippingCost + codFee + tax;
 
   if (!hydrated) {
-    return <div className="py-12 text-center text-espresso-400">Memuat formulir checkout...</div>;
+    return <div className="py-12 text-center text-espresso-400">{isEn ? "Loading checkout form..." : "Memuat formulir checkout..."}</div>;
   }
 
   if (items.length === 0) {
     return (
       <div className="py-12 text-center">
-        <p className="text-espresso-600">Keranjang belanja Anda kosong.</p>
+        <p className="text-espresso-600">{isEn ? "Your shopping cart is empty." : "Keranjang belanja Anda kosong."}</p>
         <Link href="/products" className="mt-4 inline-block font-semibold text-caramel-600 underline">
-          Kembali Berbelanja
+          {isEn ? "Continue Shopping" : "Kembali Berbelanja"}
         </Link>
       </div>
     );
@@ -286,10 +297,10 @@ export function CheckoutForm({
                 <div className="flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-caramel-600" />
                   <h2 className="text-sm md:text-base font-bold text-espresso-900">
-                    Alamat Pengiriman
+                    {isEn ? "Shipping Address" : "Alamat Pengiriman"}
                   </h2>
                   <span className="rounded-md bg-caramel-50 px-2 py-0.5 text-[10px] font-semibold text-caramel-700 border border-caramel-200">
-                    Utama
+                    {isEn ? "Default" : "Utama"}
                   </span>
                 </div>
                 <button
@@ -297,7 +308,7 @@ export function CheckoutForm({
                   onClick={() => setIsEditingAddress(true)}
                   className="text-xs font-semibold text-caramel-700 hover:text-caramel-800 hover:underline transition-colors cursor-pointer"
                 >
-                  Ubah Alamat
+                  {isEn ? "Edit Address" : "Ubah Alamat"}
                 </button>
               </div>
 
@@ -315,7 +326,7 @@ export function CheckoutForm({
                   {formData.city}, {formData.province} {formData.postalCode}
                 </p>
                 <p className="text-[11px] text-espresso-400 pt-0.5">
-                  {isLoggedIn ? "Email akun:" : "Email:"} {customer?.email || formData.email}
+                  {isLoggedIn ? (isEn ? "Account Email:" : "Email akun:") : "Email:"} {customer?.email || formData.email}
                 </p>
               </div>
 
@@ -334,7 +345,9 @@ export function CheckoutForm({
                 <div className="flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-caramel-600" />
                   <h2 className="text-base font-bold text-espresso-900">
-                    {hasSavedAddress ? "Ubah Alamat Pengiriman" : "1. Alamat Pengiriman"}
+                    {hasSavedAddress
+                      ? (isEn ? "Edit Shipping Address" : "Ubah Alamat Pengiriman")
+                      : (isEn ? "1. Shipping Address" : "1. Alamat Pengiriman")}
                   </h2>
                 </div>
                 {hasSavedAddress && (
@@ -343,32 +356,32 @@ export function CheckoutForm({
                     onClick={() => setIsEditingAddress(false)}
                     className="text-xs text-espresso-500 hover:text-espresso-800 transition-colors cursor-pointer"
                   >
-                    Batal
+                    {isEn ? "Cancel" : "Batal"}
                   </button>
                 )}
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Nama Penerima" className="sm:col-span-2">
+                <Field label={isEn ? "Recipient Name" : "Nama Penerima"} className="sm:col-span-2">
                   <Input
                     name="customerName"
                     required
                     value={formData.name}
                     onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-                    placeholder="Nama penerima paket"
+                    placeholder={isEn ? "Full recipient name" : "Nama penerima paket"}
                   />
                 </Field>
 
                 {/* Kolom Email hanya untuk tamu yang belum login */}
                 {!isLoggedIn ? (
-                  <Field label="Email untuk Notifikasi Pesanan">
+                  <Field label={isEn ? "Email for Order Updates" : "Email untuk Notifikasi Pesanan"}>
                     <Input
                       name="customerEmail"
                       type="email"
                       required
                       value={formData.email}
                       onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
-                      placeholder="email@anda.com"
+                      placeholder="email@example.com"
                     />
                   </Field>
                 ) : (
@@ -376,8 +389,8 @@ export function CheckoutForm({
                 )}
 
                 <Field
-                  label="Nomor HP / WhatsApp Penerima"
-                  hint="Nomor aktif yang dapat dihubungi kurir saat pengantaran"
+                  label={isEn ? "Recipient Phone / WhatsApp" : "Nomor HP / WhatsApp Penerima"}
+                  hint={isEn ? "Active phone number reachable by courier during delivery" : "Nomor aktif yang dapat dihubungi kurir saat pengantaran"}
                   className={isLoggedIn ? "sm:col-span-2" : ""}
                 >
                   <Input
@@ -390,13 +403,13 @@ export function CheckoutForm({
                   />
                 </Field>
 
-                <Field label="Alamat Lengkap" className="sm:col-span-2">
+                <Field label={isEn ? "Full Street Address" : "Alamat Lengkap"} className="sm:col-span-2">
                   <Textarea
                     name="address"
                     required
                     value={formData.address}
                     onChange={(e) => setFormData((prev) => ({ ...prev, address: e.target.value }))}
-                    placeholder="Nama jalan, nomor rumah, RT/RW, kelurahan/kecamatan"
+                    placeholder={isEn ? "Street name, building/house number, apartment, suite" : "Nama jalan, nomor rumah, RT/RW, kelurahan/kecamatan"}
                   />
                 </Field>
                 <div className="sm:col-span-2">
@@ -420,7 +433,7 @@ export function CheckoutForm({
                     onClick={() => setIsEditingAddress(false)}
                     className="inline-flex items-center rounded-lg bg-espresso-800 px-4 py-2 text-xs font-semibold text-white hover:bg-espresso-900 transition-colors cursor-pointer"
                   >
-                    Gunakan Alamat Ini
+                    {isEn ? "Use This Address" : "Gunakan Alamat Ini"}
                   </button>
                 </div>
               )}
@@ -431,20 +444,24 @@ export function CheckoutForm({
           <div className="rounded-xl border border-latte bg-white p-6 shadow-sm">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-espresso-100 pb-3">
               <div>
-                <h2 className="text-lg font-semibold text-espresso-900">2. Metode Pengiriman</h2>
+                <h2 className="text-lg font-semibold text-espresso-900">
+                  {isEn ? "2. Shipping Method" : "2. Metode Pengiriman"}
+                </h2>
                 <p className="text-xs text-espresso-500">
                   {hasSelectedCity ? (
                     <span>
-                      Tujuan: <strong className="text-espresso-800">{destination.city}</strong> ({dynamicShippings[0]?.zoneLabel || "Disesuaikan"})
+                      {isEn ? "Destination:" : "Tujuan:"} <strong className="text-espresso-800">{destination.city}</strong> ({dynamicShippings[0]?.zoneLabel || (isEn ? "Standard" : "Disesuaikan")})
                     </span>
                   ) : (
-                    <span className="text-caramel-700 font-medium">Lengkapi alamat pengiriman di atas untuk melihat pilihan kurir</span>
+                    <span className="text-caramel-700 font-medium">
+                      {isEn ? "Complete delivery address above to see courier options" : "Lengkapi alamat pengiriman di atas untuk melihat pilihan kurir"}
+                    </span>
                   )}
                 </p>
               </div>
               <div className="flex items-center gap-1.5 rounded-full bg-cream px-3 py-1 text-xs font-medium text-espresso-700 border border-espresso-100">
                 <Scale className="h-3.5 w-3.5 text-caramel-600" />
-                <span>Berat: {cartWeight.totalGrams}g ({cartWeight.chargeableKg} kg)</span>
+                <span>{isEn ? "Weight:" : "Berat:"} {cartWeight.totalGrams}g ({cartWeight.chargeableKg} kg)</span>
               </div>
             </div>
 
@@ -455,17 +472,19 @@ export function CheckoutForm({
                     <Truck className="h-5 w-5" />
                   </div>
                   <p className="text-sm font-semibold text-espresso-900">
-                    Silakan isi Alamat Pengiriman di atas terlebih dahulu
+                    {isEn ? "Please fill in the shipping address above first" : "Silakan isi Alamat Pengiriman di atas terlebih dahulu"}
                   </p>
                   <p className="mt-1 text-xs text-espresso-500 max-w-md mx-auto">
-                    Setelah <strong>Kota / Kabupaten</strong> dipilih, daftar opsi kurir (JNE, J&T, SiCepat) dan tarif ongkir resmi akan otomatis muncul dan terkalkulasi.
+                    {isEn
+                      ? "Once City / Region is selected, courier shipping options and rates will calculate automatically."
+                      : "Setelah Kota / Kabupaten dipilih, daftar opsi kurir (JNE, J&T, SiCepat) dan tarif ongkir resmi akan otomatis muncul dan terkalkulasi."}
                   </p>
                 </div>
 
                 {settings.shipping.pickupEnabled && (
                   <div className="pt-2">
                     <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-espresso-400">
-                      Atau Pilih Opsi Ambil Langsung di Kedai:
+                      {isEn ? "Or Pick Up in Store:" : "Atau Pilih Opsi Ambil Langsung di Kedai:"}
                     </p>
                     <label
                       className={cn(
@@ -485,13 +504,13 @@ export function CheckoutForm({
                           className="text-caramel-600 focus:ring-caramel-500"
                         />
                         <div>
-                          <p className="font-semibold text-espresso-900">Ambil Sendiri di Toko</p>
+                          <p className="font-semibold text-espresso-900">{isEn ? "In-Store Pick Up" : "Ambil Sendiri di Toko"}</p>
                           <p className="text-xs text-espresso-400">
                             {settings.general.address}, {settings.general.city}
                           </p>
                         </div>
                       </div>
-                      <span className="font-semibold text-emerald-700">GRATIS</span>
+                      <span className="font-semibold text-emerald-700">{isEn ? "FREE" : "GRATIS"}</span>
                     </label>
                   </div>
                 )}
@@ -526,16 +545,16 @@ export function CheckoutForm({
                             <p className="font-semibold text-espresso-900">{m.name}</p>
                             {m.isDynamic && (
                               <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 border border-emerald-200">
-                                Otomatis
+                                {isEn ? "Auto" : "Otomatis"}
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-espresso-400">Estimasi tiba: {m.etd}</p>
+                          <p className="text-xs text-espresso-400">{isEn ? "Est. arrival:" : "Estimasi tiba:"} {m.etd}</p>
                         </div>
                       </div>
                       <span className="font-semibold text-espresso-800">
                         {isFree ? (
-                          <span className="text-emerald-700">GRATIS</span>
+                          <span className="text-emerald-700">{isEn ? "FREE" : "GRATIS"}</span>
                         ) : (
                           money(m.cost)
                         )}
@@ -563,13 +582,13 @@ export function CheckoutForm({
                         className="text-caramel-600 focus:ring-caramel-500"
                       />
                       <div>
-                        <p className="font-semibold text-espresso-900">Ambil Sendiri di Toko</p>
+                        <p className="font-semibold text-espresso-900">{isEn ? "In-Store Pick Up" : "Ambil Sendiri di Toko"}</p>
                         <p className="text-xs text-espresso-400">
                           {settings.general.address}, {settings.general.city}
                         </p>
                       </div>
                     </div>
-                    <span className="font-semibold text-emerald-700">GRATIS</span>
+                    <span className="font-semibold text-emerald-700">{isEn ? "FREE" : "GRATIS"}</span>
                   </label>
                 )}
               </div>
@@ -579,11 +598,11 @@ export function CheckoutForm({
             <div className="mt-5 pt-4 border-t border-espresso-100">
               <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-espresso-800">
                 <MessageSquare className="h-3.5 w-3.5 text-caramel-600" />
-                Catatan untuk Toko / Kurir (Opsional)
+                {isEn ? "Order & Delivery Notes (Optional)" : "Catatan untuk Toko / Kurir (Opsional)"}
               </label>
               <Input
                 name="notes"
-                placeholder="Contoh: Titipkan ke satpam jika rumah kosong, packing aman, dll."
+                placeholder={isEn ? "e.g., Leave with concierge, pack securely, etc." : "Contoh: Titipkan ke satpam jika rumah kosong, packing aman, dll."}
                 className="text-xs"
               />
             </div>
@@ -594,16 +613,18 @@ export function CheckoutForm({
             <div className="flex items-center justify-between border-b border-espresso-100 pb-3 mb-4">
               <div className="flex items-center gap-2">
                 <CreditCard className="h-4 w-4 text-caramel-600" />
-                <h2 className="text-base font-bold text-espresso-900">3. Metode Pembayaran</h2>
+                <h2 className="text-base font-bold text-espresso-900">
+                  {isEn ? "3. Payment Method" : "3. Metode Pembayaran"}
+                </h2>
               </div>
               <span className="text-[11px] text-espresso-500">
-                Pilih salah satu metode
+                {isEn ? "Select payment method" : "Pilih salah satu metode"}
               </span>
             </div>
 
             {paymentOptions.length === 0 ? (
               <p className="text-xs text-rose-600">
-                Belum ada metode pembayaran yang diaktifkan oleh admin toko.
+                {isEn ? "No payment methods configured yet." : "Belum ada metode pembayaran yang diaktifkan oleh admin toko."}
               </p>
             ) : (
               <div className="space-y-2.5">
@@ -670,7 +691,9 @@ export function CheckoutForm({
         {/* Kolom Kanan: Rincian Pesanan */}
         <div className="lg:col-span-5">
           <div className="sticky top-28 rounded-xl border border-latte bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-espresso-900">Ringkasan Pembelian</h2>
+            <h2 className="text-lg font-semibold text-espresso-900">
+              {isEn ? "Order Summary" : "Ringkasan Pembelian"}
+            </h2>
 
             <div className="mt-4 max-h-72 divide-y divide-latte overflow-y-auto pr-1">
               {items.map((i) => (
@@ -683,7 +706,7 @@ export function CheckoutForm({
                   <div className="flex-1">
                     <p className="text-sm font-medium text-espresso-900 line-clamp-1">{i.name}</p>
                     {i.variantName && (
-                      <p className="text-xs text-espresso-400">Varian: {i.variantName}</p>
+                      <p className="text-xs text-espresso-400">{isEn ? "Variant:" : "Varian:"} {i.variantName}</p>
                     )}
                     <p className="text-xs text-espresso-500">
                       {i.quantity} x {money(i.price)}
@@ -698,40 +721,40 @@ export function CheckoutForm({
 
             <div className="mt-6 space-y-2.5 border-t border-latte pt-4 text-sm">
               <div className="flex justify-between text-espresso-600">
-                <span>Subtotal Produk</span>
+                <span>{isEn ? "Items Subtotal" : "Subtotal Produk"}</span>
                 <span className="font-medium text-espresso-900">{money(subtotal)}</span>
               </div>
               <div className="flex justify-between items-center text-espresso-600">
-                <span>Biaya Pengiriman</span>
+                <span>{isEn ? "Shipping Fee" : "Biaya Pengiriman"}</span>
                 {selectedShipping === "pickup" ? (
-                  <span className="font-medium text-emerald-700">Gratis (Ambil di Toko)</span>
+                  <span className="font-medium text-emerald-700">{isEn ? "Free (Store Pickup)" : "Gratis (Ambil di Toko)"}</span>
                 ) : hasSelectedCity && selectedShipping ? (
                   <span className="font-medium text-espresso-900">
-                    {shippingCost === 0 ? <span className="text-emerald-700">Gratis</span> : money(shippingCost)}
+                    {shippingCost === 0 ? <span className="text-emerald-700">{isEn ? "Free" : "Gratis"}</span> : money(shippingCost)}
                   </span>
                 ) : (
                   <span className="text-xs font-normal text-espresso-400 italic">
-                    Dihitung setelah isi alamat
+                    {isEn ? "Calculated after address" : "Dihitung setelah isi alamat"}
                   </span>
                 )}
               </div>
               {codFee > 0 && (
                 <div className="flex justify-between text-espresso-600">
-                  <span>Biaya COD</span>
+                  <span>{isEn ? "COD Fee" : "Biaya COD"}</span>
                   <span className="font-medium text-espresso-900">{money(codFee)}</span>
                 </div>
               )}
               {tax > 0 && (
                 <div className="flex justify-between text-espresso-600">
-                  <span>Pajak ({settings.other.taxPercent}%)</span>
+                  <span>{isEn ? `Tax (${settings.other.taxPercent}%)` : `Pajak (${settings.other.taxPercent}%)`}</span>
                   <span className="font-medium text-espresso-900">{money(tax)}</span>
                 </div>
               )}
               <div className="flex items-baseline justify-between border-t border-latte pt-3">
                 <div>
-                  <span className="font-semibold text-espresso-900">Total Pembayaran</span>
+                  <span className="font-semibold text-espresso-900">{isEn ? "Total Amount" : "Total Pembayaran"}</span>
                   {!hasSelectedCity && selectedShipping !== "pickup" && (
-                    <p className="text-[11px] text-espresso-400">Belum termasuk ongkir</p>
+                    <p className="text-[11px] text-espresso-400">{isEn ? "Excl. shipping" : "Belum termasuk ongkir"}</p>
                   )}
                 </div>
                 <span className="font-display text-2xl font-bold text-espresso-900">
@@ -742,7 +765,9 @@ export function CheckoutForm({
 
             {!hasSelectedCity && selectedShipping !== "pickup" && (
               <p className="mt-4 text-center text-xs text-caramel-800 bg-caramel-50/80 py-2.5 px-3 rounded-lg border border-caramel-200">
-                Lengkapi Kota / Kabupaten pada alamat di atas untuk melanjutkan pemesanan
+                {isEn
+                  ? "Please select your City / Region in shipping address above to proceed"
+                  : "Lengkapi Kota / Kabupaten pada alamat di atas untuk melanjutkan pemesanan"}
               </p>
             )}
 
@@ -751,12 +776,14 @@ export function CheckoutForm({
               disabled={isPending || (!hasSelectedCity && selectedShipping !== "pickup")}
               className="mt-4 w-full justify-center h-12 text-base font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isPending ? "Memproses Pesanan..." : "Buat Pesanan Sekarang"}
+              {isPending
+                ? (isEn ? "Processing Order..." : "Memproses Pesanan...")
+                : (isEn ? "Place Order Now" : "Buat Pesanan Sekarang")}
             </Button>
 
             <div className="mt-4 flex items-center justify-center gap-2 text-xs text-espresso-400">
               <ShieldCheck className="h-4 w-4 text-emerald-600" />
-              <span>Transaksi aman dan data terlindungi</span>
+              <span>{isEn ? "Secure checkout & 256-bit SSL encrypted" : "Transaksi aman dan data terlindungi"}</span>
             </div>
           </div>
         </div>
