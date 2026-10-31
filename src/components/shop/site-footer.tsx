@@ -12,6 +12,22 @@ export function SiteFooter({ settings, categories }: { settings: AllSettings; ca
   const o = settings.other;
   const waPhone = getStoreWhatsApp(settings);
   const { t, locale } = useI18n();
+  const isEn = locale === "en";
+
+  const localizedTagline =
+    isEn && (!g.tagline || g.tagline.trim().toLowerCase() === "satu teguk, banyak cerita")
+      ? "One Sip, Endless Stories"
+      : g.tagline || (isEn ? "One Sip, Endless Stories" : "Satu Teguk, Banyak Cerita");
+
+  const localizedOpeningHours = isEn
+    ? (g.openingHours || "Setiap hari, 08.00 - 22.00")
+        .replace(/setiap hari/gi, "Every day")
+        .replace(/senin\s*-\s*minggu/gi, "Mon - Sun")
+        .replace(/senin\s*s\/d\s*minggu/gi, "Mon to Sun")
+        .replace(/senin\s*-\s*jumat/gi, "Mon - Fri")
+        .replace(/sabtu\s*-\s*minggu/gi, "Sat - Sun")
+        .replace(/\bWIB\b/gi, "WIB")
+    : g.openingHours || "Setiap hari, 08.00 - 22.00";
 
   return (
     <footer className="mt-24 bg-espresso-800 text-espresso-100">
@@ -19,7 +35,7 @@ export function SiteFooter({ settings, categories }: { settings: AllSettings; ca
         <div>
           <Logo light size="md" />
           <p className="mt-4 max-w-xs text-sm leading-relaxed text-espresso-200">
-            {g.storeName} — {g.tagline}. {locale === "en" ? "Artisan coffee beans roasted fresh weekly." : "Kopi pilihan Nusantara yang disangrai segar setiap minggu."}
+            {g.storeName} — {localizedTagline}. {isEn ? "Artisan coffee beans roasted fresh weekly." : "Kopi pilihan Nusantara yang disangrai segar setiap minggu."}
           </p>
           <div className="mt-5 flex gap-2">
             {o.instagram && (
@@ -60,12 +76,12 @@ export function SiteFooter({ settings, categories }: { settings: AllSettings; ca
             ))}
             <li className="pt-2 border-t border-espresso-700">
               <Link href="/syarat-ketentuan" className="hover:text-white">
-                {t.common.terms}
+                {isEn ? "Terms & Conditions" : "Syarat & Ketentuan"}
               </Link>
             </li>
             <li>
               <Link href="/kebijakan-pengembalian" className="hover:text-white">
-                {t.common.privacy}
+                {isEn ? "Return & Refund Policy" : "Kebijakan Pengembalian Dana & Produk"}
               </Link>
             </li>
           </ul>
@@ -90,7 +106,7 @@ export function SiteFooter({ settings, categories }: { settings: AllSettings; ca
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-cream transition-colors underline-offset-2 hover:underline"
-                  title="Buka lokasi di Google Maps"
+                  title={isEn ? "Open location on Google Maps" : "Buka lokasi di Google Maps"}
                 >
                   {g.address}, {g.city}, {g.province} {g.postalCode}
                 </a>
@@ -133,24 +149,24 @@ export function SiteFooter({ settings, categories }: { settings: AllSettings; ca
             </li>
             <li className="flex gap-3">
               <Clock className="mt-0.5 h-4 w-4 shrink-0 text-caramel-300" />
-              <span>{g.openingHours || "Setiap hari, 08.00 - 22.00"}</span>
+              <span>{localizedOpeningHours}</span>
             </li>
           </ul>
         </div>
       </div>
       <div className="border-t border-espresso-700">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-6 text-xs text-espresso-300 sm:flex-row">
-          <p>&copy; {new Date().getFullYear()} {g.storeName}. Hak cipta dilindungi.</p>
+          <p>&copy; {new Date().getFullYear()} {g.storeName}. {isEn ? "All rights reserved." : "Hak cipta dilindungi."}</p>
           <div className="flex flex-wrap items-center gap-3 text-[11px]">
             <Link href="/syarat-ketentuan" className="hover:text-cream transition-colors underline-offset-2 hover:underline">
-              Syarat & Ketentuan
+              {isEn ? "Terms & Conditions" : "Syarat & Ketentuan"}
             </Link>
             <span>&bull;</span>
             <Link href="/kebijakan-pengembalian" className="hover:text-cream transition-colors underline-offset-2 hover:underline">
-              Kebijakan Pengembalian Dana & Produk
+              {isEn ? "Return & Refund Policy" : "Kebijakan Pengembalian Dana & Produk"}
             </Link>
           </div>
-          <p>{g.tagline}</p>
+          <p>{localizedTagline}</p>
         </div>
       </div>
     </footer>

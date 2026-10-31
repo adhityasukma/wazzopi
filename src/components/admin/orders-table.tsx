@@ -20,10 +20,11 @@ import {
 import { formatCurrency, type CurrencySettings } from "@/lib/currency";
 import {
   formatDate,
-  ORDER_STATUS_LABEL,
+  getOrderStatusLabel,
   ORDER_STATUS_STYLE,
-  PAYMENT_LABEL,
+  getPaymentLabel,
 } from "@/lib/utils";
+import { useI18n } from "@/i18n/provider";
 import {
   deleteOrder,
   deleteSelectedOrders,
@@ -77,6 +78,8 @@ export function OrdersTable({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { locale } = useI18n();
+  const isEn = locale === "en";
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isPending, startTransition] = useTransition();
@@ -140,7 +143,9 @@ export function OrdersTable({
           setSelectedIds((prev) => prev.filter((id) => id !== singleTarget.id));
           setFeedback({
             type: "success",
-            message: `Pesanan "${singleTarget.orderNo}" berhasil dihapus.`,
+            message: isEn
+              ? `Order "${singleTarget.orderNo}" deleted successfully.`
+              : `Pesanan "${singleTarget.orderNo}" berhasil dihapus.`,
           });
         } else if (modalMode === "selected") {
           const res = await deleteSelectedOrders(selectedIds);
@@ -150,7 +155,9 @@ export function OrdersTable({
           setSelectedIds([]);
           setFeedback({
             type: "success",
-            message: `${deletedCount} pesanan terpilih berhasil dihapus.`,
+            message: isEn
+              ? `${deletedCount} selected orders deleted successfully.`
+              : `${deletedCount} pesanan terpilih berhasil dihapus.`,
           });
         } else if (modalMode === "all") {
           const res = await deleteAllOrders();
@@ -160,7 +167,9 @@ export function OrdersTable({
           setSelectedIds([]);
           setFeedback({
             type: "success",
-            message: `Seluruh pesanan (${deletedCount} pesanan) berhasil dihapus.`,
+            message: isEn
+              ? `All orders (${deletedCount} orders) deleted successfully.`
+              : `Seluruh pesanan (${deletedCount} pesanan) berhasil dihapus.`,
           });
         }
 
@@ -170,7 +179,7 @@ export function OrdersTable({
       } catch (err: any) {
         setFeedback({
           type: "error",
-          message: err.message || "Terjadi kesalahan saat memproses penghapusan.",
+          message: err.message || (isEn ? "An error occurred while deleting." : "Terjadi kesalahan saat memproses penghapusan."),
         });
       }
     });
@@ -286,16 +295,16 @@ export function OrdersTable({
         {currentPage >= totalPages ? (
           <span
             className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-latte bg-white text-espresso-300 opacity-50 cursor-not-allowed"
-            title="Halaman Selanjutnya"
+            title={isEn ? "Next Page" : "Halaman Selanjutnya"}
           >
             <ChevronRight className="h-4 w-4" />
           </span>
         ) : (
           <Link
             href={getPageUrl(currentPage + 1)}
-            data-loading-message={`Memuat pesanan halaman ${currentPage + 1}...`}
+            data-loading-message={isEn ? `Loading orders page ${currentPage + 1}...` : `Memuat pesanan halaman ${currentPage + 1}...`}
             className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-latte bg-white text-espresso-600 hover:bg-latte/50 transition"
-            title="Halaman Selanjutnya"
+            title={isEn ? "Next Page" : "Halaman Selanjutnya"}
           >
             <ChevronRight className="h-4 w-4" />
           </Link>
@@ -339,16 +348,20 @@ export function OrdersTable({
           {selectedIds.length > 0 ? (
             <span className="inline-flex items-center gap-1.5 rounded-lg bg-caramel-100 px-3 py-1.5 text-xs font-bold text-caramel-900">
               <CheckSquare className="h-4 w-4 text-caramel-700" />
-              {selectedIds.length} pesanan dipilih
+              {isEn ? `${selectedIds.length} orders selected` : `${selectedIds.length} pesanan dipilih`}
             </span>
           ) : (
             <span className="text-xs font-medium text-espresso-600">
               {totalMatching === 0
-                ? "Tidak ada pesanan ditemukan"
+                ? (isEn ? "No orders found" : "Tidak ada pesanan ditemukan")
                 : pageSize
-                ? `Menampilkan ${startIndex} - ${endIndex} dari ${totalMatching} pesanan`
-                : `Menampilkan semua ${totalMatching} pesanan`}
-              {totalAllOrders !== totalMatching && ` (total ${totalAllOrders} di sistem)`}
+                ? (isEn
+                    ? `Showing ${startIndex} - ${endIndex} of ${totalMatching} orders`
+                    : `Menampilkan ${startIndex} - ${endIndex} dari ${totalMatching} pesanan`)
+                : (isEn
+                    ? `Showing all ${totalMatching} orders`
+                    : `Menampilkan semua ${totalMatching} pesanan`)}
+              {totalAllOrders !== totalMatching && (isEn ? ` (total ${totalAllOrders} in system)` : ` (total ${totalAllOrders} di sistem)`)}
             </span>
           )}
 
@@ -358,7 +371,7 @@ export function OrdersTable({
               onClick={() => setSelectedIds([])}
               className="rounded-lg px-2.5 py-1 text-xs font-semibold text-espresso-500 hover:bg-latte/50 hover:text-espresso-800"
             >
-              Batalkan Pilihan
+              {isEn ? "Deselect All" : "Batalkan Pilihan"}
             </button>
           )}
         </div>
@@ -366,7 +379,7 @@ export function OrdersTable({
         <div className="flex flex-wrap items-center gap-3">
           {/* Show Data Selector (20, 50, 100, All) */}
           <div className="flex items-center gap-1.5">
-            <span className="text-xs font-semibold text-espresso-500">Tampilkan:</span>
+            <span className="text-xs font-semibold text-espresso-500">{isEn ? "Show:" : "Tampilkan:"}</span>
             <div className="inline-flex rounded-lg border border-latte bg-latte/30 p-0.5 text-xs">
               {(["20", "50", "100", "all"] as const).map((opt) => {
                 const isActive = currentLimit === opt;
@@ -387,7 +400,7 @@ export function OrdersTable({
                   <Link
                     key={opt}
                     href={getLimitUrl(opt)}
-                    data-loading-message={`Menampilkan ${opt === "all" ? "semua" : opt} pesanan per halaman...`}
+                    data-loading-message={isEn ? `Showing ${opt === "all" ? "all" : opt} orders per page...` : `Menampilkan ${opt === "all" ? "semua" : opt} pesanan per halaman...`}
                     className="rounded-md px-2.5 py-1 font-semibold text-espresso-600 hover:text-espresso-900 transition"
                   >
                     {label}
@@ -406,7 +419,7 @@ export function OrdersTable({
                 className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-rose-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-rose-700 active:scale-95"
               >
                 <Trash2 className="h-4 w-4" />
-                Hapus Terpilih ({selectedIds.length})
+                {isEn ? `Delete Selected (${selectedIds.length})` : `Hapus Terpilih (${selectedIds.length})`}
               </button>
             )}
 
@@ -416,10 +429,10 @@ export function OrdersTable({
                 type="button"
                 onClick={openDeleteAll}
                 className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-rose-300 bg-rose-50/60 px-3 py-2 text-xs font-bold text-rose-700 transition hover:bg-rose-100 hover:border-rose-400 active:scale-95"
-                title="Hapus Seluruh Pesanan"
+                title={isEn ? "Delete All Orders" : "Hapus Seluruh Pesanan"}
               >
                 <Trash2 className="h-4 w-4 text-rose-600" />
-                Hapus Semua Pesanan
+                {isEn ? "Delete All Orders" : "Hapus Semua Pesanan"}
               </button>
             )}
           </div>
@@ -438,7 +451,11 @@ export function OrdersTable({
                     onClick={toggleSelectAll}
                     disabled={orders.length === 0}
                     className="flex items-center justify-center text-espresso-600 hover:text-caramel-600 disabled:opacity-40"
-                    title={isAllSelected ? "Batalkan semua pilihan" : "Pilih semua di halaman ini"}
+                    title={
+                      isAllSelected
+                        ? (isEn ? "Deselect all on this page" : "Batalkan semua pilihan")
+                        : (isEn ? "Select all on this page" : "Pilih semua di halaman ini")
+                    }
                   >
                     {isAllSelected ? (
                       <CheckSquare className="h-4 w-4 text-caramel-600" />
@@ -449,21 +466,21 @@ export function OrdersTable({
                     )}
                   </button>
                 </th>
-                <th className="px-4 py-3">No. Pesanan</th>
-                <th className="px-4 py-3">Pelanggan</th>
-                <th className="px-4 py-3">Tanggal</th>
-                <th className="px-4 py-3">Pengiriman & Bayar</th>
-                <th className="px-4 py-3">Item Produk</th>
-                <th className="px-4 py-3">Total Tagihan</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3 text-right">Aksi</th>
+                <th className="px-4 py-3">{isEn ? "ORDER NO." : "NO. PESANAN"}</th>
+                <th className="px-4 py-3">{isEn ? "CUSTOMER" : "PELANGGAN"}</th>
+                <th className="px-4 py-3">{isEn ? "DATE" : "TANGGAL"}</th>
+                <th className="px-4 py-3">{isEn ? "SHIPPING & PAYMENT" : "PENGIRIMAN & BAYAR"}</th>
+                <th className="px-4 py-3">{isEn ? "ITEMS" : "ITEM PRODUK"}</th>
+                <th className="px-4 py-3">{isEn ? "TOTAL AMOUNT" : "TOTAL TAGIHAN"}</th>
+                <th className="px-4 py-3">{isEn ? "STATUS" : "STATUS"}</th>
+                <th className="px-4 py-3 text-right">{isEn ? "ACTIONS" : "AKSI"}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-latte">
               {orders.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="py-12 text-center text-espresso-400">
-                    Tidak ada transaksi pesanan yang sesuai.
+                    {isEn ? "No order transactions found." : "Tidak ada transaksi pesanan yang sesuai."}
                   </td>
                 </tr>
               ) : (
@@ -498,12 +515,12 @@ export function OrdersTable({
                         <p className="text-xs text-espresso-400">{o.customerPhone}</p>
                       </td>
                       <td className="px-4 py-3 text-xs text-espresso-500">
-                        {formatDate(o.createdAt, true)}
+                        {formatDate(o.createdAt, true, locale)}
                       </td>
                       <td className="px-4 py-3 text-xs">
                         <p className="font-medium text-espresso-800">{o.shippingMethod}</p>
                         <p className="text-espresso-400">
-                          {PAYMENT_LABEL[o.paymentMethod] || o.paymentMethod}
+                          {getPaymentLabel(o.paymentMethod, locale)}
                         </p>
                         {o.trackingNumber && (
                           <span className="inline-flex items-center gap-1 font-mono font-bold text-[10px] text-caramel-700 bg-caramel-50 px-1.5 py-0.5 rounded border border-caramel-200 mt-1">
@@ -513,7 +530,7 @@ export function OrdersTable({
                         )}
                       </td>
                       <td className="px-4 py-3 text-xs text-espresso-600">
-                        {o.items.length} item (
+                        {o.items.length} {isEn ? (o.items.length === 1 ? "item" : "items") : "item"} (
                         {o.items.map((i) => i.productName).slice(0, 2).join(", ")}
                         {o.items.length > 2 ? "..." : ""})
                       </td>
@@ -526,7 +543,7 @@ export function OrdersTable({
                             ORDER_STATUS_STYLE[o.status] || "bg-latte text-espresso-800"
                           }`}
                         >
-                          {ORDER_STATUS_LABEL[o.status]}
+                          {getOrderStatusLabel(o.status, locale)}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right">
@@ -536,13 +553,13 @@ export function OrdersTable({
                             className="inline-flex items-center gap-1 rounded-lg border border-espresso-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-espresso-700 hover:bg-latte shadow-xs transition"
                           >
                             <Eye className="h-3.5 w-3.5 text-espresso-400" />
-                            Kelola
+                            {isEn ? "Manage" : "Kelola"}
                           </Link>
                           <button
                             type="button"
                             onClick={() => openSingleDelete(o)}
                             className="inline-flex cursor-pointer items-center justify-center rounded-lg p-1.5 text-rose-600 transition hover:bg-rose-50"
-                            title={`Hapus pesanan ${o.orderNo}`}
+                            title={isEn ? `Delete order ${o.orderNo}` : `Hapus pesanan ${o.orderNo}`}
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -561,11 +578,11 @@ export function OrdersTable({
           <div className="text-xs text-espresso-500">
             {pageSize ? (
               <>
-                Halaman <strong className="text-espresso-900">{currentPage}</strong> dari{" "}
-                <strong className="text-espresso-900">{totalPages}</strong> ({totalMatching} pesanan)
+                {isEn ? "Page" : "Halaman"} <strong className="text-espresso-900">{currentPage}</strong> {isEn ? "of" : "dari"}{" "}
+                <strong className="text-espresso-900">{totalPages}</strong> ({totalMatching} {isEn ? "orders" : "pesanan"})
               </>
             ) : (
-              <>Semua {totalMatching} pesanan ditampilkan dalam 1 halaman</>
+              <>{isEn ? `All ${totalMatching} orders shown on 1 page` : `Semua ${totalMatching} pesanan ditampilkan dalam 1 halaman`}</>
             )}
           </div>
 
@@ -590,36 +607,36 @@ export function OrdersTable({
               </div>
               <div className="flex-1">
                 <h3 className="text-lg font-bold text-espresso-900">
-                  {modalMode === "single" && "Hapus Pesanan"}
-                  {modalMode === "selected" && "Hapus Pesanan Terpilih"}
-                  {modalMode === "all" && "Hapus Seluruh Pesanan (Delete ALL)"}
+                  {modalMode === "single" && (isEn ? "Delete Order" : "Hapus Pesanan")}
+                  {modalMode === "selected" && (isEn ? "Delete Selected Orders" : "Hapus Pesanan Terpilih")}
+                  {modalMode === "all" && (isEn ? "Delete ALL Orders (Clear All)" : "Hapus Seluruh Pesanan (Delete ALL)")}
                 </h3>
                 <p className="mt-1.5 text-xs text-espresso-600 leading-relaxed">
                   {modalMode === "single" && singleTarget && (
                     <>
-                      Apakah Anda yakin ingin menghapus transaksi pesanan nomor{" "}
+                      {isEn ? "Are you sure you want to delete order transaction number " : "Apakah Anda yakin ingin menghapus transaksi pesanan nomor "}
                       <strong className="text-espresso-900 font-mono">
                         {singleTarget.orderNo}
                       </strong>{" "}
-                      atas nama <strong>{singleTarget.customerName}</strong>?
+                      {isEn ? "for " : "atas nama "}<strong>{singleTarget.customerName}</strong>?
                     </>
                   )}
                   {modalMode === "selected" && (
                     <>
-                      Anda akan menghapus{" "}
+                      {isEn ? "You are about to delete " : "Anda akan menghapus "}
                       <strong className="text-espresso-900">
-                        {selectedIds.length} pesanan
+                        {selectedIds.length} {isEn ? "orders" : "pesanan"}
                       </strong>{" "}
-                      yang sedang dipilih.
+                      {isEn ? "currently selected." : "yang sedang dipilih."}
                     </>
                   )}
                   {modalMode === "all" && (
                     <>
-                      Anda akan menghapus{" "}
+                      {isEn ? "You are about to delete " : "Anda akan menghapus "}
                       <strong className="text-rose-700">
-                        SELURUH ({totalAllOrders}) data transaksi pesanan
+                        {isEn ? `ALL (${totalAllOrders}) order transactions` : `SELURUH (${totalAllOrders}) data transaksi pesanan`}
                       </strong>{" "}
-                      yang ada di sistem toko.
+                      {isEn ? "in the store system." : "yang ada di sistem toko."}
                     </>
                   )}
                 </p>
@@ -629,8 +646,7 @@ export function OrdersTable({
             {/* Catatan Info */}
             <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50/70 p-3 text-xs text-amber-900">
               <p className="leading-relaxed">
-                Tindakan ini <strong>tidak dapat dibatalkan</strong>. Rincian produk dan data
-                transaksi yang dihapus akan terhapus secara permanen dari basis data.
+                {isEn ? <>This action <strong>cannot be undone</strong>. Product details and transaction records will be permanently removed from the database.</> : <>Tindakan ini <strong>tidak dapat dibatalkan</strong>. Rincian produk dan data transaksi yang dihapus akan terhapus secara permanen dari basis data.</>}
               </p>
             </div>
 
@@ -653,14 +669,14 @@ export function OrdersTable({
                 {isPending ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin text-white" />
-                    Memproses...
+                    {isEn ? "Processing..." : "Memproses..."}
                   </>
                 ) : (
                   <>
                     <Trash2 className="h-4 w-4" />
-                    {modalMode === "single" && "Ya, Hapus Pesanan"}
-                    {modalMode === "selected" && `Hapus ${selectedIds.length} Pesanan`}
-                    {modalMode === "all" && `Ya, Hapus Semua (${totalAllOrders})`}
+                    {modalMode === "single" && (isEn ? "Yes, Delete Order" : "Ya, Hapus Pesanan")}
+                    {modalMode === "selected" && (isEn ? `Delete ${selectedIds.length} Orders` : `Hapus ${selectedIds.length} Pesanan`)}
+                    {modalMode === "all" && (isEn ? `Yes, Delete All (${totalAllOrders})` : `Ya, Hapus Semua (${totalAllOrders})`)}
                   </>
                 )}
               </button>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Search } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+import { getServerLocale } from "@/i18n/server";
 import { HeroSlidesManager } from "@/components/admin/hero-slides-manager";
 
 export const metadata = {
@@ -12,6 +13,8 @@ export default async function AdminHeroSlidesPage({
   searchParams,
 }: PageProps<"/admin/hero-slides">) {
   await requireAdmin();
+  const locale = await getServerLocale();
+  const isEn = locale === "en";
   const sp = await searchParams;
 
   const q = typeof sp.q === "string" ? sp.q.trim() : "";
@@ -77,10 +80,10 @@ export default async function AdminHeroSlidesPage({
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-espresso-900 md:text-3xl">
-          Kelola Hero Slide Beranda
+          {isEn ? "Manage Homepage Hero Slides" : "Kelola Hero Slide Beranda"}
         </h1>
         <p className="mt-1 text-sm text-espresso-500">
-          Atur teks promo, foto banner slider, tombol aksi, serta aktifkan atau nonaktifkan slide yang tampil di beranda. Total {totalAllSlides} slide di sistem toko.
+          {isEn ? `Manage promo texts, slider banner images, action buttons, and toggle homepage slides. Total ${totalAllSlides} slide(s) in system.` : `Atur teks promo, foto banner slider, tombol aksi, serta aktifkan atau nonaktifkan slide yang tampil di beranda. Total ${totalAllSlides} slide di sistem toko.`}
         </p>
       </div>
 
@@ -98,7 +101,7 @@ export default async function AdminHeroSlidesPage({
             <input
               name="q"
               defaultValue={q}
-              placeholder="Cari judul atau teks tombol slide..."
+              placeholder={isEn ? "Search title or slide button text..." : "Cari judul atau teks tombol slide..."}
               className="w-full rounded-lg border border-espresso-100 bg-white py-2 pl-9 pr-3 text-sm text-espresso-900 placeholder:text-espresso-300 focus:outline-none focus:ring-2 focus:ring-caramel-500"
             />
           </div>
@@ -106,7 +109,7 @@ export default async function AdminHeroSlidesPage({
             type="submit"
             className="rounded-lg bg-espresso-700 px-4 py-2 text-xs font-semibold text-cream hover:bg-espresso-800"
           >
-            Cari
+            {isEn ? "Search" : "Cari"}
           </button>
           {q && (
             <Link
@@ -115,7 +118,7 @@ export default async function AdminHeroSlidesPage({
               className="rounded-lg border border-espresso-200 px-3 py-2 text-xs font-semibold text-espresso-600 hover:bg-espresso-50 transition"
               title="Kosongkan pencarian"
             >
-              Reset
+              {isEn ? "Reset" : "Reset"}
             </Link>
           )}
         </form>
@@ -130,7 +133,7 @@ export default async function AdminHeroSlidesPage({
                 : "bg-latte text-espresso-800 hover:bg-espresso-200"
             }`}
           >
-            Aktif (Default)
+            {isEn ? "Active (Default)" : "Aktif (Default)"}
           </Link>
           <Link
             href={getStatusFilterHref("inactive")}
@@ -141,7 +144,7 @@ export default async function AdminHeroSlidesPage({
                 : "bg-latte text-espresso-800 hover:bg-espresso-200"
             }`}
           >
-            Tidak Aktif
+            {isEn ? "Inactive" : "Tidak Aktif"}
           </Link>
           <Link
             href={getStatusFilterHref("all")}
@@ -152,7 +155,7 @@ export default async function AdminHeroSlidesPage({
                 : "bg-latte text-espresso-800 hover:bg-espresso-200"
             }`}
           >
-            Semua
+            {isEn ? "All" : "Semua"}
           </Link>
 
           {(q || currentStatus !== "active") && (
@@ -162,7 +165,7 @@ export default async function AdminHeroSlidesPage({
               className="rounded-lg border border-dashed border-espresso-300 px-3 py-1.5 text-xs font-medium text-espresso-500 hover:bg-espresso-50 hover:text-espresso-800 transition"
               title="Kembali ke tampilan awal slide aktif"
             >
-              Reset Semua Filter
+              {isEn ? "Reset All Filters" : "Reset Semua Filter"}
             </Link>
           )}
         </div>

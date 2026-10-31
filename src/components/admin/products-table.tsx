@@ -18,6 +18,8 @@ import {
   X,
 } from "lucide-react";
 import { formatCurrency, type CurrencySettings } from "@/lib/currency";
+import { useI18n } from "@/i18n/provider";
+import { getLocalizedCategoryName } from "@/lib/category-i18n";
 import {
   deleteSingleProduct,
   deleteSelectedProducts,
@@ -66,6 +68,8 @@ export function ProductsTable({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { locale } = useI18n();
+  const isEn = locale === "en";
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isDeleting, startDeleteTransition] = useTransition();
@@ -128,7 +132,9 @@ export function ProductsTable({
           setSelectedIds((prev) => prev.filter((id) => id !== singleTarget.id));
           setFeedback({
             type: "success",
-            message: `Produk "${singleTarget.name}" berhasil dihapus.`,
+            message: isEn
+              ? `Product "${singleTarget.name}" deleted successfully.`
+              : `Produk "${singleTarget.name}" berhasil dihapus.`,
           });
         } else if (modalMode === "selected") {
           const res = await deleteSelectedProducts(selectedIds);
@@ -138,7 +144,9 @@ export function ProductsTable({
           setSelectedIds([]);
           setFeedback({
             type: "success",
-            message: `${deletedCount} produk terpilih berhasil dihapus.`,
+            message: isEn
+              ? `${deletedCount} selected products deleted successfully.`
+              : `${deletedCount} produk terpilih berhasil dihapus.`,
           });
         } else if (modalMode === "all") {
           const res = await deleteAllProducts();
@@ -148,7 +156,9 @@ export function ProductsTable({
           setSelectedIds([]);
           setFeedback({
             type: "success",
-            message: `Seluruh data produk (${deletedCount} produk) berhasil dihapus.`,
+            message: isEn
+              ? `All products (${deletedCount} products) deleted successfully.`
+              : `Seluruh data produk (${deletedCount} produk) berhasil dihapus.`,
           });
         }
 
@@ -158,7 +168,7 @@ export function ProductsTable({
       } catch (err: any) {
         setFeedback({
           type: "error",
-          message: err.message || "Terjadi kesalahan saat memproses penghapusan.",
+          message: err.message || (isEn ? "An error occurred while deleting." : "Terjadi kesalahan saat memproses penghapusan."),
         });
       }
     });
@@ -274,16 +284,16 @@ export function ProductsTable({
         {currentPage >= totalPages ? (
           <span
             className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-latte bg-white text-espresso-300 opacity-50 cursor-not-allowed"
-            title="Halaman Selanjutnya"
+            title={isEn ? "Next Page" : "Halaman Selanjutnya"}
           >
             <ChevronRight className="h-4 w-4" />
           </span>
         ) : (
           <Link
             href={getPageUrl(currentPage + 1)}
-            data-loading-message={`Memuat produk halaman ${currentPage + 1}...`}
+            data-loading-message={isEn ? `Loading product page ${currentPage + 1}...` : `Memuat produk halaman ${currentPage + 1}...`}
             className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-latte bg-white text-espresso-600 hover:bg-latte/50 transition"
-            title="Halaman Selanjutnya"
+            title={isEn ? "Next Page" : "Halaman Selanjutnya"}
           >
             <ChevronRight className="h-4 w-4" />
           </Link>
@@ -327,16 +337,20 @@ export function ProductsTable({
           {selectedIds.length > 0 ? (
             <span className="inline-flex items-center gap-1.5 rounded-lg bg-caramel-100 px-3 py-1.5 text-xs font-bold text-caramel-900">
               <CheckSquare className="h-4 w-4 text-caramel-700" />
-              {selectedIds.length} produk dipilih
+              {isEn ? `${selectedIds.length} products selected` : `${selectedIds.length} produk dipilih`}
             </span>
           ) : (
             <span className="text-xs font-medium text-espresso-600">
               {totalMatching === 0
-                ? "Tidak ada produk ditemukan"
+                ? (isEn ? "No products found" : "Tidak ada produk ditemukan")
                 : pageSize
-                ? `Menampilkan ${startIndex} - ${endIndex} dari ${totalMatching} produk`
-                : `Menampilkan semua ${totalMatching} produk`}
-              {totalAllProducts !== totalMatching && ` (total ${totalAllProducts} di katalog)`}
+                ? (isEn
+                    ? `Showing ${startIndex} - ${endIndex} of ${totalMatching} products`
+                    : `Menampilkan ${startIndex} - ${endIndex} dari ${totalMatching} produk`)
+                : (isEn
+                    ? `Showing all ${totalMatching} products`
+                    : `Menampilkan semua ${totalMatching} produk`)}
+              {totalAllProducts !== totalMatching && (isEn ? ` (total ${totalAllProducts} in catalog)` : ` (total ${totalAllProducts} di katalog)`)}
               {searchQuery && ` (filter: "${searchQuery}")`}
             </span>
           )}
@@ -347,7 +361,7 @@ export function ProductsTable({
               onClick={() => setSelectedIds([])}
               className="rounded-lg px-2.5 py-1 text-xs font-semibold text-espresso-500 hover:bg-latte/50 hover:text-espresso-800"
             >
-              Batalkan Pilihan
+              {isEn ? "Deselect All" : "Batalkan Pilihan"}
             </button>
           )}
         </div>
@@ -355,7 +369,7 @@ export function ProductsTable({
         <div className="flex flex-wrap items-center gap-3">
           {/* Show Data Selector (20, 50, 100, All) */}
           <div className="flex items-center gap-1.5">
-            <span className="text-xs font-semibold text-espresso-500">Tampilkan:</span>
+            <span className="text-xs font-semibold text-espresso-500">{isEn ? "Show:" : "Tampilkan:"}</span>
             <div className="inline-flex rounded-lg border border-latte bg-latte/30 p-0.5 text-xs">
               {(["20", "50", "100", "all"] as const).map((opt) => {
                 const isActive = currentLimit === opt;
@@ -376,7 +390,7 @@ export function ProductsTable({
                   <Link
                     key={opt}
                     href={getLimitUrl(opt)}
-                    data-loading-message={`Menampilkan ${opt === "all" ? "semua" : opt} produk per halaman...`}
+                    data-loading-message={isEn ? `Showing ${opt === "all" ? "all" : opt} products per page...` : `Menampilkan ${opt === "all" ? "semua" : opt} produk per halaman...`}
                     className="rounded-md px-2.5 py-1 font-semibold text-espresso-600 hover:text-espresso-900 transition"
                   >
                     {label}
@@ -396,7 +410,7 @@ export function ProductsTable({
                   className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-rose-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-rose-700 active:scale-95"
                 >
                   <Trash2 className="h-4 w-4" />
-                  Hapus Terpilih ({selectedIds.length})
+                  {isEn ? `Delete Selected (${selectedIds.length})` : `Hapus Terpilih (${selectedIds.length})`}
                 </button>
               )}
 
@@ -406,10 +420,10 @@ export function ProductsTable({
                   type="button"
                   onClick={openDeleteAll}
                   className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-rose-300 bg-rose-50/60 px-3.5 py-2 text-xs font-bold text-rose-700 transition hover:bg-rose-100 hover:border-rose-400 active:scale-95"
-                  title="Hapus Seluruh Produk"
+                  title={isEn ? "Delete All Products" : "Hapus Seluruh Produk"}
                 >
                   <Trash2 className="h-4 w-4 text-rose-600" />
-                  Hapus Semua Produk
+                  {isEn ? "Delete All Products" : "Hapus Semua Produk"}
                 </button>
               )}
             </div>
@@ -430,7 +444,11 @@ export function ProductsTable({
                       onClick={toggleSelectAll}
                       disabled={products.length === 0}
                       className="flex items-center justify-center text-espresso-600 hover:text-caramel-600 disabled:opacity-40"
-                      title={isAllSelected ? "Batalkan semua pilihan" : "Pilih semua di halaman ini"}
+                      title={
+                        isAllSelected
+                          ? (isEn ? "Deselect all on this page" : "Batalkan semua pilihan")
+                          : (isEn ? "Select all on this page" : "Pilih semua di halaman ini")
+                      }
                     >
                       {isAllSelected ? (
                         <CheckSquare className="h-4 w-4 text-caramel-600" />
@@ -442,20 +460,20 @@ export function ProductsTable({
                     </button>
                   </th>
                 )}
-                <th className="px-4 py-3">Produk</th>
-                <th className="px-4 py-3">Kategori</th>
-                <th className="px-4 py-3">Tipe</th>
-                <th className="px-4 py-3">Harga</th>
-                <th className="px-4 py-3">Stok</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3 text-right">Aksi</th>
+                <th className="px-4 py-3">{isEn ? "PRODUCT" : "PRODUK"}</th>
+                <th className="px-4 py-3">{isEn ? "CATEGORY" : "KATEGORI"}</th>
+                <th className="px-4 py-3">{isEn ? "TYPE" : "TIPE"}</th>
+                <th className="px-4 py-3">{isEn ? "PRICE" : "HARGA"}</th>
+                <th className="px-4 py-3">{isEn ? "STOCK" : "STOK"}</th>
+                <th className="px-4 py-3">{isEn ? "STATUS" : "STATUS"}</th>
+                <th className="px-4 py-3 text-right">{isEn ? "ACTIONS" : "AKSI"}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-latte">
               {products.length === 0 ? (
                 <tr>
                   <td colSpan={isAdmin ? 8 : 7} className="py-12 text-center text-espresso-400">
-                    Tidak ada produk yang sesuai.
+                    {isEn ? "No matching products found." : "Tidak ada produk yang sesuai."}
                   </td>
                 </tr>
               ) : (
@@ -507,16 +525,18 @@ export function ProductsTable({
                         </div>
                       </td>
                       <td className="px-4 py-3 text-xs text-espresso-600">
-                        {p.category?.name || "Tanpa Kategori"}
+                        {p.category
+                          ? getLocalizedCategoryName(p.category.name, "", locale)
+                          : (isEn ? "Uncategorized" : "Tanpa Kategori")}
                       </td>
                       <td className="px-4 py-3">
                         {p.hasVariants ? (
                           <span className="inline-flex rounded-full bg-caramel-50 px-2 py-0.5 text-xs font-semibold text-caramel-800">
-                            {p.variants.length} Varian
+                            {p.variants.length} {isEn ? (p.variants.length === 1 ? "Variant" : "Variants") : "Varian"}
                           </span>
                         ) : (
                           <span className="inline-flex rounded-full bg-latte px-2 py-0.5 text-xs text-espresso-700">
-                            Tunggal
+                            {isEn ? "Single" : "Tunggal"}
                           </span>
                         )}
                       </td>
@@ -549,7 +569,7 @@ export function ProductsTable({
                             <Link
                               href={`/admin/products/${p.id}`}
                               className="rounded-lg p-1.5 text-espresso-600 hover:bg-latte transition"
-                              title="Edit Produk"
+                              title={isEn ? "Edit Product" : "Edit Produk"}
                             >
                               <Edit2 className="h-4 w-4" />
                             </Link>
@@ -557,13 +577,15 @@ export function ProductsTable({
                               type="button"
                               onClick={() => openSingleDelete(p)}
                               className="rounded-lg p-1.5 text-rose-600 hover:bg-rose-50 transition"
-                              title={`Hapus produk ${p.name}`}
+                              title={isEn ? `Delete product ${p.name}` : `Hapus produk ${p.name}`}
                             >
                               <Trash2 className="h-4 w-4" />
                             </button>
                           </div>
                         ) : (
-                          <span className="text-xs text-espresso-400 italic">Lihat Saja</span>
+                          <span className="text-xs text-espresso-400 italic">
+                            {isEn ? "View Only" : "Lihat Saja"}
+                          </span>
                         )}
                       </td>
                     </tr>
@@ -579,11 +601,11 @@ export function ProductsTable({
           <div className="text-xs text-espresso-500">
             {pageSize ? (
               <>
-                Halaman <strong className="text-espresso-900">{currentPage}</strong> dari{" "}
-                <strong className="text-espresso-900">{totalPages}</strong> ({totalMatching} produk)
+                {isEn ? "Page" : "Halaman"} <strong className="text-espresso-900">{currentPage}</strong> {isEn ? "of" : "dari"}{" "}
+                <strong className="text-espresso-900">{totalPages}</strong> ({totalMatching} {isEn ? "products" : "produk"})
               </>
             ) : (
-              <>Semua {totalMatching} produk ditampilkan dalam 1 halaman</>
+              <>{isEn ? `All ${totalMatching} products shown on 1 page` : `Semua ${totalMatching} produk ditampilkan dalam 1 halaman`}</>
             )}
           </div>
 
@@ -608,33 +630,33 @@ export function ProductsTable({
               </div>
               <div className="flex-1">
                 <h3 className="text-lg font-bold text-espresso-900">
-                  {modalMode === "single" && "Hapus Produk"}
-                  {modalMode === "selected" && "Hapus Produk Terpilih"}
-                  {modalMode === "all" && "Hapus Seluruh Produk (Delete ALL)"}
+                  {modalMode === "single" && (isEn ? "Delete Product" : "Hapus Produk")}
+                  {modalMode === "selected" && (isEn ? "Delete Selected Products" : "Hapus Produk Terpilih")}
+                  {modalMode === "all" && (isEn ? "Delete ALL Products (Clear All)" : "Hapus Seluruh Produk (Delete ALL)")}
                 </h3>
                 <p className="mt-1.5 text-xs text-espresso-600 leading-relaxed">
                   {modalMode === "single" && singleTarget && (
                     <>
-                      Apakah Anda yakin ingin menghapus produk{" "}
+                      {isEn ? "Are you sure you want to delete product " : "Apakah Anda yakin ingin menghapus produk "}
                       <strong className="text-espresso-900">{singleTarget.name}</strong>?
                     </>
                   )}
                   {modalMode === "selected" && (
                     <>
-                      Anda akan menghapus{" "}
+                      {isEn ? "You are about to delete " : "Anda akan menghapus "}
                       <strong className="text-espresso-900">
-                        {selectedIds.length} produk
+                        {selectedIds.length} {isEn ? "products" : "produk"}
                       </strong>{" "}
-                      yang sedang dipilih.
+                      {isEn ? "currently selected." : "yang sedang dipilih."}
                     </>
                   )}
                   {modalMode === "all" && (
                     <>
-                      Anda akan menghapus{" "}
+                      {isEn ? "You are about to delete " : "Anda akan menghapus "}
                       <strong className="text-rose-700">
-                        SELURUH ({totalAllProducts}) data produk
+                        {isEn ? `ALL (${totalAllProducts}) products` : `SELURUH (${totalAllProducts}) data produk`}
                       </strong>{" "}
-                      yang terdaftar dalam katalog toko.
+                      {isEn ? "registered in the store catalog." : "yang terdaftar dalam katalog toko."}
                     </>
                   )}
                 </p>
@@ -644,8 +666,17 @@ export function ProductsTable({
             {/* Catatan Info */}
             <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50/70 p-3 text-xs text-amber-900">
               <p className="leading-relaxed">
-                Tindakan ini <strong>tidak dapat dibatalkan</strong>. Riwayat pesanan yang pernah
-                dibuat pelanggan tetap aman tersimpan dalam database laporan sebagai arsip penjualan.
+                {isEn ? (
+                  <>
+                    This action <strong>cannot be undone</strong>. Past order histories involving
+                    these items remain safely archived in sales reporting database.
+                  </>
+                ) : (
+                  <>
+                    Tindakan ini <strong>tidak dapat dibatalkan</strong>. Riwayat pesanan yang pernah
+                    dibuat pelanggan tetap aman tersimpan dalam database laporan sebagai arsip penjualan.
+                  </>
+                )}
               </p>
             </div>
 
@@ -657,7 +688,7 @@ export function ProductsTable({
                 onClick={closeModal}
                 className="cursor-pointer rounded-lg border border-espresso-200 bg-white px-4 py-2 text-xs font-semibold text-espresso-700 hover:bg-espresso-50 disabled:opacity-50"
               >
-                Batal
+                {isEn ? "Cancel" : "Batal"}
               </button>
               <button
                 type="button"
@@ -668,14 +699,14 @@ export function ProductsTable({
                 {isDeleting ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin text-white" />
-                    Memproses...
+                    {isEn ? "Processing..." : "Memproses..."}
                   </>
                 ) : (
                   <>
                     <Trash2 className="h-4 w-4" />
-                    {modalMode === "single" && "Ya, Hapus Produk"}
-                    {modalMode === "selected" && `Hapus ${selectedIds.length} Produk`}
-                    {modalMode === "all" && `Ya, Hapus Semua (${totalAllProducts})`}
+                    {modalMode === "single" && (isEn ? "Yes, Delete Product" : "Ya, Hapus Produk")}
+                    {modalMode === "selected" && (isEn ? `Delete ${selectedIds.length} Products` : `Hapus ${selectedIds.length} Produk`)}
+                    {modalMode === "all" && (isEn ? `Yes, Delete All (${totalAllProducts})` : `Ya, Hapus Semua (${totalAllProducts})`)}
                   </>
                 )}
               </button>

@@ -13,7 +13,8 @@ import {
   YAxis,
 } from "recharts";
 import { useMoney } from "@/components/currency-provider";
-import { ORDER_STATUS_LABEL } from "@/lib/utils";
+import { ORDER_STATUS_LABEL, getOrderStatusLabel } from "@/lib/utils";
+import { useI18n } from "@/i18n/provider";
 
 type ChartPoint = { date: string; revenue: number; orders: number };
 
@@ -27,9 +28,11 @@ export function DashboardCharts({
   statusCounts: Record<string, number>;
 }) {
   const money = useMoney();
+  const { locale } = useI18n();
+  const isEn = locale === "en";
 
   const pieData = Object.entries(statusCounts).map(([k, v]) => ({
-    name: ORDER_STATUS_LABEL[k] || k,
+    name: getOrderStatusLabel(k, locale) || k,
     value: v,
   }));
 
@@ -37,8 +40,8 @@ export function DashboardCharts({
     <div className="grid gap-6 lg:grid-cols-12">
       {/* Area Chart: Pendapatan 30 Hari */}
       <div className="rounded-xl border border-latte bg-white p-6 shadow-xs lg:col-span-8">
-        <h2 className="text-base font-bold text-espresso-900">Grafik Penjualan (30 Hari Terakhir)</h2>
-        <p className="text-xs text-espresso-400">Total pendapatan harian</p>
+        <h2 className="text-base font-bold text-espresso-900">{isEn ? "Sales Chart (Last 30 Days)" : "Grafik Penjualan (30 Hari Terakhir)"}</h2>
+        <p className="text-xs text-espresso-400">{isEn ? "Total daily revenue" : "Total pendapatan harian"}</p>
         <div className="mt-6 h-72 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
@@ -57,7 +60,7 @@ export function DashboardCharts({
                 axisLine={false}
               />
               <Tooltip
-                formatter={(val) => [money(Number(val)), "Pendapatan"]}
+                formatter={(val) => [money(Number(val)), isEn ? "Revenue" : "Pendapatan"]}
                 contentStyle={{
                   backgroundColor: "#fff",
                   borderColor: "#efe3d0",
@@ -80,8 +83,8 @@ export function DashboardCharts({
 
       {/* Donut Chart: Komposisi Status Pesanan */}
       <div className="rounded-xl border border-latte bg-white p-6 shadow-xs lg:col-span-4">
-        <h2 className="text-base font-bold text-espresso-900">Status Pesanan</h2>
-        <p className="text-xs text-espresso-400">Distribusi status keseluruhan</p>
+        <h2 className="text-base font-bold text-espresso-900">{isEn ? "Order Status" : "Status Pesanan"}</h2>
+        <p className="text-xs text-espresso-400">{isEn ? "Overall status distribution" : "Distribusi status keseluruhan"}</p>
         <div className="mt-4 h-60 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>

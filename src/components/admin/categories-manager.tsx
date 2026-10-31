@@ -27,6 +27,7 @@ import {
 import { Alert, Button, Field, Input, Textarea } from "@/components/ui";
 import { ImageUpload } from "@/components/admin/image-upload";
 import { useAppLoading } from "@/components/loading-provider";
+import { useI18n } from "@/i18n/provider";
 
 type CategoryItem = {
   id: string;
@@ -61,6 +62,8 @@ export function CategoriesManager({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { locale } = useI18n();
+  const isEn = locale === "en";
 
   const [editingCategory, setEditingCategory] = useState<CategoryItem | null>(null);
   const [state, formAction, isPending] = useActionState(saveCategory, undefined);
@@ -84,13 +87,13 @@ export function CategoriesManager({
     if (isPending) {
       showLoading(
         editingCategory
-          ? "Menyimpan perubahan kategori..."
-          : "Menambahkan kategori baru..."
+          ? (isEn ? "Saving category changes..." : "Menyimpan perubahan kategori...")
+          : (isEn ? "Adding new category..." : "Menambahkan kategori baru...")
       );
     } else {
       hideLoading();
     }
-  }, [isPending, editingCategory, showLoading, hideLoading]);
+  }, [isPending, editingCategory, showLoading, hideLoading, isEn]);
 
   function handleEdit(cat: CategoryItem) {
     setEditingCategory(cat);
@@ -148,7 +151,9 @@ export function CategoriesManager({
           if (editingCategory?.id === singleTarget.id) setEditingCategory(null);
           setFeedback({
             type: "success",
-            message: `Kategori "${singleTarget.name}" berhasil dihapus.`,
+            message: isEn
+              ? `Category "${singleTarget.name}" deleted successfully.`
+              : `Kategori "${singleTarget.name}" berhasil dihapus.`,
           });
         } else if (modalMode === "selected") {
           const res = await deleteSelectedCategories(selectedIds);
@@ -161,7 +166,9 @@ export function CategoriesManager({
           setSelectedIds([]);
           setFeedback({
             type: "success",
-            message: `${deletedCount} kategori terpilih berhasil dihapus.`,
+            message: isEn
+              ? `${deletedCount} selected categories deleted successfully.`
+              : `${deletedCount} kategori terpilih berhasil dihapus.`,
           });
         } else if (modalMode === "all") {
           const res = await deleteAllCategories();
@@ -172,7 +179,9 @@ export function CategoriesManager({
           setSelectedIds([]);
           setFeedback({
             type: "success",
-            message: `Seluruh kategori (${deletedCount} kategori) berhasil dihapus.`,
+            message: isEn
+              ? `All categories (${deletedCount} categories) deleted successfully.`
+              : `Seluruh kategori (${deletedCount} kategori) berhasil dihapus.`,
           });
         }
 
@@ -182,7 +191,7 @@ export function CategoriesManager({
       } catch (err: any) {
         setFeedback({
           type: "error",
-          message: err.message || "Terjadi kesalahan saat memproses penghapusan.",
+          message: err.message || (isEn ? "An error occurred while deleting." : "Terjadi kesalahan saat memproses penghapusan."),
         });
       }
     });
@@ -306,16 +315,16 @@ export function CategoriesManager({
         {currentPage >= totalPages ? (
           <span
             className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-latte bg-white text-espresso-300 opacity-50 cursor-not-allowed"
-            title="Halaman Selanjutnya"
+            title={isEn ? "Next Page" : "Halaman Selanjutnya"}
           >
             <ChevronRight className="h-4 w-4" />
           </span>
         ) : (
           <Link
             href={getPageUrl(currentPage + 1)}
-            data-loading-message={`Memuat kategori halaman ${currentPage + 1}...`}
+            data-loading-message={isEn ? `Loading category page ${currentPage + 1}...` : `Memuat kategori halaman ${currentPage + 1}...`}
             className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-latte bg-white text-espresso-600 hover:bg-latte/50 transition"
-            title="Halaman Selanjutnya"
+            title={isEn ? "Next Page" : "Halaman Selanjutnya"}
           >
             <ChevronRight className="h-4 w-4" />
           </Link>
@@ -359,7 +368,7 @@ export function CategoriesManager({
           {/* Form Pencarian */}
           <div className="rounded-xl border border-latte bg-white p-3.5 shadow-xs">
             <form
-              data-loading-message="Mencari kategori..."
+              data-loading-message={isEn ? "Searching categories..." : "Mencari kategori..."}
               className="flex items-center gap-2"
             >
               {currentLimit !== "20" && <input type="hidden" name="limit" value={currentLimit} />}
@@ -369,7 +378,7 @@ export function CategoriesManager({
                 <input
                   name="q"
                   defaultValue={searchQuery}
-                  placeholder="Cari nama, deskripsi, atau slug kategori..."
+                  placeholder={isEn ? "Search category name, description, or slug..." : "Cari nama, deskripsi, atau slug kategori..."}
                   className="w-full rounded-lg border border-espresso-100 bg-white py-1.5 pl-9 pr-3 text-sm text-espresso-900 placeholder:text-espresso-300 focus:outline-none focus:ring-2 focus:ring-caramel-500"
                 />
               </div>
@@ -377,14 +386,14 @@ export function CategoriesManager({
                 type="submit"
                 className="rounded-lg bg-espresso-700 px-4 py-1.5 text-xs font-semibold text-cream hover:bg-espresso-800"
               >
-                Cari
+                {isEn ? "Search" : "Cari"}
               </button>
               {searchQuery && (
                 <Link
                   href={getResetSearchHref()}
-                  data-loading-message="Mereset kata kunci pencarian..."
+                  data-loading-message={isEn ? "Resetting search filter..." : "Mereset kata kunci pencarian..."}
                   className="rounded-lg border border-espresso-200 px-3 py-1.5 text-xs font-semibold text-espresso-600 hover:bg-espresso-50 transition"
-                  title="Kosongkan pencarian"
+                  title={isEn ? "Clear search" : "Kosongkan pencarian"}
                 >
                   Reset
                 </Link>
@@ -398,16 +407,22 @@ export function CategoriesManager({
               {selectedIds.length > 0 ? (
                 <span className="inline-flex items-center gap-1.5 rounded-lg bg-caramel-100 px-3 py-1.5 text-xs font-bold text-caramel-900">
                   <CheckSquare className="h-4 w-4 text-caramel-700" />
-                  {selectedIds.length} kategori dipilih
+                  {isEn
+                    ? `${selectedIds.length} categories selected`
+                    : `${selectedIds.length} kategori dipilih`}
                 </span>
               ) : (
                 <span className="text-xs font-medium text-espresso-600">
                   {totalMatching === 0
-                    ? "Tidak ada kategori ditemukan"
+                    ? (isEn ? "No categories found" : "Tidak ada kategori ditemukan")
                     : pageSize
-                    ? `Menampilkan ${startIndex} - ${endIndex} dari ${totalMatching} kategori`
-                    : `Menampilkan semua ${totalMatching} kategori`}
-                  {totalAllCategories !== totalMatching && ` (total ${totalAllCategories} di sistem)`}
+                    ? (isEn
+                        ? `Showing ${startIndex} - ${endIndex} of ${totalMatching} categories`
+                        : `Menampilkan ${startIndex} - ${endIndex} dari ${totalMatching} kategori`)
+                    : (isEn
+                        ? `Showing all ${totalMatching} categories`
+                        : `Menampilkan semua ${totalMatching} kategori`)}
+                  {totalAllCategories !== totalMatching && (isEn ? ` (total ${totalAllCategories} in system)` : ` (total ${totalAllCategories} di sistem)`)}
                   {searchQuery && ` (filter: "${searchQuery}")`}
                 </span>
               )}
@@ -418,7 +433,7 @@ export function CategoriesManager({
                   onClick={() => setSelectedIds([])}
                   className="rounded-lg px-2.5 py-1 text-xs font-semibold text-espresso-500 hover:bg-latte/50 hover:text-espresso-800"
                 >
-                  Batalkan Pilihan
+                  {isEn ? "Deselect All" : "Batalkan Pilihan"}
                 </button>
               )}
             </div>
@@ -426,7 +441,7 @@ export function CategoriesManager({
             <div className="flex flex-wrap items-center gap-3">
               {/* Show Data Selector (20, 50, 100, All) */}
               <div className="flex items-center gap-1.5">
-                <span className="text-xs font-semibold text-espresso-500">Tampilkan:</span>
+                <span className="text-xs font-semibold text-espresso-500">{isEn ? "Show:" : "Tampilkan:"}</span>
                 <div className="inline-flex rounded-lg border border-latte bg-latte/30 p-0.5 text-xs">
                   {(["20", "50", "100", "all"] as const).map((opt) => {
                     const isActive = currentLimit === opt;
@@ -447,7 +462,7 @@ export function CategoriesManager({
                       <Link
                         key={opt}
                         href={getLimitUrl(opt)}
-                        data-loading-message={`Menampilkan ${opt === "all" ? "semua" : opt} kategori per halaman...`}
+                        data-loading-message={isEn ? `Showing ${opt === "all" ? "all" : opt} categories per page...` : `Menampilkan ${opt === "all" ? "semua" : opt} kategori per halaman...`}
                         className="rounded-md px-2.5 py-1 font-semibold text-espresso-600 hover:text-espresso-900 transition"
                       >
                         {label}
@@ -466,7 +481,7 @@ export function CategoriesManager({
                     className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs transition hover:bg-rose-700 active:scale-95"
                   >
                     <Trash2 className="h-4 w-4" />
-                    Hapus Terpilih ({selectedIds.length})
+                    {isEn ? `Delete Selected (${selectedIds.length})` : `Hapus Terpilih (${selectedIds.length})`}
                   </button>
                 )}
 
@@ -476,10 +491,10 @@ export function CategoriesManager({
                     type="button"
                     onClick={openDeleteAll}
                     className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-rose-300 bg-rose-50/60 px-3 py-1.5 text-xs font-bold text-rose-700 transition hover:bg-rose-100 hover:border-rose-400 active:scale-95"
-                    title="Hapus Seluruh Kategori"
+                    title={isEn ? "Delete All Categories" : "Hapus Seluruh Kategori"}
                   >
                     <Trash2 className="h-4 w-4 text-rose-600" />
-                    Hapus Semua
+                    {isEn ? "Delete All" : "Hapus Semua"}
                   </button>
                 )}
               </div>
@@ -498,7 +513,11 @@ export function CategoriesManager({
                         onClick={toggleSelectAll}
                         disabled={categories.length === 0}
                         className="flex items-center justify-center text-espresso-600 hover:text-caramel-600 disabled:opacity-40"
-                        title={isAllSelected ? "Batalkan semua pilihan" : "Pilih semua di halaman ini"}
+                        title={
+                          isAllSelected
+                            ? (isEn ? "Deselect all on this page" : "Batalkan semua pilihan")
+                            : (isEn ? "Select all on this page" : "Pilih semua di halaman ini")
+                        }
                       >
                         {isAllSelected ? (
                           <CheckSquare className="h-4 w-4 text-caramel-600" />
@@ -509,17 +528,17 @@ export function CategoriesManager({
                         )}
                       </button>
                     </th>
-                    <th className="px-4 py-3">Nama Kategori</th>
-                    <th className="px-4 py-3">Slug</th>
-                    <th className="px-4 py-3">Jumlah Produk</th>
-                    <th className="px-4 py-3 text-right">Aksi</th>
+                    <th className="px-4 py-3">{isEn ? "CATEGORY NAME" : "NAMA KATEGORI"}</th>
+                    <th className="px-4 py-3">{isEn ? "SLUG" : "SLUG"}</th>
+                    <th className="px-4 py-3">{isEn ? "TOTAL PRODUCTS" : "JUMLAH PRODUK"}</th>
+                    <th className="px-4 py-3 text-right">{isEn ? "ACTIONS" : "AKSI"}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-latte">
                   {categories.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="py-12 text-center text-espresso-400">
-                        Tidak ada kategori produk yang sesuai.
+                        {isEn ? "No matching product categories found." : "Tidak ada kategori produk yang sesuai."}
                       </td>
                     </tr>
                   ) : (
@@ -555,7 +574,7 @@ export function CategoriesManager({
                           <td className="px-4 py-3 font-mono text-xs text-espresso-600">{c.slug}</td>
                           <td className="px-4 py-3">
                             <span className="inline-flex rounded-full bg-latte px-2.5 py-0.5 text-xs font-semibold text-espresso-800">
-                              {c._count.products} item
+                              {c._count.products} {isEn ? (c._count.products === 1 ? "item" : "items") : "item"}
                             </span>
                           </td>
                           <td className="px-4 py-3 text-right">
@@ -564,7 +583,7 @@ export function CategoriesManager({
                                 type="button"
                                 onClick={() => handleEdit(c)}
                                 className="rounded-lg p-1.5 text-espresso-600 hover:bg-latte"
-                                title="Edit Kategori"
+                                title={isEn ? "Edit Category" : "Edit Kategori"}
                               >
                                 <Edit2 className="h-4 w-4" />
                               </button>
@@ -572,7 +591,7 @@ export function CategoriesManager({
                                 type="button"
                                 onClick={() => openSingleDelete(c)}
                                 className="rounded-lg p-1.5 text-rose-600 hover:bg-rose-50 transition"
-                                title="Hapus Kategori"
+                                title={isEn ? "Delete Category" : "Hapus Kategori"}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </button>
@@ -591,11 +610,11 @@ export function CategoriesManager({
               <div className="text-xs text-espresso-500">
                 {pageSize ? (
                   <>
-                    Halaman <strong className="text-espresso-900">{currentPage}</strong> dari{" "}
-                    <strong className="text-espresso-900">{totalPages}</strong> ({totalMatching} kategori)
+                    {isEn ? "Page" : "Halaman"} <strong className="text-espresso-900">{currentPage}</strong> {isEn ? "of" : "dari"}{" "}
+                    <strong className="text-espresso-900">{totalPages}</strong> ({totalMatching} {isEn ? "categories" : "kategori"})
                   </>
                 ) : (
-                  <>Semua {totalMatching} kategori ditampilkan dalam 1 halaman</>
+                  <>{isEn ? `All ${totalMatching} categories shown on 1 page` : `Semua ${totalMatching} kategori ditampilkan dalam 1 halaman`}</>
                 )}
               </div>
 
@@ -609,7 +628,9 @@ export function CategoriesManager({
           <div className="rounded-xl border border-latte bg-white p-6 shadow-xs sticky top-6">
             <h2 className="text-base font-bold text-espresso-900 border-b border-latte pb-3 flex items-center gap-2">
               <FolderPlus className="h-4 w-4 text-caramel-500" />
-              {editingCategory ? "Edit Kategori" : "Tambah Kategori Baru"}
+              {editingCategory
+                ? (isEn ? "Edit Category" : "Edit Kategori")
+                : (isEn ? "Add New Category" : "Tambah Kategori Baru")}
             </h2>
 
             {state?.error && <Alert tone="error" className="mt-4">{state.error}</Alert>}
@@ -618,22 +639,22 @@ export function CategoriesManager({
             <form action={formAction} className="mt-4 space-y-4">
               {editingCategory && <input type="hidden" name="id" value={editingCategory.id} />}
 
-              <Field label="Nama Kategori *">
+              <Field label={isEn ? "Category Name *" : "Nama Kategori *"}>
                 <Input
                   name="name"
                   defaultValue={editingCategory?.name || ""}
                   key={editingCategory?.id || "new-name"}
-                  placeholder="Contoh: Biji Kopi"
+                  placeholder={isEn ? "e.g. Coffee Beans" : "Contoh: Biji Kopi"}
                   required
                 />
               </Field>
 
-              <Field label="Deskripsi">
+              <Field label={isEn ? "Description" : "Deskripsi"}>
                 <Textarea
                   name="description"
                   defaultValue={editingCategory?.description || ""}
                   key={editingCategory?.id || "new-desc"}
-                  placeholder="Deskripsi singkat mengenai jenis produk dalam kategori ini..."
+                  placeholder={isEn ? "Brief description of the products in this category..." : "Deskripsi singkat mengenai jenis produk dalam kategori ini..."}
                   rows={3}
                 />
               </Field>
@@ -642,16 +663,16 @@ export function CategoriesManager({
                 name="image"
                 defaultValue={editingCategory?.image || ""}
                 key={editingCategory?.id || "new-img"}
-                label="Foto Cover Kategori"
+                label={isEn ? "Category Cover Photo" : "Foto Cover Kategori"}
               />
 
               <div className="flex gap-2 pt-2">
                 <Button type="submit" disabled={isPending} className="flex-1 justify-center">
                   {isPending
-                    ? "Menyimpan..."
+                    ? (isEn ? "Saving..." : "Menyimpan...")
                     : editingCategory
-                    ? "Simpan Perubahan"
-                    : "Tambah Kategori"}
+                    ? (isEn ? "Save Changes" : "Simpan Perubahan")
+                    : (isEn ? "Add Category" : "Tambah Kategori")}
                 </Button>
                 {editingCategory && (
                   <button
@@ -659,7 +680,7 @@ export function CategoriesManager({
                     onClick={handleReset}
                     className="rounded-lg border border-espresso-200 px-3 py-2 text-xs font-semibold text-espresso-700 hover:bg-latte"
                   >
-                    Batal
+                    {isEn ? "Cancel" : "Batal"}
                   </button>
                 )}
               </div>
@@ -685,33 +706,33 @@ export function CategoriesManager({
               </div>
               <div className="flex-1">
                 <h3 className="text-lg font-bold text-espresso-900">
-                  {modalMode === "single" && "Hapus Kategori"}
-                  {modalMode === "selected" && "Hapus Kategori Terpilih"}
-                  {modalMode === "all" && "Hapus Seluruh Kategori (Delete ALL)"}
+                  {modalMode === "single" && (isEn ? "Delete Category" : "Hapus Kategori")}
+                  {modalMode === "selected" && (isEn ? "Delete Selected Categories" : "Hapus Kategori Terpilih")}
+                  {modalMode === "all" && (isEn ? "Delete ALL Categories (Clear All)" : "Hapus Seluruh Kategori (Delete ALL)")}
                 </h3>
                 <p className="mt-1.5 text-xs text-espresso-600 leading-relaxed">
                   {modalMode === "single" && singleTarget && (
                     <>
-                      Apakah Anda yakin ingin menghapus kategori{" "}
+                      {isEn ? "Are you sure you want to delete category " : "Apakah Anda yakin ingin menghapus kategori "}
                       <strong className="text-espresso-900">{singleTarget.name}</strong>?
                     </>
                   )}
                   {modalMode === "selected" && (
                     <>
-                      Anda akan menghapus{" "}
+                      {isEn ? "You are about to delete " : "Anda akan menghapus "}
                       <strong className="text-espresso-900">
-                        {selectedIds.length} kategori
+                        {selectedIds.length} {isEn ? "categories" : "kategori"}
                       </strong>{" "}
-                      yang sedang dipilih.
+                      {isEn ? "currently selected." : "yang sedang dipilih."}
                     </>
                   )}
                   {modalMode === "all" && (
                     <>
-                      Anda akan menghapus{" "}
+                      {isEn ? "You are about to delete " : "Anda akan menghapus "}
                       <strong className="text-rose-700">
-                        SELURUH ({totalAllCategories}) kategori produk
+                        {isEn ? `ALL (${totalAllCategories}) product categories` : `SELURUH (${totalAllCategories}) kategori produk`}
                       </strong>{" "}
-                      yang terdaftar di sistem toko.
+                      {isEn ? "registered in the store system." : "yang terdaftar di sistem toko."}
                     </>
                   )}
                 </p>
@@ -723,14 +744,19 @@ export function CategoriesManager({
               <p className="leading-relaxed">
                 {modalMode === "single" && singleTarget && singleTarget._count.products > 0 ? (
                   <>
-                    Kategori ini memiliki <strong>{singleTarget._count.products} produk</strong>.
-                    Produk-produk tersebut tidak akan dihapus, melainkan status kategorinya akan
-                    menjadi tanpa kategori (uncategorized).
+                    {isEn ? "This category currently has " : "Kategori ini memiliki "}
+                    <strong>{singleTarget._count.products} {isEn ? "products" : "produk"}</strong>.{" "}
+                    {isEn
+                      ? "These products will not be deleted; their category will be set to uncategorized."
+                      : "Produk-produk tersebut tidak akan dihapus, melainkan status kategorinya akan menjadi tanpa kategori (uncategorized)."}
                   </>
                 ) : (
                   <>
-                    Tindakan ini <strong>tidak dapat dibatalkan</strong>. Produk yang berada dalam
-                    kategori ini tetap aman dan tidak akan terhapus dari katalog toko.
+                    {isEn ? "This action " : "Tindakan ini "}
+                    <strong>{isEn ? "cannot be undone" : "tidak dapat dibatalkan"}</strong>.{" "}
+                    {isEn
+                      ? "Products in this category remain safe and will not be removed from the store catalog."
+                      : "Produk yang berada dalam kategori ini tetap aman dan tidak akan terhapus dari katalog toko."}
                   </>
                 )}
               </p>
@@ -744,7 +770,7 @@ export function CategoriesManager({
                 onClick={closeModal}
                 className="cursor-pointer rounded-lg border border-espresso-200 bg-white px-4 py-2 text-xs font-semibold text-espresso-700 hover:bg-espresso-50 disabled:opacity-50"
               >
-                Batal
+                {isEn ? "Cancel" : "Batal"}
               </button>
               <button
                 type="button"
@@ -755,14 +781,14 @@ export function CategoriesManager({
                 {isDeleting ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin text-white" />
-                    Memproses...
+                    {isEn ? "Processing..." : "Memproses..."}
                   </>
                 ) : (
                   <>
                     <Trash2 className="h-4 w-4" />
-                    {modalMode === "single" && "Ya, Hapus Kategori"}
-                    {modalMode === "selected" && `Hapus ${selectedIds.length} Kategori`}
-                    {modalMode === "all" && `Ya, Hapus Semua (${totalAllCategories})`}
+                    {modalMode === "single" && (isEn ? "Yes, Delete Category" : "Ya, Hapus Kategori")}
+                    {modalMode === "selected" && (isEn ? `Delete ${selectedIds.length} Categories` : `Hapus ${selectedIds.length} Kategori`)}
+                    {modalMode === "all" && (isEn ? `Yes, Delete All (${totalAllCategories})` : `Ya, Hapus Semua (${totalAllCategories})`)}
                   </>
                 )}
               </button>

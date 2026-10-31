@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 import { requireAdmin } from "@/lib/auth";
+import { getServerLocale } from "@/i18n/server";
 import { ReportsView } from "@/components/admin/reports-view";
 
 export const metadata = {
@@ -9,6 +10,8 @@ export const metadata = {
 
 export default async function AdminReportsPage() {
   await requireAdmin();
+  const locale = await getServerLocale();
+  const isEn = locale === "en";
 
   const [settings, orders] = await Promise.all([
     getSettings(),
@@ -30,9 +33,9 @@ export default async function AdminReportsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-espresso-900 md:text-3xl">Laporan Penjualan</h1>
+        <h1 className="text-2xl font-bold text-espresso-900 md:text-3xl">{isEn ? "Sales Reports" : "Laporan Penjualan"}</h1>
         <p className="mt-1 text-sm text-espresso-500">
-          Analisis performa omzet harian, bulanan, dan tahunan dengan fitur perbandingan 2 rentang tanggal.
+          {isEn ? "Analyze daily, monthly, and yearly revenue performance with 2 date-range comparison feature." : "Analisis performa omzet harian, bulanan, dan tahunan dengan fitur perbandingan 2 rentang tanggal."}
         </p>
       </div>
 

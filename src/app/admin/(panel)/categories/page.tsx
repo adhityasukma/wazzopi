@@ -1,15 +1,23 @@
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+import { getServerLocale } from "@/i18n/server";
 import { CategoriesManager } from "@/components/admin/categories-manager";
 
-export const metadata = {
-  title: "Kelola Kategori Produk",
-};
+export async function generateMetadata() {
+  const locale = await getServerLocale();
+  return {
+    title: locale === "en" ? "Manage Product Categories" : "Kelola Kategori Produk",
+  };
+}
 
 export default async function AdminCategoriesPage({
   searchParams,
 }: PageProps<"/admin/categories">) {
-  await requireAdmin();
+  const [session, locale] = await Promise.all([
+    requireAdmin(),
+    getServerLocale(),
+  ]);
+  const isEn = locale === "en";
   const sp = await searchParams;
   const q = typeof sp.q === "string" ? sp.q.trim() : "";
   const rawLimit = typeof sp.limit === "string" ? sp.limit : "20";
@@ -54,9 +62,13 @@ export default async function AdminCategoriesPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-espresso-900 md:text-3xl">Kategori Produk</h1>
+        <h1 className="text-2xl font-bold text-espresso-900 md:text-3xl">
+          {isEn ? "Product Categories" : "Kategori Produk"}
+        </h1>
         <p className="mt-1 text-sm text-espresso-500">
-          Total {totalAllCategories} kategori produk terdaftar di Wazzopi
+          {isEn
+            ? `Total of ${totalAllCategories} product categories registered in Wazzopi`
+            : `Total ${totalAllCategories} kategori produk terdaftar di Wazzopi`}
         </p>
       </div>
 

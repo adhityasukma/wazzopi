@@ -7,6 +7,8 @@ import { createProduct, updateProduct } from "@/actions/products";
 import { Alert, Button, Field, Input, Select, Switch, Textarea } from "@/components/ui";
 import { ImageUpload } from "@/components/admin/image-upload";
 import { useAppLoading } from "@/components/loading-provider";
+import { useI18n } from "@/i18n/provider";
+import { getLocalizedCategoryName } from "@/lib/category-i18n";
 
 type VariantItem = {
   id?: string;
@@ -39,6 +41,8 @@ type Props = {
 
 export function ProductForm({ product, categories, isStaffKaryawan }: Props) {
   const isEditing = !!product;
+  const { locale } = useI18n();
+  const isEn = locale === "en";
 
   const action = isEditing
     ? updateProduct.bind(null, product.id)
@@ -49,17 +53,21 @@ export function ProductForm({ product, categories, isStaffKaryawan }: Props) {
 
   useEffect(() => {
     if (isPending) {
-      showLoading(isEditing ? "Menyimpan perubahan produk..." : "Menyimpan produk baru...");
+      showLoading(
+        isEditing
+          ? (isEn ? "Saving product changes..." : "Menyimpan perubahan produk...")
+          : (isEn ? "Saving new product..." : "Menyimpan produk baru...")
+      );
     } else {
       hideLoading();
     }
-  }, [isPending, isEditing, showLoading, hideLoading]);
+  }, [isPending, isEditing, showLoading, hideLoading, isEn]);
 
   const [hasVariants, setHasVariants] = useState(product?.hasVariants ?? false);
   const [variants, setVariants] = useState<VariantItem[]>(
     product?.variants ?? [
-      { name: "250g - Biji Utuh", sku: "", price: 95000, stock: 20 },
-      { name: "250g - Bubuk", sku: "", price: 95000, stock: 20 },
+      { name: isEn ? "250g - Whole Bean" : "250g - Biji Utuh", sku: "", price: 95000, stock: 20 },
+      { name: isEn ? "250g - Ground" : "250g - Bubuk", sku: "", price: 95000, stock: 20 },
     ]
   );
 
@@ -94,40 +102,40 @@ export function ProductForm({ product, categories, isStaffKaryawan }: Props) {
         <div className="space-y-6 lg:col-span-8">
           <div className="rounded-xl border border-latte bg-white p-6 shadow-xs space-y-4">
             <h2 className="text-base font-bold text-espresso-900 border-b border-latte pb-3">
-              Informasi Umum
+              {isEn ? "General Information" : "Informasi Umum"}
             </h2>
 
-            <Field label="Nama Produk *">
+            <Field label={isEn ? "Product Name *" : "Nama Produk *"}>
               <Input
                 name="name"
                 defaultValue={product?.name || ""}
-                placeholder="Contoh: Arabica Gayo Wine Process"
+                placeholder={isEn ? "e.g. Arabica Gayo Wine Process" : "Contoh: Arabica Gayo Wine Process"}
                 required
               />
             </Field>
 
-            <Field label="Deskripsi Produk">
+            <Field label={isEn ? "Product Description" : "Deskripsi Produk"}>
               <Textarea
                 name="description"
                 defaultValue={product?.description || ""}
-                placeholder="Jelaskan aroma, notes rasa, asal kebun, dan cara seduh yang cocok..."
+                placeholder={isEn ? "Describe aroma, flavor notes, origin farm, and brewing recommendations..." : "Jelaskan aroma, notes rasa, asal kebun, dan cara seduh yang cocok..."}
                 rows={5}
               />
             </Field>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Kategori Produk">
+              <Field label={isEn ? "Product Category" : "Kategori Produk"}>
                 <Select name="categoryId" defaultValue={product?.categoryId || ""}>
-                  <option value="">-- Pilih Kategori --</option>
+                  <option value="">{isEn ? "-- Select Category --" : "-- Pilih Kategori --"}</option>
                   {categories.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.name}
+                      {getLocalizedCategoryName(c.name, "", locale)}
                     </option>
                   ))}
                 </Select>
               </Field>
 
-              <Field label="Berat Produk (Gram)">
+              <Field label={isEn ? "Product Weight (Grams)" : "Berat Produk (Gram)"}>
                 <Input
                   name="weight"
                   type="number"
@@ -142,9 +150,11 @@ export function ProductForm({ product, categories, isStaffKaryawan }: Props) {
           <div className="rounded-xl border border-latte bg-white p-6 shadow-xs space-y-4">
             <div className="flex items-center justify-between border-b border-latte pb-3">
               <div>
-                <h2 className="text-base font-bold text-espresso-900">Varian Produk</h2>
+                <h2 className="text-base font-bold text-espresso-900">{isEn ? "Product Variants" : "Varian Produk"}</h2>
                 <p className="text-xs text-espresso-400">
-                  Aktifkan jika produk memiliki ukuran gramasi atau bentuk gilingan berbeda
+                  {isEn
+                    ? "Enable if product has multiple weights, package sizes, or grind types"
+                    : "Aktifkan jika produk memiliki ukuran gramasi atau bentuk gilingan berbeda"}
                 </p>
               </div>
               <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-espresso-800">
@@ -155,7 +165,7 @@ export function ProductForm({ product, categories, isStaffKaryawan }: Props) {
                   onChange={(e) => setHasVariants(e.target.checked)}
                   className="rounded border-espresso-300 text-caramel-600 focus:ring-caramel-500 h-4 w-4"
                 />
-                Memiliki Varian
+                {isEn ? "Has Variants" : "Memiliki Varian"}
               </label>
             </div>
 
@@ -171,17 +181,17 @@ export function ProductForm({ product, categories, isStaffKaryawan }: Props) {
                       className="flex flex-wrap items-center gap-3 rounded-lg border border-latte p-3 bg-cream/30"
                     >
                       <div className="flex-1 min-w-36">
-                        <label className="text-[11px] font-medium text-espresso-600">Nama Varian</label>
+                        <label className="text-[11px] font-medium text-espresso-600">{isEn ? "Variant Name" : "Nama Varian"}</label>
                         <Input
                           value={v.name}
                           onChange={(e) => updateVariantField(i, "name", e.target.value)}
-                          placeholder="Misal: 500g Biji Utuh"
+                          placeholder={isEn ? "e.g. 500g Whole Bean" : "Misal: 500g Biji Utuh"}
                           className="h-8 text-xs"
                           required
                         />
                       </div>
                       <div className="w-28">
-                        <label className="text-[11px] font-medium text-espresso-600">Harga (IDR)</label>
+                        <label className="text-[11px] font-medium text-espresso-600">{isEn ? "Price (IDR)" : "Harga (IDR)"}</label>
                         <Input
                           type="number"
                           value={v.price}
@@ -192,7 +202,7 @@ export function ProductForm({ product, categories, isStaffKaryawan }: Props) {
                         />
                       </div>
                       <div className="w-24">
-                        <label className="text-[11px] font-medium text-espresso-600">Stok</label>
+                        <label className="text-[11px] font-medium text-espresso-600">{isEn ? "Stock" : "Stok"}</label>
                         <Input
                           type="number"
                           value={v.stock}
@@ -203,7 +213,7 @@ export function ProductForm({ product, categories, isStaffKaryawan }: Props) {
                         />
                       </div>
                       <div className="w-28">
-                        <label className="text-[11px] font-medium text-espresso-600">SKU (Opsional)</label>
+                        <label className="text-[11px] font-medium text-espresso-600">{isEn ? "SKU (Optional)" : "SKU (Opsional)"}</label>
                         <Input
                           value={v.sku || ""}
                           onChange={(e) => updateVariantField(i, "sku", e.target.value)}
@@ -216,7 +226,7 @@ export function ProductForm({ product, categories, isStaffKaryawan }: Props) {
                           type="button"
                           onClick={() => removeVariant(i)}
                           className="rounded-md p-1.5 text-rose-500 hover:bg-rose-50"
-                          title="Hapus Varian"
+                          title={isEn ? "Delete Variant" : "Hapus Varian"}
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -230,29 +240,29 @@ export function ProductForm({ product, categories, isStaffKaryawan }: Props) {
                   onClick={addVariant}
                   className="inline-flex items-center gap-1.5 text-xs font-semibold text-caramel-600 hover:underline"
                 >
-                  <Plus className="h-3.5 w-3.5" /> Tambah Baris Varian
+                  <Plus className="h-3.5 w-3.5" /> {isEn ? "Add Variant Row" : "Tambah Baris Varian"}
                 </button>
               </div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-3">
-                <Field label="Harga Satuan (IDR) *">
+                <Field label={isEn ? "Unit Price (IDR) *" : "Harga Satuan (IDR) *"}>
                   <Input
                     name="price"
                     type="number"
                     defaultValue={product?.price ?? 0}
-                    placeholder="Contoh: 95000"
+                    placeholder={isEn ? "e.g. 95000" : "Contoh: 95000"}
                     required={!hasVariants}
                   />
                 </Field>
-                <Field label="Harga Coret (Diskon)">
+                <Field label={isEn ? "Strikethrough Price (Discount)" : "Harga Coret (Diskon)"}>
                   <Input
                     name="comparePrice"
                     type="number"
                     defaultValue={product?.comparePrice ?? ""}
-                    placeholder="Opsional"
+                    placeholder={isEn ? "Optional" : "Opsional"}
                   />
                 </Field>
-                <Field label="Jumlah Stok *">
+                <Field label={isEn ? "Stock Quantity *" : "Jumlah Stok *"}>
                   <Input
                     name="stock"
                     type="number"
@@ -270,33 +280,33 @@ export function ProductForm({ product, categories, isStaffKaryawan }: Props) {
         <div className="space-y-6 lg:col-span-4">
           <div className="rounded-xl border border-latte bg-white p-6 shadow-xs space-y-4">
             <h2 className="text-base font-bold text-espresso-900 border-b border-latte pb-3">
-              Foto Produk
+              {isEn ? "Product Photo" : "Foto Produk"}
             </h2>
 
             <ImageUpload
               name="image"
               defaultValue={product?.image || "/images/p-arabica-gayo.jpg"}
-              label="Foto Utama Produk"
+              label={isEn ? "Main Product Photo" : "Foto Utama Produk"}
             />
 
-            <Field label="SKU Produk Utama">
+            <Field label={isEn ? "Main Product SKU" : "SKU Produk Utama"}>
               <Input
                 name="sku"
                 defaultValue={product?.sku || ""}
-                placeholder="Contoh: WZ-GAYO-01"
+                placeholder={isEn ? "e.g. WZ-GAYO-01" : "Contoh: WZ-GAYO-01"}
               />
             </Field>
           </div>
 
           <div className="rounded-xl border border-latte bg-white p-6 shadow-xs space-y-4">
             <h2 className="text-base font-bold text-espresso-900 border-b border-latte pb-3">
-              Status & Visibilitas
+              {isEn ? "Status & Visibility" : "Status & Visibilitas"}
             </h2>
 
-            <Field label="Status Publikasi">
+            <Field label={isEn ? "Publication Status" : "Status Publikasi"}>
               <Select name="status" defaultValue={product?.status || "PUBLISHED"}>
-                <option value="PUBLISHED">PUBLISHED (Tampil di Toko)</option>
-                <option value="DRAFT">DRAFT (Sembunyikan)</option>
+                <option value="PUBLISHED">{isEn ? "PUBLISHED (Visible in Store)" : "PUBLISHED (Tampil di Toko)"}</option>
+                <option value="DRAFT">{isEn ? "DRAFT (Hidden)" : "DRAFT (Sembunyikan)"}</option>
               </Select>
             </Field>
 
@@ -308,7 +318,7 @@ export function ProductForm({ product, categories, isStaffKaryawan }: Props) {
                   defaultChecked={product?.featured ?? false}
                   className="rounded border-espresso-300 text-caramel-600 focus:ring-caramel-500 h-4 w-4"
                 />
-                Jadikan Produk Unggulan di Beranda
+                {isEn ? "Feature on Homepage" : "Jadikan Produk Unggulan di Beranda"}
               </label>
             )}
           </div>
@@ -320,16 +330,16 @@ export function ProductForm({ product, categories, isStaffKaryawan }: Props) {
               className="w-full justify-center h-11 text-base font-semibold"
             >
               {isPending
-                ? "Menyimpan..."
+                ? (isEn ? "Saving..." : "Menyimpan...")
                 : isEditing
-                ? "Perbarui Produk"
-                : "Simpan & Tambahkan Produk"}
+                ? (isEn ? "Update Product" : "Perbarui Produk")
+                : (isEn ? "Save & Add Product" : "Simpan & Tambahkan Produk")}
             </Button>
             <Link
               href="/admin/products"
               className="block text-center text-xs text-espresso-500 hover:underline py-2"
             >
-              Batal & Kembali ke Daftar
+              {isEn ? "Cancel & Return to List" : "Batal & Kembali ke Daftar"}
             </Link>
           </div>
         </div>

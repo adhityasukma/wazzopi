@@ -14,6 +14,7 @@ import {
 import { ArrowDownRight, ArrowUpRight, Calendar, Download, TrendingUp } from "lucide-react";
 import { formatCurrency, type CurrencySettings } from "@/lib/currency";
 import { formatDate, SALES_STATUSES } from "@/lib/utils";
+import { useI18n } from "@/i18n/provider";
 
 type OrderRecord = {
   id: string;
@@ -33,6 +34,8 @@ export function ReportsView({
   orders: OrderRecord[];
   currency: CurrencySettings;
 }) {
+  const { locale } = useI18n();
+  const isEn = locale === "en";
   const [tab, setTab] = useState<"daily" | "monthly" | "yearly">("daily");
 
   // Default Range A: 30 hari terakhir
@@ -78,22 +81,25 @@ export function ReportsView({
       : 0;
 
   // Siapkan data perbandingan grafik
+  const labelPeriodA = isEn ? "Period A (Primary)" : "Periode A (Utama)";
+  const labelPeriodB = isEn ? "Period B (Comparison)" : "Periode B (Pembanding)";
+
   const comparisonData = [
     {
-      name: "Total Pendapatan",
-      "Periode A (Utama)": totalRevA,
-      "Periode B (Pembanding)": totalRevB,
+      name: isEn ? "Total Revenue" : "Total Pendapatan",
+      [labelPeriodA]: totalRevA,
+      [labelPeriodB]: totalRevB,
     },
     {
-      name: "Jumlah Pesanan",
-      "Periode A (Utama)": ordersA.length,
-      "Periode B (Pembanding)": ordersB.length,
+      name: isEn ? "Total Orders" : "Jumlah Pesanan",
+      [labelPeriodA]: ordersA.length,
+      [labelPeriodB]: ordersB.length,
     },
   ];
 
   // Export CSV
   function exportCSV() {
-    const headers = "No. Pesanan,Tanggal,Pelanggan,Status,Subtotal,Ongkir,Total\n";
+    const headers = isEn ? "Order No,Date,Customer,Status,Subtotal,Shipping,Total\n" : "No. Pesanan,Tanggal,Pelanggan,Status,Subtotal,Ongkir,Total\n";
     const rows = ordersA
       .map(
         (o) =>
@@ -104,7 +110,7 @@ export function ReportsView({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `laporan-penjualan-wazzopi-${rangeA.start}-sd-${rangeA.end}.csv`;
+    a.download = isEn ? `wazzopi-sales-report-${rangeA.start}-to-${rangeA.end}.csv` : `laporan-penjualan-wazzopi-${rangeA.start}-sd-${rangeA.end}.csv`;
     a.click();
   }
 
@@ -116,14 +122,14 @@ export function ReportsView({
           <div className="flex items-center gap-2">
             <Calendar className="h-5 w-5 text-caramel-500" />
             <h2 className="text-base font-bold text-espresso-900">
-              Filter Dua Rentang Tanggal Komparasi
+              {isEn ? "Compare Two Date Ranges" : "Filter Dua Rentang Tanggal Komparasi"}
             </h2>
           </div>
           <button
             onClick={exportCSV}
             className="inline-flex items-center gap-1.5 rounded-lg border border-espresso-200 bg-white px-3 py-1.5 text-xs font-semibold text-espresso-700 hover:bg-latte shadow-xs"
           >
-            <Download className="h-3.5 w-3.5" /> Export CSV (Periode A)
+            <Download className="h-3.5 w-3.5" /> {isEn ? "Export CSV (Period A)" : "Export CSV (Periode A)"}
           </button>
         </div>
 
@@ -131,7 +137,7 @@ export function ReportsView({
           {/* Range A (Utama) */}
           <div className="rounded-lg border border-caramel-200 bg-caramel-50/30 p-4">
             <span className="text-xs font-bold uppercase tracking-wider text-caramel-700 block mb-2">
-              Periode A (Rentang Utama)
+              {isEn ? "Period A (Primary Range)" : "Periode A (Rentang Utama)"}
             </span>
             <div className="flex items-center gap-2">
               <input
@@ -140,7 +146,7 @@ export function ReportsView({
                 onChange={(e) => setRangeA((r) => ({ ...r, start: e.target.value }))}
                 className="rounded-lg border border-espresso-200 bg-white px-3 py-1.5 text-xs text-espresso-900 focus:outline-none focus:ring-1 focus:ring-caramel-500"
               />
-              <span className="text-xs text-espresso-400">s/d</span>
+              <span className="text-xs text-espresso-400">{isEn ? "to" : "s/d"}</span>
               <input
                 type="date"
                 value={rangeA.end}
@@ -149,7 +155,7 @@ export function ReportsView({
               />
             </div>
             <div className="mt-3 flex justify-between text-xs">
-              <span className="text-espresso-600">Total Periode A:</span>
+              <span className="text-espresso-600">{isEn ? "Total Period A:" : "Total Periode A:"}</span>
               <strong className="text-espresso-900">{formatCurrency(totalRevA, currency)}</strong>
             </div>
           </div>
@@ -157,7 +163,7 @@ export function ReportsView({
           {/* Range B (Pembanding) */}
           <div className="rounded-lg border border-espresso-200 bg-espresso-50/40 p-4">
             <span className="text-xs font-bold uppercase tracking-wider text-espresso-600 block mb-2">
-              Periode B (Rentang Pembanding)
+              {isEn ? "Period B (Comparison Range)" : "Periode B (Rentang Pembanding)"}
             </span>
             <div className="flex items-center gap-2">
               <input
@@ -166,7 +172,7 @@ export function ReportsView({
                 onChange={(e) => setRangeB((r) => ({ ...r, start: e.target.value }))}
                 className="rounded-lg border border-espresso-200 bg-white px-3 py-1.5 text-xs text-espresso-900 focus:outline-none focus:ring-1 focus:ring-caramel-500"
               />
-              <span className="text-xs text-espresso-400">s/d</span>
+              <span className="text-xs text-espresso-400">{isEn ? "to" : "s/d"}</span>
               <input
                 type="date"
                 value={rangeB.end}
@@ -175,7 +181,7 @@ export function ReportsView({
               />
             </div>
             <div className="mt-3 flex justify-between text-xs">
-              <span className="text-espresso-600">Total Periode B:</span>
+              <span className="text-espresso-600">{isEn ? "Total Period B:" : "Total Periode B:"}</span>
               <strong className="text-espresso-900">{formatCurrency(totalRevB, currency)}</strong>
             </div>
           </div>
@@ -185,23 +191,23 @@ export function ReportsView({
       {/* Kartu Ringkasan Komparasi */}
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-xl border border-latte bg-white p-5 shadow-xs">
-          <span className="text-xs font-semibold uppercase text-espresso-400">Omzet Periode A</span>
+          <span className="text-xs font-semibold uppercase text-espresso-400">{isEn ? "Revenue Period A" : "Omzet Periode A"}</span>
           <p className="mt-2 font-display text-2xl font-bold text-espresso-900">
             {formatCurrency(totalRevA, currency)}
           </p>
-          <p className="mt-1 text-xs text-espresso-400">{ordersA.length} transaksi</p>
+          <p className="mt-1 text-xs text-espresso-400">{ordersA.length} {isEn ? "transactions" : "transaksi"}</p>
         </div>
 
         <div className="rounded-xl border border-latte bg-white p-5 shadow-xs">
-          <span className="text-xs font-semibold uppercase text-espresso-400">Omzet Periode B</span>
+          <span className="text-xs font-semibold uppercase text-espresso-400">{isEn ? "Revenue Period B" : "Omzet Periode B"}</span>
           <p className="mt-2 font-display text-2xl font-bold text-espresso-900">
             {formatCurrency(totalRevB, currency)}
           </p>
-          <p className="mt-1 text-xs text-espresso-400">{ordersB.length} transaksi</p>
+          <p className="mt-1 text-xs text-espresso-400">{ordersB.length} {isEn ? "transactions" : "transaksi"}</p>
         </div>
 
         <div className="rounded-xl border border-latte bg-white p-5 shadow-xs">
-          <span className="text-xs font-semibold uppercase text-espresso-400">Pertumbuhan (Growth)</span>
+          <span className="text-xs font-semibold uppercase text-espresso-400">{isEn ? "Growth" : "Pertumbuhan (Growth)"}</span>
           <div className="mt-2 flex items-center gap-2">
             <span
               className={`font-display text-2xl font-bold ${
@@ -216,14 +222,14 @@ export function ReportsView({
               <ArrowDownRight className="h-5 w-5 text-rose-700" />
             )}
           </div>
-          <p className="mt-1 text-xs text-espresso-400">Dibandingkan Periode B</p>
+          <p className="mt-1 text-xs text-espresso-400">{isEn ? "Compared to Period B" : "Dibandingkan Periode B"}</p>
         </div>
       </div>
 
       {/* Visualisasi Perbandingan Grafik */}
       <div className="rounded-xl border border-latte bg-white p-6 shadow-xs">
         <h3 className="text-base font-bold text-espresso-900 mb-4">
-          Perbandingan Omzet & Transaksi Antar-Periode
+          {isEn ? "Revenue & Transactions Comparison Between Periods" : "Perbandingan Omzet & Transaksi Antar-Periode"}
         </h3>
         <div className="h-64 w-full">
           <ResponsiveContainer width="100%" height="100%">
@@ -237,8 +243,8 @@ export function ReportsView({
                 }
               />
               <Legend wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }} />
-              <Bar dataKey="Periode A (Utama)" fill="#a8673c" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="Periode B (Pembanding)" fill="#4a2117" radius={[4, 4, 0, 0]} />
+              <Bar dataKey={labelPeriodA} fill="#a8673c" radius={[4, 4, 0, 0]} />
+              <Bar dataKey={labelPeriodB} fill="#4a2117" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>

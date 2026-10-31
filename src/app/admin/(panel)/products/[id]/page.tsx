@@ -1,16 +1,24 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+import { getServerLocale } from "@/i18n/server";
 import { ProductForm } from "@/components/admin/product-form";
 
-export const metadata = {
-  title: "Edit Produk",
-};
+export async function generateMetadata() {
+  const locale = await getServerLocale();
+  return {
+    title: locale === "en" ? "Edit Product" : "Edit Produk",
+  };
+}
 
 export default async function EditProductPage({
   params,
 }: PageProps<"/admin/products/[id]">) {
-  await requireAdmin();
+  const [session, locale] = await Promise.all([
+    requireAdmin(),
+    getServerLocale(),
+  ]);
+  const isEn = locale === "en";
   const { id } = await params;
 
   const [product, categories] = await Promise.all([
@@ -26,8 +34,12 @@ export default async function EditProductPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-espresso-900 md:text-3xl">Edit Produk</h1>
-        <p className="mt-1 text-sm text-espresso-500">Perbarui rincian produk {product.name}</p>
+        <h1 className="text-2xl font-bold text-espresso-900 md:text-3xl">
+          {isEn ? "Edit Product" : "Edit Produk"}
+        </h1>
+        <p className="mt-1 text-sm text-espresso-500">
+          {isEn ? `Update product details for ${product.name}` : `Perbarui rincian produk ${product.name}`}
+        </p>
       </div>
 
       <ProductForm product={product} categories={categories} />

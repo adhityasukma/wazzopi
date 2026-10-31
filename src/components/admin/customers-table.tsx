@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { formatCurrency, type CurrencySettings } from "@/lib/currency";
 import { formatDate } from "@/lib/utils";
+import { useI18n } from "@/i18n/provider";
 import {
   deleteCustomer,
   deleteSelectedCustomers,
@@ -64,6 +65,8 @@ export function CustomersTable({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { locale } = useI18n();
+  const isEn = locale === "en";
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isPending, startTransition] = useTransition();
@@ -128,7 +131,7 @@ export function CustomersTable({
           setSelectedIds((prev) => prev.filter((id) => id !== singleTarget.id));
           setFeedback({
             type: "success",
-            message: `Pelanggan "${singleTarget.name}" berhasil dihapus.`,
+            message: isEn ? `Customer "${singleTarget.name}" deleted successfully.` : `Pelanggan "${singleTarget.name}" berhasil dihapus.`,
           });
         } else if (modalMode === "selected") {
           const res = await deleteSelectedCustomers(selectedIds);
@@ -138,7 +141,7 @@ export function CustomersTable({
           setSelectedIds([]);
           setFeedback({
             type: "success",
-            message: `${deletedCount} pelanggan terpilih berhasil dihapus.`,
+            message: isEn ? `${deletedCount} selected customer(s) deleted successfully.` : `${deletedCount} pelanggan terpilih berhasil dihapus.`,
           });
         } else if (modalMode === "all") {
           const res = await deleteAllCustomers();
@@ -148,7 +151,7 @@ export function CustomersTable({
           setSelectedIds([]);
           setFeedback({
             type: "success",
-            message: `Seluruh data pelanggan (${deletedCount} akun) berhasil dihapus.`,
+            message: isEn ? `All customer data (${deletedCount} accounts) deleted successfully.` : `Seluruh data pelanggan (${deletedCount} akun) berhasil dihapus.`,
           });
         }
 
@@ -158,7 +161,7 @@ export function CustomersTable({
       } catch (err: any) {
         setFeedback({
           type: "error",
-          message: err.message || "Terjadi kesalahan saat memproses penghapusan.",
+          message: err.message || (isEn ? "An error occurred while deleting." : "Terjadi kesalahan saat memproses penghapusan."),
         });
       }
     });
@@ -327,16 +330,16 @@ export function CustomersTable({
           {selectedIds.length > 0 ? (
             <span className="inline-flex items-center gap-1.5 rounded-lg bg-caramel-100 px-3 py-1.5 text-xs font-bold text-caramel-900">
               <CheckSquare className="h-4 w-4 text-caramel-700" />
-              {selectedIds.length} pelanggan dipilih
+              {selectedIds.length} {isEn ? "customer(s) selected" : "pelanggan dipilih"}
             </span>
           ) : (
             <span className="text-xs font-medium text-espresso-600">
               {totalMatching === 0
-                ? "Tidak ada pelanggan ditemukan"
+                ? (isEn ? "No customers found" : "Tidak ada pelanggan ditemukan")
                 : pageSize
-                ? `Menampilkan ${startIndex} - ${endIndex} dari ${totalMatching} pelanggan`
-                : `Menampilkan semua ${totalMatching} pelanggan`}
-              {totalAllCustomers !== totalMatching && ` (total ${totalAllCustomers} di sistem)`}
+                ? (isEn ? `Showing ${startIndex} - ${endIndex} of ${totalMatching} customer(s)` : `Menampilkan ${startIndex} - ${endIndex} dari ${totalMatching} pelanggan`)
+                : (isEn ? `Showing all ${totalMatching} customer(s)` : `Menampilkan semua ${totalMatching} pelanggan`)}
+              {totalAllCustomers !== totalMatching && (isEn ? ` (total ${totalAllCustomers} in system)` : ` (total ${totalAllCustomers} di sistem)`)}
               {searchQuery && ` (filter: "${searchQuery}")`}
             </span>
           )}
@@ -347,7 +350,7 @@ export function CustomersTable({
               onClick={() => setSelectedIds([])}
               className="rounded-lg px-2.5 py-1 text-xs font-semibold text-espresso-500 hover:bg-latte/50 hover:text-espresso-800"
             >
-              Batalkan Pilihan
+              {isEn ? "Clear Selection" : "Batalkan Pilihan"}
             </button>
           )}
         </div>
@@ -355,7 +358,7 @@ export function CustomersTable({
         <div className="flex flex-wrap items-center gap-3">
           {/* Show Data Selector (20, 50, 100, All) */}
           <div className="flex items-center gap-1.5">
-            <span className="text-xs font-semibold text-espresso-500">Tampilkan:</span>
+            <span className="text-xs font-semibold text-espresso-500">{isEn ? "Show:" : "Tampilkan:"}</span>
             <div className="inline-flex rounded-lg border border-latte bg-latte/30 p-0.5 text-xs">
               {(["20", "50", "100", "all"] as const).map((opt) => {
                 const isActive = currentLimit === opt;
@@ -395,7 +398,7 @@ export function CustomersTable({
                 className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-rose-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-rose-700 active:scale-95"
               >
                 <Trash2 className="h-4 w-4" />
-                Hapus Terpilih ({selectedIds.length})
+                {isEn ? `Delete Selected (${selectedIds.length})` : `Hapus Terpilih (${selectedIds.length})`}
               </button>
             )}
 
@@ -407,7 +410,7 @@ export function CustomersTable({
                 className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-rose-300 bg-rose-50/60 px-3.5 py-2 text-xs font-bold text-rose-700 transition hover:bg-rose-100 hover:border-rose-400 active:scale-95"
               >
                 <UserX className="h-4 w-4 text-rose-600" />
-                Hapus Semua Pelanggan
+                {isEn ? "Delete All Customers" : "Hapus Semua Pelanggan"}
               </button>
             )}
           </div>
@@ -437,20 +440,20 @@ export function CustomersTable({
                     )}
                   </button>
                 </th>
-                <th className="px-4 py-3">Nama Pelanggan</th>
-                <th className="px-4 py-3">Kontak</th>
-                <th className="px-4 py-3">Kota & Alamat</th>
-                <th className="px-4 py-3 text-center">Total Pesanan</th>
-                <th className="px-4 py-3">Total Belanja (LTV)</th>
-                <th className="px-4 py-3">Terdaftar Sejak</th>
-                <th className="px-4 py-3 text-center">Aksi</th>
+                <th className="px-4 py-3">{isEn ? "Customer Name" : "Nama Pelanggan"}</th>
+                <th className="px-4 py-3">{isEn ? "Contact" : "Kontak"}</th>
+                <th className="px-4 py-3">{isEn ? "City & Address" : "Kota & Alamat"}</th>
+                <th className="px-4 py-3 text-center">{isEn ? "Total Orders" : "Total Pesanan"}</th>
+                <th className="px-4 py-3">{isEn ? "Total Spend (LTV)" : "Total Belanja (LTV)"}</th>
+                <th className="px-4 py-3">{isEn ? "Registered Date" : "Terdaftar Sejak"}</th>
+                <th className="px-4 py-3 text-center">{isEn ? "Action" : "Aksi"}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-latte">
               {customers.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="py-12 text-center text-espresso-400">
-                    Tidak ada data pelanggan yang sesuai.
+                    {isEn ? "No matching customer data found." : "Tidak ada data pelanggan yang sesuai."}
                   </td>
                 </tr>
               ) : (
@@ -490,14 +493,14 @@ export function CustomersTable({
                       </td>
                       <td className="px-4 py-3 text-center">
                         <span className="inline-flex rounded-full bg-latte px-2.5 py-0.5 text-xs font-semibold text-espresso-800">
-                          {c.orders.length} pesanan
+                          {c.orders.length} {isEn ? "order(s)" : "pesanan"}
                         </span>
                       </td>
                       <td className="px-4 py-3 font-semibold text-espresso-900">
                         {formatCurrency(totalSpent, currency)}
                       </td>
                       <td className="px-4 py-3 text-xs text-espresso-400">
-                        {formatDate(c.createdAt)}
+                        {formatDate(c.createdAt, false, locale)}
                       </td>
                       <td className="px-4 py-3 text-center">
                         <button
@@ -521,12 +524,19 @@ export function CustomersTable({
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-latte bg-espresso-50/30 px-4 py-3">
           <div className="text-xs text-espresso-500">
             {pageSize ? (
-              <>
-                Halaman <strong className="text-espresso-900">{currentPage}</strong> dari{" "}
-                <strong className="text-espresso-900">{totalPages}</strong> ({totalMatching} pelanggan)
-              </>
+              isEn ? (
+                <>
+                  Page <strong className="text-espresso-900">{currentPage}</strong> of{" "}
+                  <strong className="text-espresso-900">{totalPages}</strong> ({totalMatching} customer(s))
+                </>
+              ) : (
+                <>
+                  Halaman <strong className="text-espresso-900">{currentPage}</strong> dari{" "}
+                  <strong className="text-espresso-900">{totalPages}</strong> ({totalMatching} pelanggan)
+                </>
+              )
             ) : (
-              <>Semua {totalMatching} pelanggan ditampilkan dalam 1 halaman</>
+              isEn ? <>All {totalMatching} customer(s) displayed on 1 page</> : <>Semua {totalMatching} pelanggan ditampilkan dalam 1 halaman</>
             )}
           </div>
 
@@ -551,36 +561,63 @@ export function CustomersTable({
               </div>
               <div className="flex-1">
                 <h3 className="text-lg font-bold text-espresso-900">
-                  {modalMode === "single" && "Hapus Pelanggan"}
-                  {modalMode === "selected" && "Hapus Pelanggan Terpilih"}
-                  {modalMode === "all" && "Hapus Seluruh Pelanggan (Delete ALL)"}
+                  {modalMode === "single" && (isEn ? "Delete Customer" : "Hapus Pelanggan")}
+                  {modalMode === "selected" && (isEn ? "Delete Selected Customers" : "Hapus Pelanggan Terpilih")}
+                  {modalMode === "all" && (isEn ? "Delete ALL Customers" : "Hapus Seluruh Pelanggan (Delete ALL)")}
                 </h3>
                 <p className="mt-1.5 text-xs text-espresso-600 leading-relaxed">
                   {modalMode === "single" && singleTarget && (
-                    <>
-                      Apakah Anda yakin ingin menghapus data pelanggan{" "}
-                      <strong className="text-espresso-900">{singleTarget.name}</strong> (
-                      {singleTarget.email})?
-                    </>
+                    isEn ? (
+                      <>
+                        Are you sure you want to delete customer data for{" "}
+                        <strong className="text-espresso-900">{singleTarget.name}</strong> (
+                        {singleTarget.email})?
+                      </>
+                    ) : (
+                      <>
+                        Apakah Anda yakin ingin menghapus data pelanggan{" "}
+                        <strong className="text-espresso-900">{singleTarget.name}</strong> (
+                        {singleTarget.email})?
+                      </>
+                    )
                   )}
                   {modalMode === "selected" && (
-                    <>
-                      Anda akan menghapus{" "}
-                      <strong className="text-espresso-900">
-                        {selectedIds.length} pelanggan
-                      </strong>{" "}
-                      yang sedang dipilih.
-                    </>
+                    isEn ? (
+                      <>
+                        You are about to delete{" "}
+                        <strong className="text-espresso-900">
+                          {selectedIds.length} selected customer(s)
+                        </strong>.
+                      </>
+                    ) : (
+                      <>
+                        Anda akan menghapus{" "}
+                        <strong className="text-espresso-900">
+                          {selectedIds.length} pelanggan
+                        </strong>{" "}
+                        yang sedang dipilih.
+                      </>
+                    )
                   )}
                   {modalMode === "all" && (
-                    <>
-                      Anda akan menghapus{" "}
-                      <strong className="text-rose-700">
-                        SELURUH ({totalAllCustomers}) akun pelanggan
-                      </strong>{" "}
-                      yang terdaftar di sistem. Akun staf Administrator dan Karyawan tidak
-                      akan dihapus.
-                    </>
+                    isEn ? (
+                      <>
+                        You are about to delete{" "}
+                        <strong className="text-rose-700">
+                          ALL ({totalAllCustomers}) customer accounts
+                        </strong>{" "}
+                        registered in the system. Administrator and staff accounts will NOT be deleted.
+                      </>
+                    ) : (
+                      <>
+                        Anda akan menghapus{" "}
+                        <strong className="text-rose-700">
+                          SELURUH ({totalAllCustomers}) akun pelanggan
+                        </strong>{" "}
+                        yang terdaftar di sistem. Akun staf Administrator dan Karyawan tidak
+                        akan dihapus.
+                      </>
+                    )
                   )}
                 </p>
               </div>
@@ -589,8 +626,11 @@ export function CustomersTable({
             {/* Catatan Info */}
             <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50/70 p-3 text-xs text-amber-900">
               <p className="leading-relaxed">
-                Tindakan ini <strong>tidak dapat dibatalkan</strong>. Riwayat pesanan yang pernah
-                dibuat pelanggan tetap aman tersimpan dalam database laporan sebagai pesanan tamu.
+                {isEn ? (
+                  <>This action <strong>cannot be undone</strong>. Order history previously made by this customer remains safely stored in sales reports as guest orders.</>
+                ) : (
+                  <>Tindakan ini <strong>tidak dapat dibatalkan</strong>. Riwayat pesanan yang pernah dibuat pelanggan tetap aman tersimpan dalam database laporan sebagai pesanan tamu.</>
+                )}
               </p>
             </div>
 
@@ -602,7 +642,7 @@ export function CustomersTable({
                 onClick={closeModal}
                 className="cursor-pointer rounded-lg border border-espresso-200 bg-white px-4 py-2 text-xs font-semibold text-espresso-700 hover:bg-espresso-50 disabled:opacity-50"
               >
-                Batal
+                {isEn ? "Cancel" : "Batal"}
               </button>
               <button
                 type="button"
@@ -613,14 +653,14 @@ export function CustomersTable({
                 {isPending ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin text-white" />
-                    Memproses...
+                    {isEn ? "Processing..." : "Memproses..."}
                   </>
                 ) : (
                   <>
                     <Trash2 className="h-4 w-4" />
-                    {modalMode === "single" && "Ya, Hapus Pelanggan"}
-                    {modalMode === "selected" && `Hapus ${selectedIds.length} Pelanggan`}
-                    {modalMode === "all" && `Ya, Hapus Semua (${totalAllCustomers})`}
+                    {modalMode === "single" && (isEn ? "Yes, Delete Customer" : "Ya, Hapus Pelanggan")}
+                    {modalMode === "selected" && (isEn ? `Delete ${selectedIds.length} Customers` : `Hapus ${selectedIds.length} Pelanggan`)}
+                    {modalMode === "all" && (isEn ? `Yes, Delete All (${totalAllCustomers})` : `Ya, Hapus Semua (${totalAllCustomers})`)}
                   </>
                 )}
               </button>

@@ -3,6 +3,7 @@
 import React, { useState, useTransition } from "react";
 import { Truck, Check, AlertCircle, RotateCw, Info, AlertTriangle, X } from "lucide-react";
 import { updateOrderTracking } from "@/actions/orders";
+import { useI18n } from "@/i18n/provider";
 import { useLoading } from "@/components/loading-provider";
 import {
   SUPPORTED_COURIERS,
@@ -50,6 +51,8 @@ export function OrderTrackingForm({
   trackingHistory,
   orderStatus,
 }: OrderTrackingFormProps) {
+  const { locale } = useI18n();
+  const isEn = locale === "en";
   const [courierCode, setCourierCode] = useState(() =>
     getInitialCourier(currentCourierCode, shippingMethod)
   );
@@ -209,11 +212,11 @@ export function OrderTrackingForm({
       <div className="flex items-center justify-between border-b border-latte pb-3">
         <h2 className="flex items-center gap-2 text-base font-bold text-espresso-900">
           <Truck className="h-5 w-5 text-caramel-600" />
-          Pengiriman & Nomor Resi
+          {isEn ? "Shipping & Tracking Number" : "Pengiriman & Nomor Resi"}
         </h2>
         {currentTrackingNumber && (
           <span className="rounded-full bg-caramel-50 px-2.5 py-0.5 text-xs font-bold text-caramel-700 border border-caramel-200">
-            Resi Aktif
+            {isEn ? "Active Waybill" : "Resi Aktif"}
           </span>
         )}
       </div>
@@ -241,11 +244,11 @@ export function OrderTrackingForm({
         <div>
           <div className="flex items-center justify-between mb-1">
             <label className="block text-xs font-semibold text-espresso-700">
-              Ekspedisi / Kurir
+              {isEn ? "Courier / Carrier" : "Ekspedisi / Kurir"}
             </label>
             {shippingMethod && (
               <span className="text-[11px] font-medium text-espresso-500">
-                Pilihan Pembeli: <strong className="text-caramel-700">{shippingMethod}</strong>
+                {isEn ? "Customer Choice:" : "Pilihan Pembeli:"} <strong className="text-caramel-700">{shippingMethod}</strong>
               </span>
             )}
           </div>
@@ -265,7 +268,7 @@ export function OrderTrackingForm({
 
         <div>
           <label className="block text-xs font-semibold text-espresso-700 mb-1">
-            Nomor Resi Pengiriman (Airway Bill / AWB)
+            {isEn ? "Tracking Number (AWB)" : "Nomor Resi Pengiriman (Airway Bill / AWB)"}
           </label>
           <input
             type="text"
@@ -275,7 +278,7 @@ export function OrderTrackingForm({
               setTrackingNumber(e.target.value.toUpperCase());
               if (message?.type === "error") setMessage(null);
             }}
-            placeholder="Contoh: JNE0192837465, JP12345678"
+            placeholder={isEn ? "E.g.: JNE0192837465, JP12345678" : "Contoh: JNE0192837465, JP12345678"}
             className="w-full font-mono font-bold tracking-wide rounded-lg border border-espresso-200 bg-white p-2.5 text-sm text-espresso-900 placeholder:font-sans placeholder:font-normal placeholder:text-espresso-300 focus:outline-none focus:ring-2 focus:ring-caramel-500"
           />
 
@@ -284,7 +287,7 @@ export function OrderTrackingForm({
               <div className="flex items-center gap-1.5 min-w-0">
                 <AlertCircle className="h-4 w-4 shrink-0 text-amber-600" />
                 <span className="truncate">
-                  Format resi terdeteksi sebagai <strong>{detectedMismatch.name}</strong> ({detectedMismatch.reason}).
+                  {isEn ? "Waybill format detected as" : "Format resi terdeteksi sebagai"} <strong>{detectedMismatch.name}</strong> ({detectedMismatch.reason}).
                 </span>
               </div>
               <button
@@ -292,13 +295,13 @@ export function OrderTrackingForm({
                 onClick={() => setCourierCode(detectedMismatch.code)}
                 className="shrink-0 font-bold underline text-amber-800 hover:text-amber-950 cursor-pointer"
               >
-                Ganti ke {detectedMismatch.name}
+                {isEn ? `Switch to ${detectedMismatch.name}` : `Ganti ke ${detectedMismatch.name}`}
               </button>
             </div>
           )}
 
           <p className="mt-1 text-[11px] text-espresso-400">
-            Setelah disimpan, sistem akan melacak riwayat posisi kurir secara otomatis.
+            {isEn ? "Once saved, system will automatically track courier waybill checkpoints." : "Setelah disimpan, sistem akan melacak riwayat posisi kurir secara otomatis."}
           </p>
         </div>
 
@@ -311,10 +314,10 @@ export function OrderTrackingForm({
             {isPending ? (
               <>
                 <RotateCw className="h-3.5 w-3.5 animate-spin" />
-                Menyimpan & Melacak Kurir...
+                {isEn ? "Saving & Tracking..." : "Menyimpan & Melacak Kurir..."}
               </>
             ) : (
-              "Simpan Resi & Lacak Otomatis"
+              isEn ? "Save Waybill & Track Automatically" : "Simpan Resi & Lacak Otomatis"
             )}
           </button>
 
@@ -340,7 +343,7 @@ export function OrderTrackingForm({
                 }}
                 className="text-xs text-rose-600 hover:underline"
               >
-                Hapus Resi
+                {isEn ? "Remove Waybill" : "Hapus Resi"}
               </button>
             </div>
           )}
@@ -362,7 +365,7 @@ export function OrderTrackingForm({
                     {validationModal.title}
                   </h3>
                   <p className="text-[11px] text-espresso-500">
-                    Pemeriksaan kesesuaian kurir ekspedisi
+                    {isEn ? "Shipping courier waybill verification" : "Pemeriksaan kesesuaian kurir ekspedisi"}
                   </p>
                 </div>
               </div>
@@ -379,13 +382,13 @@ export function OrderTrackingForm({
             <div className="p-5 space-y-4">
               <div className="rounded-xl bg-latte/30 p-3.5 border border-latte text-xs space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-espresso-500 font-medium">Nomor Resi:</span>
+                  <span className="text-espresso-500 font-medium">{isEn ? "Waybill Number:" : "Nomor Resi:"}</span>
                   <span className="font-mono font-bold text-espresso-950 bg-white px-2 py-0.5 rounded border border-latte">
                     {validationModal.trackingNumber}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-espresso-500 font-medium">Ekspedisi Dipilih:</span>
+                  <span className="text-espresso-500 font-medium">{isEn ? "Selected Courier:" : "Ekspedisi Dipilih:"}</span>
                   <span className="font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
                     {validationModal.selectedCourierName}
                   </span>
@@ -400,11 +403,20 @@ export function OrderTrackingForm({
                 <div className="rounded-xl bg-emerald-50 p-3.5 text-xs text-emerald-950 border border-emerald-200 space-y-1">
                   <div className="flex items-center gap-1.5 font-bold text-emerald-900">
                     <Check className="h-4 w-4 text-emerald-600" />
-                    <span>Saran Ekspedisi Otomatis:</span>
+                    <span>{isEn ? "Suggested Courier:" : "Saran Ekspedisi Otomatis:"}</span>
                   </div>
                   <p className="text-[11px] text-emerald-800 leading-relaxed">
-                    Karakteristik nomor resi ini teridentifikasi sebagai format pengiriman resmi{" "}
-                    <strong>{validationModal.detectedCourier.name}</strong>.
+                    {isEn ? (
+                      <>
+                        This waybill number matches the official format for{" "}
+                        <strong>{validationModal.detectedCourier.name}</strong>.
+                      </>
+                    ) : (
+                      <>
+                        Karakteristik nomor resi ini teridentifikasi sebagai format pengiriman resmi{" "}
+                        <strong>{validationModal.detectedCourier.name}</strong>.
+                      </>
+                    )}
                   </p>
                 </div>
               )}
@@ -422,7 +434,7 @@ export function OrderTrackingForm({
                   className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-caramel-600 hover:bg-caramel-700 text-white py-2.5 text-xs font-bold transition shadow-xs cursor-pointer disabled:opacity-50"
                 >
                   <Check className="h-4 w-4" />
-                  Ganti ke {validationModal.detectedCourier.name} & Simpan
+                  {isEn ? `Switch to ${validationModal.detectedCourier.name} & Save` : `Ganti ke ${validationModal.detectedCourier.name} & Simpan`}
                 </button>
               )}
 
@@ -431,7 +443,7 @@ export function OrderTrackingForm({
                 onClick={() => setValidationModal(null)}
                 className="inline-flex w-full items-center justify-center rounded-xl border border-espresso-200 bg-white hover:bg-espresso-50 text-espresso-700 py-2.5 text-xs font-semibold transition cursor-pointer"
               >
-                Periksa Kembali Nomor Resi
+                {isEn ? "Check Tracking Number Again" : "Periksa Kembali Nomor Resi"}
               </button>
 
               <button
@@ -440,7 +452,7 @@ export function OrderTrackingForm({
                 disabled={isPending}
                 className="text-center text-[11px] text-espresso-400 hover:text-espresso-700 hover:underline pt-1 cursor-pointer"
               >
-                Tetap Simpan sebagai {validationModal.selectedCourierName} (Mode Estimasi Toko)
+                {isEn ? `Keep and Save as ${validationModal.selectedCourierName} (Store Estimation Mode)` : `Tetap Simpan sebagai ${validationModal.selectedCourierName} (Mode Estimasi Toko)`}
               </button>
             </div>
           </div>

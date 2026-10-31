@@ -3,6 +3,7 @@ import { Search } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 import { requireAdmin } from "@/lib/auth";
+import { getServerLocale } from "@/i18n/server";
 import { CustomersTable } from "@/components/admin/customers-table";
 
 export const metadata = {
@@ -13,6 +14,8 @@ export default async function AdminCustomersPage({
   searchParams,
 }: PageProps<"/admin/customers">) {
   await requireAdmin();
+  const locale = await getServerLocale();
+  const isEn = locale === "en";
   const sp = await searchParams;
   const q = typeof sp.q === "string" ? sp.q.trim() : "";
   const rawLimit = typeof sp.limit === "string" ? sp.limit : "20";
@@ -68,10 +71,10 @@ export default async function AdminCustomersPage({
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-espresso-900 md:text-3xl">
-          Daftar Pelanggan (Customers)
+          {isEn ? "Customer List" : "Daftar Pelanggan (Customers)"}
         </h1>
         <p className="mt-1 text-sm text-espresso-500">
-          Total {totalAllCustomers} customer terdaftar di Wazzopi
+          {isEn ? `Total ${totalAllCustomers} customer(s) registered in Wazzopi` : `Total ${totalAllCustomers} customer terdaftar di Wazzopi`}
         </p>
       </div>
 
@@ -88,7 +91,7 @@ export default async function AdminCustomersPage({
             <input
               name="q"
               defaultValue={q}
-              placeholder="Cari nama, email, atau no. telepon..."
+              placeholder={isEn ? "Search name, email, or phone..." : "Cari nama, email, atau no. telepon..."}
               className="w-full rounded-lg border border-espresso-100 bg-white py-2 pl-9 pr-3 text-sm text-espresso-900 placeholder:text-espresso-300 focus:outline-none focus:ring-2 focus:ring-caramel-500"
             />
           </div>
@@ -96,7 +99,7 @@ export default async function AdminCustomersPage({
             type="submit"
             className="rounded-lg bg-espresso-700 px-4 py-2 text-xs font-semibold text-cream hover:bg-espresso-800"
           >
-            Cari
+            {isEn ? "Search" : "Cari"}
           </button>
           {q && (
             <Link
@@ -105,7 +108,7 @@ export default async function AdminCustomersPage({
               className="rounded-lg border border-espresso-200 px-3 py-2 text-xs font-semibold text-espresso-600 hover:bg-espresso-50 transition"
               title="Kosongkan pencarian"
             >
-              Reset
+              {isEn ? "Reset" : "Reset"}
             </Link>
           )}
         </form>

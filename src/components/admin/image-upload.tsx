@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import Image from "next/image";
 import { Upload, X, Loader2, Image as ImageIcon } from "lucide-react";
 import { useAppLoading } from "@/components/loading-provider";
+import { useI18n } from "@/i18n/provider";
 
 type ImageUploadProps = {
   name: string;
@@ -15,9 +16,15 @@ type ImageUploadProps = {
 export function ImageUpload({
   name,
   defaultValue = "",
-  label = "Foto / Gambar",
+  label,
   hint,
 }: ImageUploadProps) {
+  const { locale } = useI18n();
+  const isEn = locale === "en";
+
+  const defaultLabel = isEn ? "Photo / Image" : "Foto / Gambar";
+  const displayLabel = label || defaultLabel;
+
   const [preview, setPreview] = useState<string>(defaultValue || "");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +37,7 @@ export function ImageUpload({
 
     setError(null);
     setUploading(true);
-    showLoading("Sedang mengunggah gambar...");
+    showLoading(isEn ? "Uploading image..." : "Sedang mengunggah gambar...");
 
     try {
       const formData = new FormData();
@@ -43,12 +50,12 @@ export function ImageUpload({
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Gagal mengupload gambar");
+        throw new Error(data.error || (isEn ? "Failed to upload image" : "Gagal mengupload gambar"));
       }
 
       setPreview(data.url);
     } catch (err: any) {
-      setError(err.message || "Terjadi kesalahan upload");
+      setError(err.message || (isEn ? "Upload failed" : "Terjadi kesalahan upload"));
     } finally {
       setUploading(false);
       hideLoading();
@@ -65,14 +72,14 @@ export function ImageUpload({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <label className="text-xs font-semibold text-espresso-700">{label}</label>
+        <label className="text-xs font-semibold text-espresso-700">{displayLabel}</label>
         {preview && (
           <button
             type="button"
             onClick={handleClear}
             className="text-[11px] text-rose-600 hover:underline inline-flex items-center gap-1"
           >
-            <X className="h-3 w-3" /> Hapus Foto
+            <X className="h-3 w-3" /> {isEn ? "Remove Photo" : "Hapus Foto"}
           </button>
         )}
       </div>
@@ -118,12 +125,16 @@ export function ImageUpload({
               className="inline-flex items-center gap-2 rounded-lg border border-espresso-200 bg-white px-3 py-2 text-xs font-semibold text-espresso-800 shadow-xs hover:bg-latte cursor-pointer transition-colors"
             >
               <Upload className="h-3.5 w-3.5" />
-              {uploading ? "Mengupload..." : "Pilih File Gambar"}
+              {uploading
+                ? (isEn ? "Uploading..." : "Mengupload...")
+                : (isEn ? "Choose Image File" : "Pilih File Gambar")}
             </label>
           </div>
 
           <p className="text-[11px] text-espresso-400">
-            {hint || "Format JPG, PNG, atau WEBP. Maks. 5MB. Otomatis disimpan ke server."}
+            {hint || (isEn
+              ? "JPG, PNG, or WEBP format. Max 5MB. Automatically saved to server."
+              : "Format JPG, PNG, atau WEBP. Maks. 5MB. Otomatis disimpan ke server.")}
           </p>
 
           {/* Atau input URL langsung */}
@@ -132,7 +143,7 @@ export function ImageUpload({
               type="text"
               value={preview}
               onChange={(e) => setPreview(e.target.value)}
-              placeholder="Atau tempel URL gambar di sini..."
+              placeholder={isEn ? "Or paste image URL here..." : "Atau tempel URL gambar di sini..."}
               className="w-full rounded-md border border-espresso-100 bg-white px-2.5 py-1 text-xs text-espresso-700 placeholder:text-espresso-300 focus:outline-none focus:ring-1 focus:ring-caramel-500"
             />
           </div>

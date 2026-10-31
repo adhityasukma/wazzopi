@@ -2,18 +2,26 @@ import Link from "next/link";
 import { Search } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
-import { ORDER_STATUSES, ORDER_STATUS_LABEL } from "@/lib/utils";
+import { ORDER_STATUSES, getOrderStatusLabel } from "@/lib/utils";
 import { requireAdmin } from "@/lib/auth";
+import { getServerLocale } from "@/i18n/server";
 import { OrdersTable } from "@/components/admin/orders-table";
 
-export const metadata = {
-  title: "Kelola Pesanan",
-};
+export async function generateMetadata() {
+  const locale = await getServerLocale();
+  return {
+    title: locale === "en" ? "Manage Orders" : "Kelola Pesanan",
+  };
+}
 
 export default async function AdminOrdersPage({
   searchParams,
 }: PageProps<"/admin/orders">) {
-  await requireAdmin();
+  const [session, locale] = await Promise.all([
+    requireAdmin(),
+    getServerLocale(),
+  ]);
+  const isEn = locale === "en";
   const sp = await searchParams;
   const q = typeof sp.q === "string" ? sp.q.trim() : "";
   const status = typeof sp.status === "string" ? sp.status : undefined;
@@ -84,10 +92,12 @@ export default async function AdminOrdersPage({
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-2xl font-bold text-espresso-900 md:text-3xl">
-            Kelola Pesanan (Orders)
+            {isEn ? "Manage Orders" : "Kelola Pesanan (Orders)"}
           </h1>
           <p className="mt-1 text-sm text-espresso-500">
-            Total {totalAllOrders} transaksi pesanan di sistem toko
+            {isEn
+              ? `Total of ${totalAllOrders} order transactions in store system`
+              : `Total ${totalAllOrders} transaksi pesanan di sistem toko`}
           </p>
         </div>
       </div>
@@ -95,7 +105,7 @@ export default async function AdminOrdersPage({
       {/* Filter & Search */}
       <div className="rounded-xl border border-latte bg-white p-4 shadow-xs flex flex-wrap gap-3 items-center justify-between">
         <form
-          data-loading-message="Mencari pesanan..."
+          data-loading-message={isEn ? "Searching orders..." : "Mencari pesanan..."}
           className="flex flex-1 items-center gap-2 max-w-md"
         >
           {status && <input type="hidden" name="status" value={status} />}
@@ -106,7 +116,7 @@ export default async function AdminOrdersPage({
             <input
               name="q"
               defaultValue={q}
-              placeholder="Cari No. Order atau Nama Pelanggan..."
+              placeholder={isEn ? "Search Order No., Customer Name, or Waybill..." : "Cari No. Order atau Nama Pelanggan..."}
               className="w-full rounded-lg border border-espresso-100 bg-white py-2 pl-9 pr-3 text-sm text-espresso-900 placeholder:text-espresso-300 focus:outline-none focus:ring-2 focus:ring-caramel-500"
             />
           </div>
@@ -114,14 +124,14 @@ export default async function AdminOrdersPage({
             type="submit"
             className="rounded-lg bg-espresso-700 px-4 py-2 text-xs font-semibold text-cream hover:bg-espresso-800"
           >
-            Cari
+            {isEn ? "Search" : "Cari"}
           </button>
           {q && (
             <Link
               href={getResetSearchHref()}
-              data-loading-message="Mereset kata kunci pencarian..."
+              data-loading-message={isEn ? "Resetting search filter..." : "Mereset kata kunci pencarian..."}
               className="rounded-lg border border-espresso-200 px-3 py-2 text-xs font-semibold text-espresso-600 hover:bg-espresso-50 transition"
-              title="Kosongkan pencarian"
+              title={isEn ? "Clear search" : "Kosongkan pencarian"}
             >
               Reset
             </Link>
@@ -131,34 +141,34 @@ export default async function AdminOrdersPage({
         <div className="flex flex-wrap gap-1.5">
           <Link
             href={getStatusFilterHref()}
-            data-loading-message="Memuat semua pesanan..."
+            data-loading-message={isEn ? "Loading all orders..." : "Memuat semua pesanan..."}
             className={`rounded-lg px-2.5 py-1 text-xs font-medium ${
               !status ? "bg-espresso-700 text-cream" : "bg-latte text-espresso-800"
             }`}
           >
-            Semua
+            {isEn ? "All" : "Semua"}
           </Link>
           {ORDER_STATUSES.map((st) => (
             <Link
               key={st}
               href={getStatusFilterHref(st)}
-              data-loading-message={`Menyaring pesanan (${ORDER_STATUS_LABEL[st]})...`}
+              data-loading-message={isEn ? `Filtering orders (${getOrderStatusLabel(st, locale)})...` : `Menyaring pesanan (${getOrderStatusLabel(st, locale)})...`}
               className={`rounded-lg px-2.5 py-1 text-xs font-medium ${
                 status === st ? "bg-espresso-700 text-cream" : "bg-latte text-espresso-800"
               }`}
             >
-              {ORDER_STATUS_LABEL[st]}
+              {getOrderStatusLabel(st, locale)}
             </Link>
           ))}
 
           {(q || status) && (
             <Link
               href={currentLimit !== "20" ? `/admin/orders?limit=${currentLimit}` : "/admin/orders"}
-              data-loading-message="Mereset semua filter..."
+              data-loading-message={isEn ? "Resetting all filters..." : "Mereset semua filter..."}
               className="rounded-lg border border-dashed border-espresso-300 px-2.5 py-1 text-xs font-medium text-espresso-500 hover:bg-espresso-50 hover:text-espresso-800 transition"
-              title="Kembali ke tampilan awal semua pesanan"
+              title={isEn ? "Reset to all orders" : "Kembali ke tampilan awal semua pesanan"}
             >
-              Reset Semua Filter
+              {isEn ? "Reset All Filters" : "Reset Semua Filter"}
             </Link>
           )}
         </div>

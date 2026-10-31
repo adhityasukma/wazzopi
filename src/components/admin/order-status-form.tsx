@@ -3,9 +3,11 @@
 import { useState, useTransition, useEffect } from "react";
 import { Check, Loader2, AlertCircle, Mail } from "lucide-react";
 import { updateOrderStatus } from "@/actions/orders";
+import { useI18n } from "@/i18n/provider";
 import {
   ORDER_STATUSES,
   ORDER_STATUS_LABEL,
+  getOrderStatusLabel,
   ORDER_STATUS_STYLE,
   type OrderStatus,
 } from "@/lib/utils";
@@ -19,6 +21,8 @@ export function OrderStatusForm({
   currentStatus: string;
   customerEmail?: string | null;
 }) {
+  const { locale } = useI18n();
+  const isEn = locale === "en";
   const [selectedStatus, setSelectedStatus] = useState(currentStatus);
   const [activeStatus, setActiveStatus] = useState(currentStatus);
   const [sendEmail, setSendEmail] = useState(true);
@@ -48,20 +52,20 @@ export function OrderStatusForm({
             type: "success",
             text:
               res?.message ||
-              `Status pesanan berhasil diperbarui menjadi ${
-                ORDER_STATUS_LABEL[selectedStatus as OrderStatus] || selectedStatus
-              }.`,
+              (isEn
+                ? `Order status successfully updated to ${getOrderStatusLabel(selectedStatus as OrderStatus, locale)}.`
+                : `Status pesanan berhasil diperbarui menjadi ${getOrderStatusLabel(selectedStatus as OrderStatus, locale)}.`),
           });
         } else {
           setMessage({
             type: "error",
-            text: res?.error || "Gagal memperbarui status pesanan.",
+            text: res?.error || (isEn ? "Failed to update order status." : "Gagal memperbarui status pesanan."),
           });
         }
       } catch (err: any) {
         setMessage({
           type: "error",
-          text: err?.message || "Terjadi kesalahan saat menyimpan status.",
+          text: err?.message || (isEn ? "An error occurred while saving status." : "Terjadi kesalahan saat menyimpan status."),
         });
       }
     });
@@ -70,26 +74,26 @@ export function OrderStatusForm({
   return (
     <div className="rounded-xl border border-latte bg-white p-6 shadow-xs">
       <h2 className="text-base font-bold text-espresso-900 border-b border-latte pb-3">
-        Ubah Status Pesanan
+        {isEn ? "Update Order Status" : "Ubah Status Pesanan"}
       </h2>
 
       <div className="mt-4 space-y-4">
         {/* Status Aktif */}
         <div className="flex items-center justify-between rounded-lg bg-latte/30 p-3 border border-latte">
-          <span className="text-xs font-semibold text-espresso-600">Status Saat Ini:</span>
+          <span className="text-xs font-semibold text-espresso-600">{isEn ? "Current Status:" : "Status Saat Ini:"}</span>
           <span
             className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${
               ORDER_STATUS_STYLE[activeStatus] || "bg-latte text-espresso-800"
             }`}
           >
-            {ORDER_STATUS_LABEL[activeStatus as OrderStatus] || activeStatus}
+            {getOrderStatusLabel(activeStatus as OrderStatus, locale)}
           </span>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3.5">
           <div>
             <label className="text-xs font-semibold text-espresso-600 block mb-1.5">
-              Pilih Status Baru
+              {isEn ? "Select New Status" : "Pilih Status Baru"}
             </label>
             <select
               name="status"
@@ -102,7 +106,7 @@ export function OrderStatusForm({
             >
               {ORDER_STATUSES.map((st) => (
                 <option key={st} value={st}>
-                  {ORDER_STATUS_LABEL[st]}
+                  {getOrderStatusLabel(st, locale)}
                 </option>
               ))}
             </select>
@@ -121,13 +125,19 @@ export function OrderStatusForm({
               <div className="text-xs">
                 <span className="font-semibold text-espresso-900 flex items-center gap-1.5">
                   <Mail className="h-3.5 w-3.5 text-caramel-600" />
-                  Kirim email notifikasi ke pembeli
+                  {isEn ? "Send notification email to customer" : "Kirim email notifikasi ke pembeli"}
                 </span>
                 <span className="text-[11px] text-espresso-500 block mt-0.5 leading-relaxed">
                   {sendEmail
                     ? customerEmail
-                      ? `Email pembaruan status akan dikirimkan ke ${customerEmail}`
+                      ? isEn
+                        ? `Status update email will be sent to ${customerEmail}`
+                        : `Email pembaruan status akan dikirimkan ke ${customerEmail}`
+                      : isEn
+                      ? "Order status notification email will be sent to customer"
                       : "Email notifikasi pembaruan status akan dikirimkan ke pembeli"
+                    : isEn
+                    ? "Only update status in internal shop system (no email sent)"
                     : "Hanya perbarui status di sistem internal toko (tanpa kirim email)"}
                 </span>
               </div>
@@ -146,12 +156,12 @@ export function OrderStatusForm({
             {isPending ? (
               <>
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                <span>Menyimpan Perubahan...</span>
+                <span>{isEn ? "Saving Changes..." : "Menyimpan Perubahan..."}</span>
               </>
             ) : sendEmail ? (
-              <span>Simpan & Kirim Email Notifikasi</span>
+              <span>{isEn ? "Save & Send Notification Email" : "Simpan & Kirim Email Notifikasi"}</span>
             ) : (
-              <span>Simpan Status Saja (Tanpa Email)</span>
+              <span>{isEn ? "Save Status Only (No Email)" : "Simpan Status Saja (Tanpa Email)"}</span>
             )}
           </button>
         </form>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Mail, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { resendOrderEmail } from "@/actions/orders";
+import { useI18n } from "@/i18n/provider";
 
 export function ResendEmailButton({
   orderId,
@@ -13,6 +14,8 @@ export function ResendEmailButton({
   customerEmail: string;
   className?: string;
 }) {
+  const { locale } = useI18n();
+  const isEn = locale === "en";
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
@@ -27,7 +30,7 @@ export function ResendEmailButton({
         setStatus({ type: "error", text: res.message });
       }
     } catch (err: any) {
-      setStatus({ type: "error", text: err.message || "Gagal menghubungi server" });
+      setStatus({ type: "error", text: err.message || (isEn ? "Failed to connect to server" : "Gagal menghubungi server") });
     } finally {
       setLoading(false);
     }
@@ -44,12 +47,12 @@ export function ResendEmailButton({
         {loading ? (
           <>
             <Loader2 className="h-3.5 w-3.5 animate-spin text-caramel-600" />
-            <span>Sedang Mengirim...</span>
+            <span>{isEn ? "Sending..." : "Sedang Mengirim..."}</span>
           </>
         ) : (
           <>
             <Mail className="h-3.5 w-3.5 text-caramel-600" />
-            <span>Kirim Ulang Email Status</span>
+            <span>{isEn ? "Resend Status Email" : "Kirim Ulang Email Status"}</span>
           </>
         )}
       </button>

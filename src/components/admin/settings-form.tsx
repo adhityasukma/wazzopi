@@ -22,6 +22,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { useAppLoading } from "@/components/loading-provider";
+import { useI18n } from "@/i18n/provider";
 import {
   saveCurrency,
   saveGeneral,
@@ -42,6 +43,8 @@ export function SettingsForm({
 }: {
   initialSettings: AllSettings;
 }) {
+  const { locale } = useI18n();
+  const isEn = locale === "en";
   const [activeTab, setActiveTab] = useState<
     "general" | "currency" | "payment" | "shipping" | "smtp" | "other"
   >("general");
@@ -56,17 +59,17 @@ export function SettingsForm({
 
   useEffect(() => {
     if (generalPending) {
-      showLoading("Menyimpan informasi umum toko...");
+      showLoading(isEn ? "Saving store general settings..." : "Menyimpan informasi umum toko...");
     } else if (currencyPending) {
-      showLoading("Menyimpan format mata uang...");
+      showLoading(isEn ? "Saving currency format..." : "Menyimpan format mata uang...");
     } else if (paymentPending) {
-      showLoading("Menyimpan metode pembayaran...");
+      showLoading(isEn ? "Saving payment methods..." : "Menyimpan metode pembayaran...");
     } else if (shippingPending) {
-      showLoading("Menyimpan kurir & pengiriman...");
+      showLoading(isEn ? "Saving couriers & shipping..." : "Menyimpan kurir & pengiriman...");
     } else if (smtpPending) {
-      showLoading("Menyimpan pengaturan Mail Server (SMTP)...");
+      showLoading(isEn ? "Saving Mail Server (SMTP) settings..." : "Menyimpan pengaturan Mail Server (SMTP)...");
     } else if (otherPending) {
-      showLoading("Menyimpan pengaturan sistem & SEO...");
+      showLoading(isEn ? "Saving system & SEO settings..." : "Menyimpan pengaturan sistem & SEO...");
     } else {
       hideLoading();
     }
@@ -250,12 +253,12 @@ export function SettingsForm({
       <div className="lg:col-span-3">
         <nav className="space-y-1 rounded-xl border border-latte bg-white p-2 shadow-xs">
           {[
-            { id: "general", label: "Umum & Toko", icon: Store },
-            { id: "currency", label: "Opsi Mata Uang (Currency)", icon: Coins },
-            { id: "payment", label: "Metode Pembayaran", icon: CreditCard },
-            { id: "shipping", label: "Kurir & Pengiriman", icon: Truck },
-            { id: "smtp", label: "Mail Server (SMTP)", icon: Mail },
-            { id: "other", label: "Lainnya & SEO", icon: Sliders },
+            { id: "general", label: isEn ? "General & Store" : "Umum & Toko", icon: Store },
+            { id: "currency", label: isEn ? "Currency Options" : "Opsi Mata Uang (Currency)", icon: Coins },
+            { id: "payment", label: isEn ? "Payment Methods" : "Metode Pembayaran", icon: CreditCard },
+            { id: "shipping", label: isEn ? "Shipping & Couriers" : "Kurir & Pengiriman", icon: Truck },
+            { id: "smtp", label: isEn ? "Mail Server (SMTP)" : "Mail Server (SMTP)", icon: Mail },
+            { id: "other", label: isEn ? "Other & SEO" : "Lainnya & SEO", icon: Sliders },
           ].map((t) => {
             const Icon = t.icon;
             const active = activeTab === t.id;
@@ -284,7 +287,7 @@ export function SettingsForm({
         {activeTab === "general" && (
           <div className="rounded-xl border border-latte bg-white p-6 shadow-xs">
             <h2 className="text-base font-bold text-espresso-900 border-b border-latte pb-3">
-              Informasi Umum Toko & Kontak
+              {isEn ? "General Store Information & Contact" : "Informasi Umum Toko & Kontak"}
             </h2>
             {generalState?.error && <Alert tone="error" className="mt-4">{generalState.error}</Alert>}
             {generalState?.success && <Alert tone="success" className="mt-4">{generalState.success}</Alert>}
@@ -377,7 +380,7 @@ export function SettingsForm({
 
               <div className="pt-4 border-t border-latte">
                 <Button type="submit" disabled={generalPending} className="justify-center">
-                  {generalPending ? "Menyimpan..." : "Simpan Pengaturan Umum & Kontak"}
+                  {generalPending ? (isEn ? "Saving..." : "Menyimpan...") : (isEn ? "Save General & Contact Settings" : "Simpan Pengaturan Umum & Kontak")}
                 </Button>
               </div>
             </form>
@@ -388,7 +391,7 @@ export function SettingsForm({
         {activeTab === "currency" && (
           <div className="rounded-xl border border-latte bg-white p-6 shadow-xs">
             <h2 className="text-base font-bold text-espresso-900 border-b border-latte pb-3">
-              Opsi Format Mata Uang (Currency Options)
+              {isEn ? "Currency Format Options" : "Opsi Format Mata Uang (Currency Options)"}
             </h2>
             {currencyState?.error && <Alert tone="error" className="mt-4">{currencyState.error}</Alert>}
             {currencyState?.success && <Alert tone="success" className="mt-4">{currencyState.success}</Alert>}
@@ -505,7 +508,7 @@ export function SettingsForm({
 
               <div className="pt-4 border-t border-latte">
                 <Button type="submit" disabled={currencyPending} className="justify-center">
-                  {currencyPending ? "Menyimpan..." : "Simpan Format Mata Uang"}
+                  {currencyPending ? (isEn ? "Saving..." : "Menyimpan...") : (isEn ? "Save Currency Format" : "Simpan Format Mata Uang")}
                 </Button>
               </div>
             </form>
@@ -516,7 +519,7 @@ export function SettingsForm({
         {activeTab === "payment" && (
           <div className="rounded-xl border border-latte bg-white p-6 shadow-xs space-y-6">
             <h2 className="text-base font-bold text-espresso-900 border-b border-latte pb-3">
-              Metode Pembayaran
+              {isEn ? "Payment Methods" : "Metode Pembayaran"}
             </h2>
             {paymentState?.error && <Alert tone="error">{paymentState.error}</Alert>}
             {paymentState?.success && <Alert tone="success">{paymentState.success}</Alert>}
@@ -951,7 +954,7 @@ export function SettingsForm({
 
               <div className="pt-4 border-t border-latte">
                 <Button type="submit" disabled={paymentPending} className="justify-center">
-                  {paymentPending ? "Menyimpan..." : "Simpan Metode Pembayaran"}
+                  {paymentPending ? (isEn ? "Saving..." : "Menyimpan...") : (isEn ? "Save Payment Methods" : "Simpan Metode Pembayaran")}
                 </Button>
               </div>
             </form>
@@ -962,7 +965,7 @@ export function SettingsForm({
         {activeTab === "shipping" && (
           <div className="rounded-xl border border-latte bg-white p-6 shadow-xs space-y-6">
             <h2 className="text-base font-bold text-espresso-900 border-b border-latte pb-3">
-              Kurir & Opsi Pengiriman
+              {isEn ? "Couriers & Shipping Options" : "Kurir & Opsi Pengiriman"}
             </h2>
             {shippingState?.error && <Alert tone="error">{shippingState.error}</Alert>}
             {shippingState?.success && <Alert tone="success">{shippingState.success}</Alert>}
@@ -1117,7 +1120,7 @@ export function SettingsForm({
 
               <div className="pt-4 border-t border-latte">
                 <Button type="submit" disabled={shippingPending} className="justify-center">
-                  {shippingPending ? "Menyimpan..." : "Simpan Pengaturan Pengiriman"}
+                  {shippingPending ? (isEn ? "Saving..." : "Menyimpan...") : (isEn ? "Save Shipping Settings" : "Simpan Pengaturan Pengiriman")}
                 </Button>
               </div>
             </form>
@@ -1129,10 +1132,12 @@ export function SettingsForm({
           <div className="rounded-xl border border-latte bg-white p-6 shadow-xs space-y-6">
             <div>
               <h2 className="text-base font-bold text-espresso-900 border-b border-latte pb-3">
-                Pengaturan Mail Server (SMTP)
+                {isEn ? "Mail Server (SMTP) Settings" : "Pengaturan Mail Server (SMTP)"}
               </h2>
               <p className="mt-2 text-xs text-espresso-500 leading-relaxed">
-                Konfigurasikan server email pribadi (seperti Gmail App Password, cPanel Webmail, Zoho Mail, Mailgun, atau Brevo) agar website Wazzopi dapat mengirim email rincian pesanan dan akses login ke pembeli secara bebas tanpa batasan penerima.
+                {isEn
+                  ? "Configure custom email server (such as Gmail App Password, cPanel Webmail, Zoho Mail, Mailgun, or Brevo) so the Wazzopi website can send order receipts and login details freely without recipient restrictions."
+                  : "Konfigurasikan server email pribadi (seperti Gmail App Password, cPanel Webmail, Zoho Mail, Mailgun, atau Brevo) agar website Wazzopi dapat mengirim email rincian pesanan dan akses login ke pembeli secara bebas tanpa batasan penerima."}
               </p>
             </div>
 
@@ -1294,7 +1299,7 @@ export function SettingsForm({
 
               <div className="pt-4 border-t border-latte">
                 <Button type="submit" disabled={smtpPending} className="justify-center">
-                  {smtpPending ? "Menyimpan..." : "Simpan Pengaturan SMTP"}
+                  {smtpPending ? (isEn ? "Saving..." : "Menyimpan...") : (isEn ? "Save SMTP Settings" : "Simpan Pengaturan SMTP")}
                 </Button>
               </div>
             </form>
@@ -1371,7 +1376,7 @@ export function SettingsForm({
         {activeTab === "other" && (
           <div className="rounded-xl border border-latte bg-white p-6 shadow-xs space-y-6">
             <h2 className="text-base font-bold text-espresso-900 border-b border-latte pb-3">
-              Lainnya, Pajak, & SEO
+              {isEn ? "Other, Tax, & SEO Settings" : "Lainnya, Pajak, & SEO"}
             </h2>
             {otherState?.error && <Alert tone="error">{otherState.error}</Alert>}
             {otherState?.success && <Alert tone="success">{otherState.success}</Alert>}
@@ -1419,7 +1424,7 @@ export function SettingsForm({
 
               <div className="pt-4 border-t border-latte">
                 <Button type="submit" disabled={otherPending} className="justify-center">
-                  {otherPending ? "Menyimpan..." : "Simpan Pengaturan Lainnya"}
+                  {otherPending ? (isEn ? "Saving..." : "Menyimpan...") : (isEn ? "Save Other Settings" : "Simpan Pengaturan Lainnya")}
                 </Button>
               </div>
             </form>

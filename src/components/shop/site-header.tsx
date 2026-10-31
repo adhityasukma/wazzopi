@@ -48,12 +48,23 @@ export function SiteHeader({ user, categories, announcement }: Props) {
     }, query ? (isEn ? `Searching "${query}"...` : `Mencari "${query}"...`) : (isEn ? "Loading all products..." : "Memuat semua produk..."));
   }
 
+  const localizedAnnouncement = isEn
+    ? announcement
+        .replace(/gratis ongkir untuk pesanan di atas/gi, "Free shipping on orders over")
+        .replace(/gratis ongkos kirim/gi, "Free shipping")
+        .replace(/khusus minggu ini/gi, "This week only")
+        .replace(/pesanan/gi, "orders")
+    : announcement
+        .replace(/free shipping on orders over/gi, "Gratis ongkir untuk pesanan di atas")
+        .replace(/free shipping/gi, "Gratis ongkir")
+        .replace(/this week only/gi, "Khusus minggu ini");
+
   return (
     <header className="sticky top-0 z-40">
       <div className="bg-espresso-700 text-cream">
         <div className="mx-auto flex h-9 max-w-7xl items-center justify-center gap-2 px-4 text-xs tracking-wide">
           <Truck className="h-3.5 w-3.5" />
-          <span>{announcement}</span>
+          <span>{localizedAnnouncement}</span>
         </div>
       </div>
       <div className="border-b border-latte bg-cream/95 backdrop-blur">

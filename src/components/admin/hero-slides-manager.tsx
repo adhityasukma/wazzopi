@@ -30,6 +30,7 @@ import {
 import { ImageUpload } from "@/components/admin/image-upload";
 import { Alert, Button, Field, Input, Textarea } from "@/components/ui";
 import { useAppLoading } from "@/components/loading-provider";
+import { useI18n } from "@/i18n/provider";
 
 type HeroSlideItem = {
   id: string;
@@ -68,6 +69,8 @@ export function HeroSlidesManager({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { locale } = useI18n();
+  const isEn = locale === "en";
 
   const [editingSlide, setEditingSlide] = useState<HeroSlideItem | null>(null);
   const [state, formAction, isPending] = useActionState(saveHeroSlide, undefined);
@@ -91,8 +94,8 @@ export function HeroSlidesManager({
     if (isPending) {
       showLoading(
         editingSlide
-          ? "Menyimpan perubahan slide..."
-          : "Menambahkan slide baru..."
+          ? (isEn ? "Saving slide changes..." : "Menyimpan perubahan slide...")
+          : (isEn ? "Adding new slide..." : "Menambahkan slide baru...")
       );
     } else {
       hideLoading();
@@ -155,7 +158,7 @@ export function HeroSlidesManager({
           if (editingSlide?.id === singleTarget.id) setEditingSlide(null);
           setFeedback({
             type: "success",
-            message: `Slide "${singleTarget.title}" berhasil dihapus.`,
+            message: isEn ? `Slide "${singleTarget.title}" deleted successfully.` : `Slide "${singleTarget.title}" berhasil dihapus.`,
           });
         } else if (modalMode === "selected") {
           const res = await deleteSelectedHeroSlides(selectedIds);
@@ -168,7 +171,7 @@ export function HeroSlidesManager({
           setSelectedIds([]);
           setFeedback({
             type: "success",
-            message: `${deletedCount} slide terpilih berhasil dihapus.`,
+            message: isEn ? `${deletedCount} selected slide(s) deleted successfully.` : `${deletedCount} slide terpilih berhasil dihapus.`,
           });
         } else if (modalMode === "all") {
           const res = await deleteAllHeroSlides();
@@ -378,7 +381,7 @@ export function HeroSlidesManager({
               {selectedIds.length > 0 ? (
                 <span className="inline-flex items-center gap-1.5 rounded-lg bg-caramel-100 px-3 py-1.5 text-xs font-bold text-caramel-900">
                   <CheckSquare className="h-4 w-4 text-caramel-700" />
-                  {selectedIds.length} slide dipilih
+                  {selectedIds.length} {isEn ? "slide(s) selected" : "slide dipilih"}
                 </span>
               ) : (
                 <span className="text-xs font-medium text-espresso-600">
@@ -398,7 +401,7 @@ export function HeroSlidesManager({
                   onClick={() => setSelectedIds([])}
                   className="rounded-lg px-2.5 py-1 text-xs font-semibold text-espresso-500 hover:bg-latte/50 hover:text-espresso-800"
                 >
-                  Batalkan Pilihan
+                  {isEn ? "Clear Selection" : "Batalkan Pilihan"}
                 </button>
               )}
             </div>
@@ -406,7 +409,7 @@ export function HeroSlidesManager({
             <div className="flex flex-wrap items-center gap-3">
               {/* Show Data Selector (20, 50, 100, All) */}
               <div className="flex items-center gap-1.5">
-                <span className="text-xs font-semibold text-espresso-500">Tampilkan:</span>
+                <span className="text-xs font-semibold text-espresso-500">{isEn ? "Show:" : "Tampilkan:"}</span>
                 <div className="inline-flex rounded-lg border border-latte bg-latte/30 p-0.5 text-xs">
                   {(["20", "50", "100", "all"] as const).map((opt) => {
                     const isActive = currentLimit === opt;
@@ -446,7 +449,7 @@ export function HeroSlidesManager({
                     className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-rose-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs transition hover:bg-rose-700 active:scale-95"
                   >
                     <Trash2 className="h-4 w-4" />
-                    Hapus Terpilih ({selectedIds.length})
+                    {isEn ? `Delete Selected (${selectedIds.length})` : `Hapus Terpilih (${selectedIds.length})`}
                   </button>
                 )}
 
@@ -459,7 +462,7 @@ export function HeroSlidesManager({
                     title="Hapus Seluruh Slide"
                   >
                     <Trash2 className="h-4 w-4 text-rose-600" />
-                    Hapus Semua Slide
+                    {isEn ? "Delete All Slides" : "Hapus Semua Slide"}
                   </button>
                 )}
               </div>
@@ -612,7 +615,7 @@ export function HeroSlidesManager({
             <div className="flex items-center justify-between border-b border-latte pb-3">
               <h2 className="text-base font-bold text-espresso-900 flex items-center gap-2">
                 <ImagePlus className="h-4 w-4 text-caramel-500" />
-                {editingSlide ? "Edit Slide Banner" : "Tambah Slide Banner Baru"}
+                {editingSlide ? (isEn ? "Edit Slide Banner" : "Edit Slide Banner") : (isEn ? "Add New Slide Banner" : "Tambah Slide Banner Baru")}
               </h2>
               {editingSlide && (
                 <button
@@ -620,7 +623,7 @@ export function HeroSlidesManager({
                   onClick={handleReset}
                   className="text-xs text-espresso-500 hover:text-espresso-800"
                 >
-                  Batal Edit
+                  {isEn ? "Cancel Edit" : "Batal Edit"}
                 </button>
               )}
             </div>
@@ -631,7 +634,7 @@ export function HeroSlidesManager({
             <form action={formAction} className="mt-4 space-y-4">
               {editingSlide && <input type="hidden" name="id" value={editingSlide.id} />}
 
-              <Field label="Judul Utama Slide *">
+              <Field label={isEn ? "Slide Main Title *" : "Judul Utama Slide *"}>
                 <Input
                   name="title"
                   defaultValue={editingSlide?.title || ""}
@@ -655,7 +658,7 @@ export function HeroSlidesManager({
                 name="image"
                 defaultValue={editingSlide?.image || "/images/hero-1.jpg"}
                 key={editingSlide?.id ? `img-${editingSlide.id}` : "new-img"}
-                label="Foto Banner Slide *"
+                label={isEn ? "Slide Banner Image *" : "Foto Banner Slide *"}
                 hint="Format 16:9 disarankan untuk tampilan layar penuh yang optimal."
               />
 
@@ -680,7 +683,7 @@ export function HeroSlidesManager({
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2 items-center pt-2">
-                <Field label="Urutan Tampil (Sort Order)">
+                <Field label={isEn ? "Display Order (Sort Order)" : "Urutan Tampil (Sort Order)"}>
                   <Input
                     name="sortOrder"
                     type="number"
@@ -699,7 +702,7 @@ export function HeroSlidesManager({
                       key={editingSlide?.id ? `act-${editingSlide.id}` : "new-act"}
                       className="rounded border-espresso-300 text-caramel-600 focus:ring-caramel-500 h-4 w-4"
                     />
-                    Aktifkan Slide Ini
+                    {isEn ? "Activate This Slide" : "Aktifkan Slide Ini"}
                   </label>
                 </div>
               </div>
@@ -707,10 +710,10 @@ export function HeroSlidesManager({
               <div className="flex gap-2 pt-3 border-t border-latte">
                 <Button type="submit" disabled={isPending} className="flex-1 justify-center">
                   {isPending
-                    ? "Menyimpan..."
+                    ? (isEn ? "Saving..." : "Menyimpan...")
                     : editingSlide
-                    ? "Simpan Perubahan Slide"
-                    : "Tambahkan Slide"}
+                    ? (isEn ? "Save Slide Changes" : "Simpan Perubahan Slide")
+                    : (isEn ? "Add Slide" : "Tambahkan Slide")}
                 </Button>
                 {editingSlide && (
                   <button
@@ -744,9 +747,9 @@ export function HeroSlidesManager({
               </div>
               <div className="flex-1">
                 <h3 className="text-lg font-bold text-espresso-900">
-                  {modalMode === "single" && "Hapus Hero Slide"}
-                  {modalMode === "selected" && "Hapus Slide Terpilih"}
-                  {modalMode === "all" && "Hapus Seluruh Slide (Delete ALL)"}
+                  {modalMode === "single" && (isEn ? "Delete Hero Slide" : "Hapus Hero Slide")}
+                  {modalMode === "selected" && (isEn ? "Delete Selected Slides" : "Hapus Slide Terpilih")}
+                  {modalMode === "all" && (isEn ? "Delete ALL Slides" : "Hapus Seluruh Slide (Delete ALL)")}
                 </h3>
                 <p className="mt-1.5 text-xs text-espresso-600 leading-relaxed">
                   {modalMode === "single" && singleTarget && (
@@ -809,9 +812,9 @@ export function HeroSlidesManager({
                 ) : (
                   <>
                     <Trash2 className="h-4 w-4" />
-                    {modalMode === "single" && "Ya, Hapus Slide"}
-                    {modalMode === "selected" && `Hapus ${selectedIds.length} Slide`}
-                    {modalMode === "all" && `Ya, Hapus Semua (${totalAllSlides})`}
+                    {modalMode === "single" && (isEn ? "Yes, Delete Slide" : "Ya, Hapus Slide")}
+                    {modalMode === "selected" && (isEn ? `Delete ${selectedIds.length} Slides` : `Hapus ${selectedIds.length} Slide`)}
+                    {modalMode === "all" && (isEn ? `Yes, Delete All (${totalAllSlides})` : `Ya, Hapus Semua (${totalAllSlides})`)}
                   </>
                 )}
               </button>

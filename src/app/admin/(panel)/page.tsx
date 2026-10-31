@@ -11,7 +11,8 @@ import {
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 import { formatCurrency } from "@/lib/currency";
-import { formatDate, ORDER_STATUS_LABEL, ORDER_STATUS_STYLE, SALES_STATUSES } from "@/lib/utils";
+import { formatDate, getOrderStatusLabel,
+  ORDER_STATUS_LABEL, ORDER_STATUS_STYLE, SALES_STATUSES } from "@/lib/utils";
 import { DashboardCharts } from "@/components/admin/dashboard-charts";
 import { requireAdmin } from "@/lib/auth";
 import { getServerDictionary, getServerLocale } from "@/i18n/server";
@@ -181,7 +182,7 @@ export default async function AdminDashboardPage() {
                     <p className="font-medium text-espresso-900">{o.customerName}</p>
                     <p className="text-xs text-espresso-400">{o.customerPhone}</p>
                   </td>
-                  <td className="px-4 py-3 text-xs text-espresso-500">{formatDate(o.createdAt, true)}</td>
+                  <td className="px-4 py-3 text-xs text-espresso-500">{formatDate(o.createdAt, true, locale)}</td>
                   <td className="px-4 py-3 font-semibold text-espresso-900">
                     {formatCurrency(o.total, settings.currency)}
                   </td>
@@ -191,7 +192,7 @@ export default async function AdminDashboardPage() {
                         ORDER_STATUS_STYLE[o.status] || "bg-latte text-espresso-800"
                       }`}
                     >
-                      {ORDER_STATUS_LABEL[o.status]}
+                      {getOrderStatusLabel(o.status, locale)}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
@@ -199,7 +200,7 @@ export default async function AdminDashboardPage() {
                       href={`/admin/orders/${o.id}`}
                       className="rounded-md border border-latte bg-white px-2.5 py-1 text-xs font-semibold text-espresso-700 hover:bg-latte"
                     >
-                      Detail
+                      {locale === "en" ? "Details" : "Detail"}
                     </Link>
                   </td>
                 </tr>
