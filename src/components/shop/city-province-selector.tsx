@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Search, MapPin, Check, Lock, ChevronDown, X, Globe } from "lucide-react";
+import { Search, MapPin, Check, Lock, ChevronDown, X, Globe, Plus } from "lucide-react";
 import {
   searchIndonesianRegions,
   findProvinceByCity,
@@ -12,6 +12,7 @@ import {
   COUNTRIES,
   INTERNATIONAL_REGIONS,
   getCountryCode,
+  getCountryCanonicalName,
   type CountryRegion,
 } from "@/lib/countries";
 import { cn } from "@/lib/utils";
@@ -35,15 +36,26 @@ interface CityProvinceSelectorProps {
 // Rekomendasi kota populer Indonesia saat input pertama kali difokuskan
 const POPULAR_INDONESIAN_CITIES: IndonesianRegion[] = [
   { city: "Jakarta Selatan", province: "DKI Jakarta" },
+  { city: "Jakarta Pusat", province: "DKI Jakarta" },
+  { city: "Jakarta Barat", province: "DKI Jakarta" },
   { city: "Kota Tangerang", province: "Banten" },
+  { city: "Kota Tangerang Selatan", province: "Banten" },
   { city: "Kota Bandung", province: "Jawa Barat" },
-  { city: "Kota Surabaya", province: "Jawa Timur" },
+  { city: "Kota Bekasi", province: "Jawa Barat" },
+  { city: "Kota Bogor", province: "Jawa Barat" },
+  { city: "Kota Depok", province: "Jawa Barat" },
   { city: "Kota Semarang", province: "Jawa Tengah" },
+  { city: "Kota Surakarta (Solo)", province: "Jawa Tengah" },
   { city: "Kota Yogyakarta", province: "D.I. Yogyakarta" },
   { city: "Kab. Sleman", province: "D.I. Yogyakarta" },
-  { city: "Kota Medan", province: "Sumatera Utara" },
-  { city: "Kota Makassar", province: "Sulawesi Selatan" },
+  { city: "Kota Surabaya", province: "Jawa Timur" },
+  { city: "Kota Malang", province: "Jawa Timur" },
   { city: "Kota Denpasar", province: "Bali" },
+  { city: "Kab. Badung", province: "Bali" },
+  { city: "Kota Medan", province: "Sumatera Utara" },
+  { city: "Kota Palembang", province: "Sumatera Selatan" },
+  { city: "Kota Makassar", province: "Sulawesi Selatan" },
+  { city: "Kota Balikpapan", province: "Kalimantan Timur" },
 ];
 
 export function CityProvinceSelector({
@@ -63,7 +75,9 @@ export function CityProvinceSelector({
   const { locale } = useI18n();
   const isEn = locale === "en";
 
-  const [selectedCountry, setSelectedCountry] = useState(country || defaultCountry || "Indonesia");
+  const [selectedCountry, setSelectedCountry] = useState(() =>
+    getCountryCanonicalName(country || defaultCountry || "Indonesia")
+  );
   const countryCode = useMemo(() => getCountryCode(selectedCountry), [selectedCountry]);
   const isIndonesia = countryCode === "ID";
 
@@ -90,10 +104,13 @@ export function CityProvinceSelector({
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
 
-  // Sinkronisasi negara jika prop berubah
+  // Sinkronisasi negara jika prop country berubah
   useEffect(() => {
-    if (country && country !== selectedCountry) {
-      setSelectedCountry(country);
+    if (country) {
+      const canonical = getCountryCanonicalName(country);
+      if (canonical !== selectedCountry) {
+        setSelectedCountry(canonical);
+      }
     }
   }, [country, selectedCountry]);
 
@@ -119,12 +136,12 @@ export function CityProvinceSelector({
       if (!q) {
         return POPULAR_INDONESIAN_CITIES;
       }
-      return searchIndonesianRegions(cityInput, 15);
+      return searchIndonesianRegions(cityInput, 20);
     }
 
     const intlList = INTERNATIONAL_REGIONS[countryCode] || [];
     if (!q) {
-      return intlList.slice(0, 12);
+      return intlList;
     }
     return intlList
       .filter(
@@ -132,58 +149,68 @@ export function CityProvinceSelector({
           r.city.toLowerCase().includes(q) ||
           r.province.toLowerCase().includes(q)
       )
-      .slice(0, 15);
+      .slice(0, 20);
   }, [cityInput, isIndonesia, countryCode]);
 
   // Handler pergantian negara (Country Change)
   const handleCountryChange = (newCountry: string) => {
-    setSelectedCountry(newCountry);
+    const canonical = getCountryCanonicalName(newCountry);
+    setSelectedCountry(canonical);
     // Reset data kota, provinsi, dan kode pos saat negara berganti
     setCityInput("");
     setSelectedCity("");
     setSelectedProvince("");
     setPostalCode("");
-    setIsOpen(false);
-    onCountryChange?.(newCountry);
+    setIsOpen(true);
+    setHighlightIndex(0);
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 50);
+    onCountryChange?.(canonical);
     onPostalCodeChange?.("");
-    onChange?.({ city: "", province: "", postalCode: "", country: newCountry });
+    onChange?.({ city: "", province: "", postalCode: "", country: canonical });
   };
 
-  // Klik di luar menutup dropdown
+  // Klik di luar menutup dropdown tanpa menghapus apa yang sudah diketik
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsOpen(false);
-        if (!cityInput.trim()) {
+        const trimmed = cityInput.trim();
+        if (!trimmed) {
           setSelectedCity("");
           setSelectedProvince("");
           setPostalCode("");
           onPostalCodeChange?.("");
           onChange?.({ city: "", province: "", postalCode: "", country: selectedCountry });
-        } else if (cityInput.trim() && cityInput !== selectedCity) {
+        } else {
+          setSelectedCity(trimmed);
           if (isIndonesia) {
-            const matched = findProvinceByCity(cityInput);
+            const matched = findProvinceByCity(trimmed);
             if (matched) {
-              setSelectedCity(cityInput.trim());
               setSelectedProvince(matched);
-              const autoPostal = findPostalCodeByCity(cityInput.trim(), matched) || "";
+              const autoPostal = findPostalCodeByCity(trimmed, matched) || "";
               if (autoPostal && !postalCode) {
                 setPostalCode(autoPostal);
                 onPostalCodeChange?.(autoPostal);
               }
-              onChange?.({ city: cityInput.trim(), province: matched, postalCode: autoPostal || postalCode, country: selectedCountry });
+              onChange?.({ city: trimmed, province: matched, postalCode: autoPostal || postalCode, country: selectedCountry });
             } else {
-              setCityInput("");
-              setSelectedCity("");
-              setSelectedProvince("");
-              setPostalCode("");
-              onPostalCodeChange?.("");
-              onChange?.({ city: "", province: "", postalCode: "", country: selectedCountry });
+              onChange?.({ city: trimmed, province: selectedProvince, postalCode, country: selectedCountry });
             }
           } else {
-            // Internasional: simpan nilai yang diketik
-            setSelectedCity(cityInput.trim());
-            onChange?.({ city: cityInput.trim(), province: selectedProvince, postalCode, country: selectedCountry });
+            const intlList = INTERNATIONAL_REGIONS[countryCode] || [];
+            const matched = intlList.find((r) => r.city.toLowerCase() === trimmed.toLowerCase());
+            if (matched) {
+              setSelectedProvince(matched.province);
+              if (matched.postalCode && !postalCode) {
+                setPostalCode(matched.postalCode);
+                onPostalCodeChange?.(matched.postalCode);
+              }
+              onChange?.({ city: trimmed, province: matched.province, postalCode: matched.postalCode || postalCode, country: selectedCountry });
+            } else {
+              onChange?.({ city: trimmed, province: selectedProvince, postalCode, country: selectedCountry });
+            }
           }
         }
       }
@@ -191,7 +218,7 @@ export function CityProvinceSelector({
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [cityInput, selectedCity, selectedProvince, postalCode, selectedCountry, isIndonesia, onChange, onPostalCodeChange]);
+  }, [cityInput, selectedCity, selectedProvince, postalCode, selectedCountry, isIndonesia, countryCode, onChange, onPostalCodeChange]);
 
   const handleSelect = (item: CountryRegion) => {
     setCityInput(item.city);
@@ -224,6 +251,38 @@ export function CityProvinceSelector({
     onChange?.({ city: "", province: "", postalCode: "", country: selectedCountry });
   };
 
+  const handleSelectCustomCity = (cityName: string) => {
+    const trimmed = cityName.trim();
+    if (!trimmed) return;
+    setCityInput(trimmed);
+    setSelectedCity(trimmed);
+    setIsOpen(false);
+
+    let resolvedProvince = selectedProvince;
+    let resolvedPostal = postalCode;
+
+    if (isIndonesia) {
+      const matched = findProvinceByCity(trimmed);
+      if (matched) {
+        resolvedProvince = matched;
+        setSelectedProvince(matched);
+        const autoPostal = findPostalCodeByCity(trimmed, matched) || "";
+        if (autoPostal) {
+          resolvedPostal = autoPostal;
+          setPostalCode(autoPostal);
+          onPostalCodeChange?.(autoPostal);
+        }
+      }
+    }
+
+    onChange?.({
+      city: trimmed,
+      province: resolvedProvince,
+      postalCode: resolvedPostal,
+      country: selectedCountry,
+    });
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!isOpen) {
       if (e.key === "ArrowDown" || e.key === "Enter") {
@@ -243,11 +302,17 @@ export function CityProvinceSelector({
       e.preventDefault();
       if (suggestions[highlightIndex]) {
         handleSelect(suggestions[highlightIndex]);
+      } else if (cityInput.trim()) {
+        handleSelectCustomCity(cityInput);
       }
     } else if (e.key === "Escape") {
       setIsOpen(false);
     }
   };
+
+  // Status kustomisasi provinsi: terkunci hanya jika kota Indonesia terdaftar di database
+  const isCustomIndonesianCity = isIndonesia && Boolean(selectedCity) && !findProvinceByCity(selectedCity);
+  const isProvinceReadOnly = isIndonesia && !isCustomIndonesianCity;
 
   return (
     <div className="space-y-4">
@@ -281,8 +346,8 @@ export function CityProvinceSelector({
       )}
 
       {/* Jika showCountry false, pastikan input hidden country tetap terkirim */}
-      {!showCountry && country && (
-        <input type="hidden" name="country" value={country} />
+      {!showCountry && (
+        <input type="hidden" name="country" value={selectedCountry} />
       )}
 
       {/* Grid: Kota, Provinsi, Kode Pos */}
@@ -378,20 +443,38 @@ export function CityProvinceSelector({
 
           {/* Dropdown Hasil Pencarian */}
           {isOpen && (
-            <div className="absolute z-50 mt-1.5 max-h-60 w-full overflow-auto rounded-lg border border-espresso-100 bg-white p-1 shadow-lg">
-              {!cityInput.trim() && (
-                <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-espresso-400">
+            <div className="absolute z-50 mt-1.5 max-h-64 w-full overflow-auto rounded-lg border border-espresso-100 bg-white p-1 shadow-lg">
+              <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-espresso-400 flex items-center justify-between">
+                <span>
                   {isIndonesia
-                    ? (isEn ? "Popular Cities in Indonesia" : "Kota Populer di Indonesia")
+                    ? (isEn ? "Cities in Indonesia" : "Kota di Indonesia")
                     : (isEn ? `Major Cities in ${selectedCountry}` : `Kota Utama di ${selectedCountry}`)}
-                </div>
-              )}
+                </span>
+                <span className="text-[10px] lowercase font-normal text-espresso-400">
+                  {suggestions.length} {isEn ? "available" : "tersedia"}
+                </span>
+              </div>
 
               {suggestions.length === 0 ? (
-                <div className="px-3 py-3 text-center text-xs text-espresso-400">
-                  {isEn
-                    ? `No pre-indexed city for "${cityInput}". You can continue with this input.`
-                    : `Kota "${cityInput}" tidak ada di daftar indeks. Anda dapat melanjutkan dengan teks ini.`}
+                <div className="p-2 space-y-1">
+                  <div className="px-3 py-2 text-center text-xs text-espresso-500">
+                    {isEn
+                      ? `No pre-indexed city matching "${cityInput}".`
+                      : `Tidak ada kota terdaftar yang cocok dengan "${cityInput}".`}
+                  </div>
+                  {cityInput.trim() && (
+                    <button
+                      type="button"
+                      onClick={() => handleSelectCustomCity(cityInput)}
+                      className="w-full flex items-center justify-between rounded-md bg-caramel-50 px-3 py-2 text-xs font-semibold text-caramel-900 hover:bg-caramel-100 transition cursor-pointer"
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <Plus className="h-3.5 w-3.5 text-caramel-600" />
+                        {isEn ? `Use "${cityInput.trim()}" as custom city` : `Gunakan "${cityInput.trim()}" sebagai kota`}
+                      </span>
+                      <Check className="h-3.5 w-3.5 text-caramel-700" />
+                    </button>
+                  )}
                 </div>
               ) : (
                 <ul ref={listRef} role="listbox" className="space-y-0.5">
@@ -430,21 +513,50 @@ export function CityProvinceSelector({
                       </li>
                     );
                   })}
+
+                  {/* Opsi kustom jika input belum ada di list saran */}
+                  {cityInput.trim() &&
+                    !suggestions.some(
+                      (s) => s.city.toLowerCase() === cityInput.trim().toLowerCase()
+                    ) && (
+                      <li
+                        role="option"
+                        onClick={() => handleSelectCustomCity(cityInput)}
+                        className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-xs text-caramel-800 hover:bg-caramel-50 font-medium border-t border-espresso-100/60 mt-1 transition"
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <Plus className="h-3.5 w-3.5 text-caramel-600" />
+                          {isEn ? `Use "${cityInput.trim()}" (Custom)` : `Gunakan "${cityInput.trim()}" (Kustom)`}
+                        </span>
+                        <Check className="h-3.5 w-3.5 text-caramel-600" />
+                      </li>
+                    )}
                 </ul>
               )}
             </div>
           )}
         </div>
 
-        {/* 2. Field Provinsi / State (Otomatis Terisi & Terkunci jika Indonesia, atau Editable jika Luar Negeri) */}
+        {/* 2. Field Provinsi / State (Otomatis Terisi & Terkunci jika Indonesia terdaftar, atau Editable jika Luar Negeri / Custom) */}
         <div className={cn(showPostalCode ? "sm:col-span-4" : "sm:col-span-1")}>
           <label className="mb-1.5 flex items-center justify-between text-xs font-semibold text-espresso-700">
             <span>
               {isEn ? "Province / State" : "Provinsi / Wilayah"} {required && <span className="text-rose-500">*</span>}
             </span>
-            <span className="inline-flex items-center gap-1 text-[11px] font-normal text-emerald-600">
-              <Lock className="h-3 w-3" />
-              {isEn ? "Auto-filled" : "Otomatis terisi"}
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 text-[11px] font-normal",
+                isProvinceReadOnly ? "text-emerald-600" : "text-espresso-400"
+              )}
+            >
+              {isProvinceReadOnly ? (
+                <>
+                  <Lock className="h-3 w-3" />
+                  {isEn ? "Auto-filled" : "Otomatis terisi"}
+                </>
+              ) : (
+                <span>{isEn ? "Editable" : "Dapat diedit"}</span>
+              )}
             </span>
           </label>
 
@@ -452,22 +564,23 @@ export function CityProvinceSelector({
             <input
               type="text"
               name="province"
-              readOnly={isIndonesia}
+              readOnly={isProvinceReadOnly}
               value={selectedProvince}
               onChange={(e) => {
-                if (!isIndonesia) {
-                  setSelectedProvince(e.target.value);
-                  onChange?.({ city: selectedCity, province: e.target.value, postalCode, country: selectedCountry });
+                if (!isProvinceReadOnly) {
+                  const val = e.target.value;
+                  setSelectedProvince(val);
+                  onChange?.({ city: selectedCity, province: val, postalCode, country: selectedCountry });
                 }
               }}
               placeholder={
                 isEn
-                  ? (isIndonesia ? "Auto-filled when City is selected" : "Province or State name")
-                  : (isIndonesia ? "Terisi otomatis saat memilih Kota" : "Nama provinsi atau negara bagian")
+                  ? (isProvinceReadOnly ? "Auto-filled when City is selected" : "Province or State name")
+                  : (isProvinceReadOnly ? "Terisi otomatis saat memilih Kota" : "Nama provinsi atau negara bagian")
               }
               className={cn(
-                "w-full h-10 rounded-lg border border-espresso-200 px-3 text-sm font-medium text-espresso-800 placeholder:text-espresso-300 focus:outline-none shadow-2xs",
-                isIndonesia
+                "w-full h-10 rounded-lg border border-espresso-200 px-3 text-sm font-medium text-espresso-800 placeholder:text-espresso-300 focus:outline-none shadow-2xs transition",
+                isProvinceReadOnly
                   ? "bg-cream/50 cursor-default"
                   : "bg-white focus:border-caramel-500 focus:ring-2 focus:ring-caramel-100"
               )}
