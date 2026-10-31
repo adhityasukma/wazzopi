@@ -308,7 +308,8 @@ export function SettingsForm({
       <div className="lg:col-span-9">
         {/* TAB 1: GENERAL */}
         {activeTab === "general" && (
-          <div className="rounded-xl border border-latte bg-white p-6 shadow-xs space-y-6">
+          <div className="rounded-xl border border-latte bg-white p-6 shadow-xs space-y-5">
+            {/* Header: Title and Description */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-latte pb-4">
               <div>
                 <h2 className="text-base font-bold text-espresso-900">
@@ -316,38 +317,45 @@ export function SettingsForm({
                 </h2>
                 <p className="text-xs text-espresso-500 mt-0.5">
                   {isEn
-                    ? "Manage your brand identity, contact channels, and physical storefront address without clutter."
-                    : "Kelola identitas brand, saluran kontak pelanggan, dan alamat fisik toko secara rapi dan terorganisir."}
+                    ? "Manage your brand identity, contact channels, and physical storefront address cleanly organized."
+                    : "Kelola identitas brand, saluran kontak pelanggan, dan alamat fisik toko secara terorganisir dan tidak menumpuk."}
                 </p>
               </div>
-
-              {/* Sub-tab pills */}
-              <div className="inline-flex rounded-xl border border-latte bg-cream/40 p-1">
-                {[
-                  { id: "identity", label: isEn ? "Brand Identity" : "Identitas Brand", icon: Store },
-                  { id: "contact", label: isEn ? "Contact & Hours" : "Kontak & Jam Buka", icon: PhoneCall },
-                  { id: "address", label: isEn ? "Store Address" : "Alamat Toko", icon: MapPin },
-                ].map((s) => {
-                  const SIcon = s.icon;
-                  const active = generalSubTab === s.id;
-                  return (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => setGeneralSubTab(s.id as any)}
-                      className={cn(
-                        "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition cursor-pointer",
-                        active
-                          ? "bg-espresso-900 text-white shadow-xs"
-                          : "text-espresso-700 hover:bg-latte/60"
-                      )}
-                    >
-                      <SIcon className={cn("h-3.5 w-3.5", active ? "text-caramel-300" : "text-caramel-600")} />
-                      <span>{s.label}</span>
-                    </button>
-                  );
-                })}
+              <div className="flex items-center gap-2">
+                <span className="rounded-full bg-caramel-50 px-3 py-1 text-xs font-semibold text-caramel-800 border border-caramel-200">
+                  {generalSubTab === "identity" && (isEn ? "Step 1 of 3: Brand Identity" : "Langkah 1 dari 3: Identitas")}
+                  {generalSubTab === "contact" && (isEn ? "Step 2 of 3: Contact & Hours" : "Langkah 2 dari 3: Kontak")}
+                  {generalSubTab === "address" && (isEn ? "Step 3 of 3: Store Address" : "Langkah 3 dari 3: Alamat")}
+                </span>
               </div>
+            </div>
+
+            {/* Sub-tab pills - FULL WIDTH, FLEX-WRAP, IDENTICAL TO PAYMENT METHODS */}
+            <div className="w-full flex flex-wrap items-center gap-1.5 rounded-xl border border-latte bg-cream/50 p-1.5 shadow-2xs">
+              {[
+                { id: "identity", label: isEn ? "Brand & Store Identity" : "Identitas Brand & Toko", icon: Store },
+                { id: "contact", label: isEn ? "Customer Contact & Hours" : "Kontak & Jam Operasional", icon: PhoneCall },
+                { id: "address", label: isEn ? "Physical Store Address" : "Alamat Fisik Toko", icon: MapPin },
+              ].map((s) => {
+                const SIcon = s.icon;
+                const active = generalSubTab === s.id;
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => setGeneralSubTab(s.id as any)}
+                    className={cn(
+                      "flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition cursor-pointer flex-1 sm:flex-initial justify-center",
+                      active
+                        ? "bg-espresso-900 text-white shadow-xs"
+                        : "text-espresso-700 hover:bg-white hover:text-espresso-950 bg-cream/30"
+                    )}
+                  >
+                    <SIcon className={cn("h-4 w-4", active ? "text-caramel-300" : "text-caramel-600")} />
+                    <span>{s.label}</span>
+                  </button>
+                );
+              })}
             </div>
 
             {generalState?.error && <Alert tone="error">{generalState.error}</Alert>}
