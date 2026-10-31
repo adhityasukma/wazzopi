@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Documentation - Wazzopi Next.js E-Commerce Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --espresso-900: #1a0f0b;
+      --espresso-800: #2a1811;
+      --caramel-600: #a8673c;
+      --caramel-500: #c27d4f;
+      --cream-bg: #fbf8f3;
+      --latte-border: #ede4d8;
+      --text-main: #2b1f1c;
+      --text-muted: #736460;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--cream-bg);
+      color: var(--text-main);
+      line-height: 1.6;
+      display: flex;
+    }
+    aside.sidebar {
+      width: 280px;
+      height: 100vh;
+      position: sticky;
+      top: 0;
+      background: var(--espresso-900);
+      color: #fff;
+      padding: 32px 24px;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+    .brand-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 26px;
+      color: #fbf5ea;
+      margin-bottom: 4px;
+    }
+    .brand-version {
+      font-size: 11px;
+      color: var(--caramel-500);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 700;
+      margin-bottom: 32px;
+    }
+    .nav-group-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #8c7670;
+      font-weight: 700;
+      margin-top: 24px;
+      margin-bottom: 12px;
+    }
+    .nav-links a {
+      display: block;
+      color: #d9cac4;
+      text-decoration: none;
+      font-size: 14px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      transition: all 0.15s ease;
+      margin-bottom: 4px;
+    }
+    .nav-links a:hover, .nav-links a.active {
+      background: var(--espresso-800);
+      color: #fff;
+      font-weight: 600;
+    }
+    main.content {
+      flex: 1;
+      max-width: 960px;
+      padding: 60px 48px;
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 38px;
+      color: var(--espresso-900);
+      margin-bottom: 12px;
+    }
+    h2 {
+      font-size: 24px;
+      color: var(--espresso-900);
+      margin-top: 48px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--latte-border);
+      padding-bottom: 8px;
+    }
+    h3 {
+      font-size: 18px;
+      color: var(--espresso-900);
+      margin-top: 24px;
+      margin-bottom: 8px;
+    }
+    p { margin-bottom: 16px; color: var(--text-muted); font-size: 15px; }
+    ul, ol { margin-left: 24px; margin-bottom: 20px; color: var(--text-muted); font-size: 15px; }
+    li { margin-bottom: 8px; }
+    pre {
+      background: #1e130f;
+      color: #f5ebe6;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      padding: 16px 20px;
+      border-radius: 12px;
+      overflow-x: auto;
+      margin-bottom: 24px;
+      border: 1px solid #362520;
+    }
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      background: #ede3da;
+      color: var(--espresso-900);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      background: #e3f2fd;
+      color: #0d47a1;
+      margin-right: 6px;
+      margin-bottom: 6px;
+    }
+    .callout {
+      background: #fff;
+      border-left: 4px solid var(--caramel-600);
+      padding: 18px 22px;
+      border-radius: 0 12px 12px 0;
+      margin: 24px 0;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    }
+    .callout-title { font-weight: 700; color: var(--espresso-900); margin-bottom: 4px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      background: #fff;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--latte-border);
+    }
+    th, td {
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 14px;
+      border-bottom: 1px solid var(--latte-border);
+    }
+    th { background: #f5ede4; color: var(--espresso-900); font-weight: 600; }
+  </style>
+</head>
+<body>
+
+  <aside class="sidebar">
+    <div class="brand-title">Wazzopi</div>
+    <div class="brand-version">v1.0.0 Documentation</div>
+
+    <div class="nav-links">
+      <div class="nav-group-title">Getting Started</div>
+      <a href="#overview">Overview & Features</a>
+      <a href="#requirements">System Requirements</a>
+      <a href="#quickstart">Local Installation</a>
+      <a href="#database">Database & Seeding</a>
+
+      <div class="nav-group-title">Configuration</div>
+      <a href="#environment">Environment Variables</a>
+      <a href="#i18n">Multi-Language Setup</a>
+      <a href="#payments">Payment Gateways</a>
+
+      <div class="nav-group-title">Deployment</div>
+      <a href="#deployment">1-Click Vercel Deploy</a>
+      <a href="#support">Support & Changelog</a>
+    </div>
+  </aside>
+
+  <main class="content">
+    <h1>Wazzopi Documentation</h1>
+    <p>Thank you for purchasing <strong>Wazzopi</strong> — Full-Stack E-Commerce & Coffee Roastery Platform built with Next.js 15 App Router, React 19, TypeScript, Tailwind CSS, and Prisma ORM.</p>
+
+    <div class="callout">
+      <div class="callout-title">Default Admin Credentials</div>
+      Email: <code>admin@wazzopi.com</code> | Password: <code>admin123</code><br>
+      Access dashboard at <code>/admin</code>.
+    </div>
+
+    <!-- OVERVIEW -->
+    <h2 id="overview">1. Overview & Key Highlights</h2>
+    <p>Wazzopi is an end-to-end e-commerce solution engineered for specialty coffee roasters, retail brands, and web agencies needing a ready-to-deploy digital storefront.</p>
+    <ul>
+      <li><strong>Latest Next.js 15:</strong> Powered by modern Server Components, Server Actions, and Streaming.</li>
+      <li><strong>Multi-Language (i18n):</strong> Instant language switcher supporting <strong>English</strong> (Default) and <strong>Bahasa Indonesia</strong> with cookie persistence.</li>
+      <li><strong>Triple Payment Gateway Architecture:</strong> Integrated with <strong>PayPal</strong>, <strong>Stripe</strong> (Credit Cards), and <strong>Midtrans</strong> (Indonesian Local Payment Ecosystem).</li>
+      <li><strong>Automated Shipping Rates:</strong> Multi-courier support (JNE, POS, TIKI) via courier API + Flat Rate Shipping.</li>
+      <li><strong>Comprehensive Admin Portal:</strong> Inventory management, variant weight pricing, sales charts, coupons, and email notifications.</li>
+    </ul>
+
+    <!-- REQUIREMENTS -->
+    <h2 id="requirements">2. System Requirements</h2>
+    <p>Before installing, make sure your development environment meets the following requirements:</p>
+    <ul>
+      <li><strong>Node.js:</strong> Version 18.18.0 or 20.x+ recommended.</li>
+      <li><strong>NPM / PNPM / Yarn:</strong> NPM v9+ included with Node.</li>
+      <li><strong>Database:</strong> SQLite (preconfigured for local zero-setup dev) or PostgreSQL (recommended for production).</li>
+    </ul>
+
+    <!-- QUICKSTART -->
+    <h2 id="quickstart">3. Local Installation</h2>
+    <p>Follow these quick steps to get Wazzopi up and running on your local machine:</p>
+    <pre><code># 1. Unzip the project files and enter directory
+cd wazzopi
+
+# 2. Install all dependencies
+npm install
+
+# 3. Create your local environment file
+cp .env.example .env
+
+# 4. Generate Prisma Client and Push Database Schema
+npm run db:push
+
+# 5. Populate sample demo data (Products, Admin User, Orders)
+npm run db:seed
+
+# 6. Start development server
+npm run dev</code></pre>
+    <p>Open <a href="http://localhost:3000" target="_blank">http://localhost:3000</a> in your browser to view the live storefront.</p>
+
+    <!-- DATABASE -->
+    <h2 id="database">4. Database Setup & Seeding</h2>
+    <p>Wazzopi uses <strong>Prisma ORM</strong>, which makes switching between databases effortless:</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Environment</th>
+          <th>Provider</th>
+          <th>Connection Example</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Local Dev</td>
+          <td>SQLite</td>
+          <td><code>file:./dev.db</code></td>
+        </tr>
+        <tr>
+          <td>Production</td>
+          <td>PostgreSQL</td>
+          <td><code>postgresql://user:pass@host/db?sslmode=require</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Resetting or Reseeding Data:</h3>
+    <pre><code># Populate demo products, users, categories and analytics
+npm run db:seed
+
+# Complete fresh database reset
+npm run db:reset</code></pre>
+
+    <!-- I18N -->
+    <h2 id="i18n">5. Multi-Language (i18n) Configuration</h2>
+    <p>Wazzopi includes a modular dictionary-based translation architecture in <code>src/i18n/</code>.</p>
+    <ul>
+      <li><strong>Default Locale:</strong> English (<code>en</code>). Configured in <code>src/i18n/config.ts</code>.</li>
+      <li><strong>Adding a new language:</strong> Simply duplicate <code>src/i18n/dictionaries/en.ts</code> to your desired locale (e.g., <code>es.ts</code> for Spanish) and register it in <code>SUPPORTED_LOCALES</code>.</li>
+    </ul>
+
+    <!-- PAYMENTS -->
+    <h2 id="payments">6. Payment Gateways Setup</h2>
+    <p>You can toggle and configure payment gateways dynamically from <strong>Admin Dashboard &gt; Store Settings &gt; Payment Methods</strong>:</p>
+    <ul>
+      <li><strong>PayPal:</strong> Toggle between <code>Sandbox</code> and <code>Live</code> mode, enter your Client ID & Secret from <a href="https://developer.paypal.com" target="_blank">developer.paypal.com</a>.</li>
+      <li><strong>Stripe:</strong> Toggle between <code>Test</code> and <code>Live</code> mode, enter Publishable Key & Secret Key.</li>
+      <li><strong>Midtrans:</strong> Toggle between <code>Sandbox</code> and <code>Production</code> mode for Indonesian QRIS and Virtual Accounts.</li>
+      <li><strong>Manual Bank Transfer / COD:</strong> Customizable instructions and bank account numbers.</li>
+    </ul>
+
+    <!-- DEPLOYMENT -->
+    <h2 id="deployment">7. Deployment to Vercel (1-Click Guide)</h2>
+    <p>Deploying Wazzopi to Vercel is completely free and takes less than 3 minutes:</p>
+    <ol>
+      <li>Push your codebase to a private <strong>GitHub</strong> repository.</li>
+      <li>Go to <a href="https://vercel.com" target="_blank">Vercel</a> and click <strong>Add New Project</strong> &gt; Select your repository.</li>
+      <li>In the <strong>Environment Variables</strong> section, provide:
+        <ul>
+          <li><code>DATABASE_URL</code> (Use a free cloud PostgreSQL from Supabase, Neon, or Railway).</li>
+          <li><code>AUTH_SECRET</code> (A random 32+ character string).</li>
+          <li><code>NEXT_PUBLIC_APP_URL</code> (Your Vercel URL, e.g. <code>https://your-brand.vercel.app</code>).</li>
+        </ul>
+      </li>
+      <li>Click <strong>Deploy</strong>. Vercel will automatically run the build and publish your high-performance serverless store.</li>
+    </ol>
+
+    <!-- SUPPORT -->
+    <h2 id="support">8. Customer Support</h2>
+    <p>Need assistance or have customization questions? We are always happy to help!</p>
+    <ul>
+      <li><strong>CodeCanyon Item Support:</strong> Submit a ticket via your CodeCanyon Author Profile page.</li>
+      <li><strong>Direct Email:</strong> <code>support@wazzopi.com</code></li>
+    </ul>
+    <p style="margin-top: 40px; font-size: 13px; color: #a89a95;">&copy; 2026 Wazzopi. Built with passion for coffee & code.</p>
+  </main>
+
+</body>
+</html>
