@@ -187,6 +187,26 @@ export function CheckoutForm({
       }
     }
 
+    // 4. Gateway Stripe (Kartu Kredit Internasional)
+    if (settings.payment.stripe?.enabled) {
+      list.push({
+        id: "stripe",
+        name: "Credit / Debit Card (Stripe)",
+        desc: "Visa, Mastercard, American Express, Apple Pay, Google Pay",
+        iconType: "card",
+      });
+    }
+
+    // 5. Gateway PayPal
+    if (settings.payment.paypal?.enabled) {
+      list.push({
+        id: "paypal",
+        name: "PayPal Checkout",
+        desc: "Bayar aman dengan saldo akun PayPal atau kartu debit/kredit global",
+        iconType: "ewallet",
+      });
+    }
+
     return list;
   }, [settings.payment, money]);
 

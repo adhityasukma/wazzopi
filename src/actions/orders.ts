@@ -55,11 +55,16 @@ export async function placeOrder(_: FormState, formData: FormData): Promise<Form
   // Validasi metode pembayaran
   const pay = settings.payment;
   const isMidtrans = isMidtransPayment(d.paymentMethod);
+  const isStripe = d.paymentMethod === "stripe";
+  const isPaypal = d.paymentMethod === "paypal";
+
   if (
     (d.paymentMethod === "bank_transfer" && !pay.bankTransfer.enabled) ||
     (d.paymentMethod === "cod" && !pay.cod.enabled) ||
     (isMidtrans && !pay.midtrans.enabled) ||
-    (!isMidtrans && d.paymentMethod !== "bank_transfer" && d.paymentMethod !== "cod")
+    (isStripe && !pay.stripe?.enabled) ||
+    (isPaypal && !pay.paypal?.enabled) ||
+    (!isMidtrans && !isStripe && !isPaypal && d.paymentMethod !== "bank_transfer" && d.paymentMethod !== "cod")
   ) {
     return { error: "Metode pembayaran tidak tersedia" };
   }

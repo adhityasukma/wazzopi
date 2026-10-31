@@ -843,6 +843,112 @@ export function SettingsForm({
                 </div>
               </div>
 
+              {/* Payment Gateway Stripe (Global Credit Cards) */}
+              <div className="rounded-lg border border-latte p-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold text-espresso-900">Payment Gateway Stripe</h3>
+                    <p className="text-xs text-espresso-400">
+                      Menerima Kartu Kredit Internasional (Visa, Mastercard, Amex, Apple Pay, Google Pay)
+                    </p>
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-espresso-800">
+                    <input
+                      type="checkbox"
+                      name="stripeEnabled"
+                      defaultChecked={initialSettings.payment.stripe?.enabled ?? false}
+                      className="rounded border-espresso-300 text-caramel-600 focus:ring-caramel-500 h-4 w-4"
+                    />
+                    Aktif
+                  </label>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="max-w-xs">
+                    <Field label="Mode Transaksi">
+                      <select
+                        name="stripeMode"
+                        defaultValue={initialSettings.payment.stripe?.mode || "test"}
+                        className="w-full rounded-lg border border-latte bg-white px-3 py-2 text-sm text-espresso-900 focus:border-caramel-500 focus:outline-none"
+                      >
+                        <option value="test">Test Mode (Sandbox)</option>
+                        <option value="live">Live Mode (Production)</option>
+                      </select>
+                    </Field>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Field label="Stripe Publishable Key">
+                      <Input
+                        name="stripePublishableKey"
+                        defaultValue={initialSettings.payment.stripe?.publishableKey || ""}
+                        placeholder="pk_test_..."
+                      />
+                    </Field>
+                    <Field label="Stripe Secret Key">
+                      <Input
+                        name="stripeSecretKey"
+                        type="password"
+                        defaultValue={initialSettings.payment.stripe?.secretKey || ""}
+                        placeholder="sk_test_..."
+                      />
+                    </Field>
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment Gateway PayPal */}
+              <div className="rounded-lg border border-latte p-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold text-espresso-900">Payment Gateway PayPal</h3>
+                    <p className="text-xs text-espresso-400">
+                      Menerima saldo PayPal & kartu debit/kredit global via PayPal Checkout
+                    </p>
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-espresso-800">
+                    <input
+                      type="checkbox"
+                      name="paypalEnabled"
+                      defaultChecked={initialSettings.payment.paypal?.enabled ?? false}
+                      className="rounded border-espresso-300 text-caramel-600 focus:ring-caramel-500 h-4 w-4"
+                    />
+                    Aktif
+                  </label>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="max-w-xs">
+                    <Field label="Mode Transaksi">
+                      <select
+                        name="paypalMode"
+                        defaultValue={initialSettings.payment.paypal?.mode || "sandbox"}
+                        className="w-full rounded-lg border border-latte bg-white px-3 py-2 text-sm text-espresso-900 focus:border-caramel-500 focus:outline-none"
+                      >
+                        <option value="sandbox">Sandbox (Testing)</option>
+                        <option value="live">Live (Production)</option>
+                      </select>
+                    </Field>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Field label="PayPal Client ID">
+                      <Input
+                        name="paypalClientId"
+                        defaultValue={initialSettings.payment.paypal?.clientId || ""}
+                        placeholder="Client ID dari developer.paypal.com"
+                      />
+                    </Field>
+                    <Field label="PayPal Secret Key">
+                      <Input
+                        name="paypalClientSecret"
+                        type="password"
+                        defaultValue={initialSettings.payment.paypal?.clientSecret || ""}
+                        placeholder="Secret Key PayPal"
+                      />
+                    </Field>
+                  </div>
+                </div>
+              </div>
+
               <div className="pt-4 border-t border-latte">
                 <Button type="submit" disabled={paymentPending} className="justify-center">
                   {paymentPending ? "Menyimpan..." : "Simpan Metode Pembayaran"}

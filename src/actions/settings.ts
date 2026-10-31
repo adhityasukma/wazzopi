@@ -85,12 +85,36 @@ export async function savePayment(_: FormState, f: FormData): Promise<FormState>
       serverKey: str(f, "serverKey"),
       channels,
     },
+    stripe: {
+      enabled: bool(f, "stripeEnabled"),
+      mode: (str(f, "stripeMode") === "live" ? "live" : "test") as "test" | "live",
+      publishableKey: str(f, "stripePublishableKey"),
+      secretKey: str(f, "stripeSecretKey"),
+    },
+    paypal: {
+      enabled: bool(f, "paypalEnabled"),
+      mode: (str(f, "paypalMode") === "live" ? "live" : "sandbox") as "sandbox" | "live",
+      clientId: str(f, "paypalClientId"),
+      clientSecret: str(f, "paypalClientSecret"),
+    },
   };
-  if (!settings.bankTransfer.enabled && !settings.cod.enabled && !settings.midtrans.enabled) {
+  if (
+    !settings.bankTransfer.enabled &&
+    !settings.cod.enabled &&
+    !settings.midtrans.enabled &&
+    !settings.stripe.enabled &&
+    !settings.paypal.enabled
+  ) {
     return { error: "Aktifkan minimal satu metode pembayaran" };
   }
   if (settings.midtrans.enabled && (!settings.midtrans.clientKey || !settings.midtrans.serverKey)) {
-    return { error: "Client Key dan Server Key Midtrans wajib diisi" };
+    return { error: "Client Key dan Server Key Midtrans wajib diisi jika Midtrans aktif" };
+  }
+  if (settings.stripe.enabled && (!settings.stripe.publishableKey || !settings.stripe.secretKey)) {
+    return { error: "Publishable Key dan Secret Key Stripe wajib diisi jika Stripe aktif" };
+  }
+  if (settings.paypal.enabled && (!settings.paypal.clientId || !settings.paypal.clientSecret)) {
+    return { error: "Client ID dan Secret Key PayPal wajib diisi jika PayPal aktif" };
   }
   if (settings.midtrans.enabled && settings.midtrans.channels.length === 0) {
     return { error: "Pilih minimal satu channel pembayaran Midtrans yang ingin ditampilkan" };

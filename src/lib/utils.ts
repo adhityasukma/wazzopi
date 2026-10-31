@@ -73,4 +73,6 @@ export const PAYMENT_LABEL: Record<string, string> = {
   midtrans_credit_card: "Kartu Kredit / Debit",
   midtrans_alfamart: "Gerai Alfamart",
   midtrans_indomaret: "Gerai Indomaret",
+  stripe: "Stripe (International Cards)",
+  paypal: "PayPal",
 };

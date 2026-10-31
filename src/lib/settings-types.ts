@@ -28,6 +28,18 @@ export type PaymentSettings = {
     serverKey: string;
     channels?: string[];
   };
+  stripe: {
+    enabled: boolean;
+    mode: "test" | "live";
+    publishableKey: string;
+    secretKey: string;
+  };
+  paypal: {
+    enabled: boolean;
+    mode: "sandbox" | "live";
+    clientId: string;
+    clientSecret: string;
+  };
 };
 
 export type ShippingMethod = { id: string; name: string; cost: number; etd: string; enabled: boolean };
@@ -105,6 +117,18 @@ export const DEFAULT_SETTINGS: AllSettings = {
       clientKey: "",
       serverKey: "",
       channels: ["qris", "bca_va", "mandiri_va", "bni_va", "bri_va"],
+    },
+    stripe: {
+      enabled: false,
+      mode: "test",
+      publishableKey: "",
+      secretKey: "",
+    },
+    paypal: {
+      enabled: false,
+      mode: "sandbox",
+      clientId: "",
+      clientSecret: "",
     },
   },
   shipping: {

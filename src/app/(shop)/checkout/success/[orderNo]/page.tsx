@@ -221,6 +221,52 @@ export default async function CheckoutSuccessPage({
         </div>
       )}
 
+      {/* Kartu Pembayaran Global (Stripe / PayPal) */}
+      {(order.paymentMethod === "stripe" || order.paymentMethod === "paypal") && order.status === "PENDING" && (
+        <div className="mt-8 rounded-2xl border-2 border-caramel-300 bg-gradient-to-br from-caramel-50/90 via-white to-cream p-6 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-caramel-200/80 pb-5">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-caramel-600 text-white shadow-xs">
+                <CreditCard className="h-6 w-6" />
+              </div>
+              <div>
+                <span className="inline-block rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-bold text-amber-800 uppercase tracking-wider">
+                  Menunggu Pembayaran
+                </span>
+                <h2 className="mt-0.5 text-lg font-bold text-espresso-900">
+                  {order.paymentMethod === "stripe" ? "Stripe Payment" : "PayPal Checkout"}
+                </h2>
+              </div>
+            </div>
+            <div className="text-left sm:text-right">
+              <span className="text-[11px] font-semibold text-espresso-400 uppercase tracking-wider block">
+                Total Tagihan
+              </span>
+              <p className="font-display text-xl font-bold text-espresso-900">
+                {formatCurrency(order.total, settings.currency)}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <p className="text-xs text-espresso-600 leading-relaxed max-w-md">
+              {order.paymentMethod === "stripe"
+                ? "Selesaikan pembayaran aman menggunakan kartu kredit internasional (Visa, Mastercard, Amex) yang diproses melalui gateway Stripe."
+                : "Selesaikan pembayaran dengan menghubungkan akun PayPal atau saldo Anda secara aman via PayPal Checkout."}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {}}
+                className="rounded-xl bg-caramel-600 px-6 py-3 text-sm font-bold text-white shadow-md hover:bg-caramel-700 transition"
+              >
+                {order.paymentMethod === "stripe" ? "Bayar via Stripe" : "Bayar via PayPal"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {isMidtransPayment(order.paymentMethod) && order.status === "PAID" && (
         <div className="mt-8 rounded-xl border border-emerald-200 bg-emerald-50/60 p-5">
           <div className="flex items-center gap-3">
