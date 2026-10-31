@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Check, Minus, Plus, ShoppingBag } from "lucide-react";
 import { useMoney } from "@/components/currency-provider";
+import { useI18n } from "@/i18n/provider";
 import { useCart } from "@/store/cart";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +26,7 @@ type Props = {
 
 export function AddToCart({ product }: Props) {
   const money = useMoney();
+  const { t, locale } = useI18n();
   const add = useCart((s) => s.add);
   const firstAvailable = product.variants.find((v) => v.stock > 0) ?? product.variants[0];
   const [variantId, setVariantId] = useState<string | null>(product.hasVariants ? firstAvailable?.id ?? null : null);
@@ -64,12 +66,18 @@ export function AddToCart({ product }: Props) {
         )}
       </div>
       <p className={cn("mt-2 text-sm", soldOut ? "text-rose-700" : stock <= 10 ? "text-caramel-600" : "text-emerald-700")}>
-        {soldOut ? "Stok habis" : stock <= 10 ? `Sisa ${stock} item` : "Stok tersedia"}
+        {soldOut
+          ? t.common.outOfStock
+          : stock <= 10
+          ? locale === "en"
+            ? `Only ${stock} left`
+            : `Sisa ${stock} item`
+          : t.common.inStock}
       </p>
 
       {product.hasVariants && (
         <div className="mt-8">
-          <p className="mb-3 text-sm font-semibold text-espresso-900">Pilih Varian</p>
+          <p className="mb-3 text-sm font-semibold text-espresso-900">{t.products.selectVariant}</p>
           <div className="flex flex-wrap gap-2">
             {product.variants.map((v) => (
               <button
@@ -109,13 +117,15 @@ export function AddToCart({ product }: Props) {
           className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-lg bg-espresso-700 px-6 text-sm font-semibold text-cream transition-colors hover:bg-espresso-800 disabled:cursor-not-allowed disabled:bg-espresso-300 sm:flex-none"
         >
           {added ? <Check className="h-4 w-4" /> : <ShoppingBag className="h-4 w-4" />}
-          {added ? "Ditambahkan ke Keranjang" : "Tambah ke Keranjang"}
+          {added ? (locale === "en" ? "Added to Cart" : "Ditambahkan ke Keranjang") : t.common.addToCart}
         </button>
       </div>
       {added && (
         <div className="mt-4 flex items-center justify-between rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-800 ring-1 ring-emerald-100">
-          <span>Produk berhasil ditambahkan.</span>
-          <Link href="/cart" className="font-semibold underline underline-offset-2">Lihat Keranjang</Link>
+          <span>{t.products.addedToCart}</span>
+          <Link href="/cart" className="font-semibold underline underline-offset-2">
+            {locale === "en" ? "View Cart" : "Lihat Keranjang"}
+          </Link>
         </div>
       )}
     </div>

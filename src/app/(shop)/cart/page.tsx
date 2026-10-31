@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { useCurrencyConfig, useHydrated, useMoney } from "@/components/currency-provider";
+import { useI18n } from "@/i18n/provider";
 import { EmptyState, LinkButton } from "@/components/ui";
 import { cartCount, cartSubtotal, useCart } from "@/store/cart";
 
@@ -12,11 +13,12 @@ export default function CartPage() {
   const hydrated = useHydrated();
   const money = useMoney();
   const currency = useCurrencyConfig();
+  const { t, locale } = useI18n();
 
   if (!hydrated) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-16 text-center text-sm text-espresso-400">
-        Memuat keranjang...
+        {t.common.loading}
       </div>
     );
   }
@@ -29,9 +31,9 @@ export default function CartPage() {
       <div className="mx-auto max-w-7xl px-4 py-16">
         <EmptyState
           icon={<ShoppingBag className="h-7 w-7" />}
-          title="Keranjang Belanja Masih Kosong"
-          description="Yuk mulai jelajahi koleksi kopi pilihan Nusantara kami dan temukan rasa favoritmu."
-          action={<LinkButton href="/products">Mulai Belanja</LinkButton>}
+          title={t.cart.emptyCartTitle}
+          description={t.cart.emptyCartSubtitle}
+          action={<LinkButton href="/products">{t.common.continueShopping}</LinkButton>}
         />
       </div>
     );
@@ -40,8 +42,12 @@ export default function CartPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-12">
       <div className="border-b border-latte pb-6">
-        <h1 className="text-3xl font-semibold text-espresso-900 md:text-4xl">Keranjang Belanja</h1>
-        <p className="mt-1 text-sm text-espresso-400">Kamu memiliki {count} item di dalam keranjang.</p>
+        <h1 className="text-3xl font-semibold text-espresso-900 md:text-4xl">{t.cart.pageTitle}</h1>
+        <p className="mt-1 text-sm text-espresso-400">
+          {locale === "en"
+            ? `You have ${count} ${t.cart.itemCount} in your cart.`
+            : `Kamu memiliki ${count} ${t.cart.itemCount} di dalam keranjang.`}
+        </p>
       </div>
 
       <div className="mt-8 grid gap-10 lg:grid-cols-12">
@@ -104,36 +110,36 @@ export default function CartPage() {
               href="/products"
               className="inline-flex items-center gap-2 text-sm font-medium text-espresso-600 hover:text-espresso-900"
             >
-              <ArrowLeft className="h-4 w-4" /> Lanjut Belanja
+              <ArrowLeft className="h-4 w-4" /> {t.common.continueShopping}
             </Link>
             <button
               onClick={clear}
               className="text-xs text-rose-600 hover:underline"
             >
-              Kosongkan Keranjang
+              {t.cart.clearCart}
             </button>
           </div>
         </div>
 
         <div className="lg:col-span-4">
           <div className="rounded-xl border border-latte bg-white p-6 shadow-sm">
-            <h2 className="text-base font-semibold text-espresso-900">Ringkasan Pesanan</h2>
+            <h2 className="text-base font-semibold text-espresso-900">{t.cart.orderSummary}</h2>
             <div className="mt-4 space-y-3 border-b border-latte pb-4 text-sm">
               <div className="flex justify-between text-espresso-600">
-                <span>Subtotal</span>
+                <span>{t.common.subtotal}</span>
                 <span className="font-medium text-espresso-900">{money(subtotal)}</span>
               </div>
               <div className="flex justify-between text-espresso-400 text-xs">
-                <span>Biaya pengiriman</span>
-                <span>Dihitung di checkout</span>
+                <span>{t.common.shipping}</span>
+                <span>{locale === "en" ? "Calculated at checkout" : "Dihitung di checkout"}</span>
               </div>
             </div>
             <div className="mt-4 flex items-baseline justify-between">
-              <span className="font-semibold text-espresso-900">Total Estimasi</span>
+              <span className="font-semibold text-espresso-900">{t.common.total}</span>
               <span className="font-display text-2xl font-bold text-espresso-900">{money(subtotal)}</span>
             </div>
             <LinkButton href="/checkout" className="mt-6 w-full justify-center">
-              Lanjut ke Pembayaran <ArrowRight className="h-4 w-4" />
+              {t.cart.checkoutButton} <ArrowRight className="h-4 w-4" />
             </LinkButton>
           </div>
         </div>

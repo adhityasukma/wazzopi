@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { useAppLoading } from "@/components/loading-provider";
+import { useI18n } from "@/i18n/provider";
 import { cn } from "@/lib/utils";
 
 type CategoryItem = {
@@ -53,6 +54,7 @@ export function ProductCategoryFilter({
 }) {
   const router = useRouter();
   const { startTransitionLoading } = useAppLoading();
+  const { t } = useI18n();
 
   const handleSelect = (slug?: string, name?: string) => {
     if (slug === activeCategory) return;
@@ -79,7 +81,7 @@ export function ProductCategoryFilter({
             : "bg-white text-espresso-700 hover:bg-latte lg:bg-transparent"
         )}
       >
-        Semua Produk
+        {t.common.allProducts}
       </button>
       {categories.map((c) => (
         <button
@@ -113,6 +115,14 @@ export function ProductSortFilter({
 }) {
   const router = useRouter();
   const { startTransitionLoading } = useAppLoading();
+  const { t, locale } = useI18n();
+
+  const sortItems = [
+    { key: "newest", label: t.products.sortNewest },
+    { key: "price_asc", label: t.products.sortPriceAsc },
+    { key: "price_desc", label: t.products.sortPriceDesc },
+    { key: "name", label: locale === "en" ? "Name A-Z" : "Nama A-Z" },
+  ];
 
   const handleSort = (sortKey: string, sortLabel: string) => {
     if (sortKey === activeSort) return;
@@ -123,7 +133,7 @@ export function ProductSortFilter({
     });
     startTransitionLoading(() => {
       router.push(url);
-    }, `Menyaring produk: ${sortLabel}...`);
+    }, locale === "en" ? `Sorting: ${sortLabel}...` : `Menyaring produk: ${sortLabel}...`);
   };
 
   const handleClearQuery = () => {
@@ -134,19 +144,21 @@ export function ProductSortFilter({
     });
     startTransitionLoading(() => {
       router.push(url);
-    }, "Menghapus pencarian...");
+    }, locale === "en" ? "Clearing search..." : "Menghapus pencarian...");
   };
 
   return (
     <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
       <div className="flex items-center gap-2 text-sm text-espresso-500">
-        <span>{totalCount} produk</span>
+        <span>
+          {totalCount} {locale === "en" ? "product(s)" : "produk"}
+        </span>
         {currentQuery && (
           <button
             type="button"
             onClick={handleClearQuery}
             className="inline-flex cursor-pointer items-center gap-1 rounded-full bg-latte px-3 py-1 text-xs font-medium text-espresso-700 transition hover:bg-espresso-200"
-            title="Hapus pencarian"
+            title={locale === "en" ? "Clear search" : "Hapus pencarian"}
           >
             &ldquo;{currentQuery}&rdquo; <X className="h-3 w-3" />
           </button>
@@ -154,7 +166,7 @@ export function ProductSortFilter({
       </div>
 
       <div className="flex flex-wrap gap-1">
-        {PRODUCT_SORTS.map((s) => {
+        {sortItems.map((s) => {
           const isActive = activeSort === s.key;
           return (
             <button

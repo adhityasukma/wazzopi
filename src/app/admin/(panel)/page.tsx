@@ -14,15 +14,17 @@ import { formatCurrency } from "@/lib/currency";
 import { formatDate, ORDER_STATUS_LABEL, ORDER_STATUS_STYLE, SALES_STATUSES } from "@/lib/utils";
 import { DashboardCharts } from "@/components/admin/dashboard-charts";
 import { requireAdmin } from "@/lib/auth";
+import { getServerDictionary, getServerLocale } from "@/i18n/server";
 
-export const metadata = {
-  title: "Dashboard Admin",
-};
+export async function generateMetadata(): Promise<{ title: string }> {
+  const dict = await getServerDictionary();
+  return { title: dict.admin.dashboard };
+}
 
 export default async function AdminDashboardPage() {
   await requireAdmin();
 
-  const [settings, totalProducts, totalCustomers, orders] = await Promise.all([
+  const [settings, totalProducts, totalCustomers, orders, dict, locale] = await Promise.all([
     getSettings(),
     prisma.product.count(),
     prisma.user.count({ where: { role: "CUSTOMER" } }),
@@ -31,6 +33,8 @@ export default async function AdminDashboardPage() {
       include: { items: true },
       take: 200,
     }),
+    getServerDictionary(),
+    getServerLocale(),
   ]);
 
   // Statistik pendapatan dan pesanan
@@ -74,9 +78,9 @@ export default async function AdminDashboardPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-espresso-900 md:text-3xl">Dashboard Ringkasan</h1>
+        <h1 className="text-2xl font-bold text-espresso-900 md:text-3xl">{dict.admin.dashboard}</h1>
         <p className="mt-1 text-sm text-espresso-500">
-          Statistik performa penjualan dan aktivitas toko online Wazzopi.
+          {dict.admin.dashboardSubtitle}
         </p>
       </div>
 
@@ -84,7 +88,9 @@ export default async function AdminDashboardPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl border border-latte bg-white p-5 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-espresso-400">Total Pendapatan</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-espresso-400">
+              {dict.admin.totalRevenue}
+            </span>
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
               <TrendingUp className="h-5 w-5" />
             </div>
@@ -92,40 +98,46 @@ export default async function AdminDashboardPage() {
           <p className="mt-3 font-display text-2xl font-bold text-espresso-900">
             {formatCurrency(totalRevenue, settings.currency)}
           </p>
-          <p className="mt-1 text-[11px] text-espresso-400">Dari pesanan terbayar & selesai</p>
+          <p className="mt-1 text-[11px] text-espresso-400">{dict.admin.totalRevenueSub}</p>
         </div>
 
         <div className="rounded-xl border border-latte bg-white p-5 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-espresso-400">Total Pesanan</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-espresso-400">
+              {dict.admin.totalOrders}
+            </span>
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sky-50 text-sky-700">
               <ShoppingBag className="h-5 w-5" />
             </div>
           </div>
           <p className="mt-3 font-display text-2xl font-bold text-espresso-900">{totalOrdersCount}</p>
-          <p className="mt-1 text-[11px] text-espresso-400">Keseluruhan transaksi masuk</p>
+          <p className="mt-1 text-[11px] text-espresso-400">{dict.admin.totalOrdersSub}</p>
         </div>
 
         <div className="rounded-xl border border-latte bg-white p-5 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-espresso-400">Total Pelanggan</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-espresso-400">
+              {dict.admin.totalCustomers}
+            </span>
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-indigo-700">
               <Users className="h-5 w-5" />
             </div>
           </div>
           <p className="mt-3 font-display text-2xl font-bold text-espresso-900">{totalCustomers}</p>
-          <p className="mt-1 text-[11px] text-espresso-400">Akun pembeli terdaftar</p>
+          <p className="mt-1 text-[11px] text-espresso-400">{dict.admin.totalCustomersSub}</p>
         </div>
 
         <div className="rounded-xl border border-latte bg-white p-5 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-espresso-400">Katalog Produk</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-espresso-400">
+              {dict.admin.totalProducts}
+            </span>
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-caramel-50 text-caramel-700">
               <Coffee className="h-5 w-5" />
             </div>
           </div>
           <p className="mt-3 font-display text-2xl font-bold text-espresso-900">{totalProducts}</p>
-          <p className="mt-1 text-[11px] text-espresso-400">Item produk aktif di toko</p>
+          <p className="mt-1 text-[11px] text-espresso-400">{dict.admin.totalProductsSub}</p>
         </div>
       </div>
 
@@ -136,14 +148,16 @@ export default async function AdminDashboardPage() {
       <div className="rounded-xl border border-latte bg-white p-6 shadow-xs">
         <div className="flex items-center justify-between border-b border-latte pb-4">
           <div>
-            <h2 className="text-lg font-bold text-espresso-900">Pesanan Terbaru</h2>
-            <p className="text-xs text-espresso-400">Daftar transaksi yang baru saja masuk</p>
+            <h2 className="text-lg font-bold text-espresso-900">{dict.admin.recentOrders}</h2>
+            <p className="text-xs text-espresso-400">
+              {locale === "en" ? "Recent incoming store orders" : "Daftar transaksi yang baru saja masuk"}
+            </p>
           </div>
           <Link
             href="/admin/orders"
             className="inline-flex items-center gap-1 text-xs font-semibold text-caramel-600 hover:underline"
           >
-            Lihat Semua Pesanan <ArrowUpRight className="h-4 w-4" />
+            {dict.admin.viewAllOrders} <ArrowUpRight className="h-4 w-4" />
           </Link>
         </div>
 
@@ -151,12 +165,12 @@ export default async function AdminDashboardPage() {
           <table className="w-full text-left text-sm">
             <thead className="bg-espresso-50/60 text-xs uppercase text-espresso-500">
               <tr>
-                <th className="px-4 py-3">No. Pesanan</th>
-                <th className="px-4 py-3">Pelanggan</th>
-                <th className="px-4 py-3">Tanggal</th>
-                <th className="px-4 py-3">Total</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3 text-right">Aksi</th>
+                <th className="px-4 py-3">{locale === "en" ? "Order No." : "No. Pesanan"}</th>
+                <th className="px-4 py-3">{locale === "en" ? "Customer" : "Pelanggan"}</th>
+                <th className="px-4 py-3">{dict.common.date}</th>
+                <th className="px-4 py-3">{dict.common.total}</th>
+                <th className="px-4 py-3">{dict.common.status}</th>
+                <th className="px-4 py-3 text-right">{dict.common.action}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-latte">
