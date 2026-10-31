@@ -721,7 +721,8 @@ export function SettingsForm({
 
         {/* TAB 3: PAYMENT */}
         {activeTab === "payment" && (
-          <div className="rounded-xl border border-latte bg-white p-6 shadow-xs space-y-6">
+          <div className="rounded-xl border border-latte bg-white p-6 shadow-xs space-y-5">
+            {/* Header: Title and Description */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-latte pb-4">
               <div>
                 <h2 className="text-base font-bold text-espresso-900">
@@ -729,81 +730,87 @@ export function SettingsForm({
                 </h2>
                 <p className="text-xs text-espresso-500 mt-0.5">
                   {isEn
-                    ? "Manage your payment gateways, bank transfers, and cash on delivery cleanly organized per method."
-                    : "Kelola gateway pembayaran, transfer bank, dan bayar di tempat secara terorganisir dan tidak menumpuk."}
+                    ? "Manage all 5 payment methods: Bank Transfer, COD, Midtrans, Stripe, and PayPal."
+                    : "Kelola 5 metode pembayaran: Transfer Bank, COD, Midtrans, Stripe, dan PayPal secara modular."}
                 </p>
               </div>
-
-              {/* Sub-tab pills */}
-              <div className="flex items-center gap-1 overflow-x-auto rounded-xl border border-latte bg-cream/40 p-1 scrollbar-none">
-                {[
-                  {
-                    id: "overview",
-                    label: isEn ? "Overview" : "Semua Metode",
-                    icon: LayoutDashboard,
-                  },
-                  {
-                    id: "bank",
-                    label: isEn ? "Bank Transfer" : "Transfer Bank",
-                    icon: Landmark,
-                    enabled: bankEnabled,
-                  },
-                  {
-                    id: "cod",
-                    label: "COD",
-                    icon: Banknote,
-                    enabled: codEnabled,
-                  },
-                  {
-                    id: "midtrans",
-                    label: "Midtrans (Snap)",
-                    icon: QrCode,
-                    enabled: midtransEnabled,
-                  },
-                  {
-                    id: "stripe",
-                    label: "Stripe",
-                    icon: CreditCard,
-                    enabled: stripeEnabled,
-                  },
-                  {
-                    id: "paypal",
-                    label: "PayPal",
-                    icon: Wallet,
-                    enabled: paypalEnabled,
-                  },
-                ].map((s) => {
-                  const SIcon = s.icon;
-                  const active = paymentSubTab === s.id;
-                  return (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => setPaymentSubTab(s.id as typeof paymentSubTab)}
-                      className={cn(
-                        "flex items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-semibold transition cursor-pointer",
-                        active
-                          ? "bg-espresso-900 text-white shadow-xs"
-                          : "text-espresso-700 hover:bg-latte/60"
-                      )}
-                    >
-                      <SIcon className={cn("h-3.5 w-3.5", active ? "text-caramel-300" : "text-caramel-600")} />
-                      <span>{s.label}</span>
-                      {s.enabled !== undefined && (
-                        <span
-                          className={cn(
-                            "h-2 w-2 rounded-full",
-                            s.enabled
-                              ? "bg-emerald-500 ring-2 ring-emerald-200"
-                              : "bg-espresso-300"
-                          )}
-                          title={s.enabled ? (isEn ? "Active" : "Aktif") : (isEn ? "Inactive" : "Nonaktif")}
-                        />
-                      )}
-                    </button>
-                  );
-                })}
+              <div className="flex items-center gap-2">
+                <span className="rounded-full bg-caramel-50 px-3 py-1 text-xs font-semibold text-caramel-800 border border-caramel-200">
+                  {[bankEnabled, codEnabled, midtransEnabled, stripeEnabled, paypalEnabled].filter(Boolean).length} / 5 {isEn ? "Methods Active" : "Metode Aktif"}
+                </span>
               </div>
+            </div>
+
+            {/* Sub-tab pills - FULL WIDTH, FLEX-WRAP, ALL 6 TABS ALWAYS VISIBLE */}
+            <div className="w-full flex flex-wrap items-center gap-1.5 rounded-xl border border-latte bg-cream/50 p-1.5 shadow-2xs">
+              {[
+                {
+                  id: "overview",
+                  label: isEn ? "All Methods (Overview)" : "Semua Metode (Tinjauan)",
+                  icon: LayoutDashboard,
+                },
+                {
+                  id: "bank",
+                  label: isEn ? "Bank Transfer" : "Transfer Bank",
+                  icon: Landmark,
+                  enabled: bankEnabled,
+                },
+                {
+                  id: "cod",
+                  label: "COD (Bayar di Tempat)",
+                  icon: Banknote,
+                  enabled: codEnabled,
+                },
+                {
+                  id: "midtrans",
+                  label: "Midtrans (Snap / QRIS)",
+                  icon: QrCode,
+                  enabled: midtransEnabled,
+                },
+                {
+                  id: "stripe",
+                  label: "Stripe (Kartu Global)",
+                  icon: CreditCard,
+                  enabled: stripeEnabled,
+                },
+                {
+                  id: "paypal",
+                  label: "PayPal (Saldo & Kartu)",
+                  icon: Wallet,
+                  enabled: paypalEnabled,
+                },
+              ].map((s) => {
+                const SIcon = s.icon;
+                const active = paymentSubTab === s.id;
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => setPaymentSubTab(s.id as typeof paymentSubTab)}
+                    className={cn(
+                      "flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition cursor-pointer flex-1 sm:flex-initial justify-center",
+                      active
+                        ? "bg-espresso-900 text-white shadow-xs"
+                        : "text-espresso-700 hover:bg-white hover:text-espresso-950 bg-cream/30"
+                    )}
+                  >
+                    <SIcon className={cn("h-4 w-4", active ? "text-caramel-300" : "text-caramel-600")} />
+                    <span>{s.label}</span>
+                    {s.enabled !== undefined && (
+                      <span
+                        className={cn(
+                          "rounded-full px-1.5 py-0.2 text-[9px] font-bold uppercase",
+                          s.enabled
+                            ? (active ? "bg-emerald-400 text-espresso-950" : "bg-emerald-100 text-emerald-800")
+                            : (active ? "bg-espresso-700 text-espresso-300" : "bg-espresso-200 text-espresso-600")
+                        )}
+                      >
+                        {s.enabled ? (isEn ? "ON" : "AKTIF") : (isEn ? "OFF" : "NONAKTIF")}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
 
             {paymentState?.error && <Alert tone="error">{paymentState.error}</Alert>}
@@ -820,20 +827,17 @@ export function SettingsForm({
                 <div className="flex items-center justify-between pb-1">
                   <div>
                     <h3 className="text-sm font-bold text-espresso-900">
-                      {isEn ? "Payment Methods Directory" : "Daftar Metode Pembayaran"}
+                      {isEn ? "Payment Methods Directory" : "Daftar 5 Metode Pembayaran Toko"}
                     </h3>
                     <p className="text-[11px] text-espresso-500">
                       {isEn
                         ? "Activate and click 'Configure' to manage individual account numbers, API credentials, or checkout channels."
-                        : "Aktifkan dan klik 'Konfigurasi' untuk mengelola detail rekening, kunci API, atau saluran checkout."}
+                        : "Aktifkan atau klik 'Konfigurasi' pada salah satu metode untuk mengelola detail rekening atau kunci API."}
                     </p>
                   </div>
-                  <span className="rounded-full bg-caramel-50 px-2.5 py-0.5 text-xs font-semibold text-caramel-800 border border-caramel-200">
-                    {[bankEnabled, codEnabled, midtransEnabled, stripeEnabled, paypalEnabled].filter(Boolean).length} / 5 {isEn ? "Active" : "Aktif"}
-                  </span>
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-3.5 sm:grid-cols-2">
                   {/* Card 1: Bank Transfer */}
                   <div
                     className={cn(
