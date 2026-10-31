@@ -6,18 +6,21 @@ import { Lock, Mail, ShieldAlert } from "lucide-react";
 import { adminLogin } from "@/actions/auth";
 import { Alert, Button, Field, Input } from "@/components/ui";
 import { useAppLoading } from "@/components/loading-provider";
+import { useI18n } from "@/i18n/provider";
 
 export default function AdminLoginPage() {
   const [state, formAction, isPending] = useActionState(adminLogin, undefined);
   const { showLoading, hideLoading } = useAppLoading();
+  const { locale } = useI18n();
+  const isEn = locale === "en";
 
   useEffect(() => {
     if (isPending) {
-      showLoading("Memverifikasi akun admin...");
+      showLoading(isEn ? "Verifying admin credentials..." : "Memverifikasi akun admin...");
     } else {
       hideLoading();
     }
-  }, [isPending, showLoading, hideLoading]);
+  }, [isPending, showLoading, hideLoading, isEn]);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-espresso-900 px-4 py-12">

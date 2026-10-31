@@ -81,7 +81,7 @@ export default async function AdminCustomersPage({
       {/* Pencarian */}
       <div className="rounded-xl border border-latte bg-white p-4 shadow-xs">
         <form
-          data-loading-message="Mencari data pelanggan..."
+          data-loading-message={isEn ? "Searching customers..." : "Mencari data pelanggan..."}
           className="flex items-center gap-2 max-w-md"
         >
           {currentLimit !== "20" && <input type="hidden" name="limit" value={currentLimit} />}
@@ -104,7 +104,7 @@ export default async function AdminCustomersPage({
           {q && (
             <Link
               href={getResetSearchHref()}
-              data-loading-message="Mereset kata kunci pencarian..."
+              data-loading-message={isEn ? "Resetting search filter..." : "Mereset kata kunci pencarian..."}
               className="rounded-lg border border-espresso-200 px-3 py-2 text-xs font-semibold text-espresso-600 hover:bg-espresso-50 transition"
               title="Kosongkan pencarian"
             >

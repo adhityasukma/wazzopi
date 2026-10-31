@@ -304,7 +304,11 @@ export function CategoriesManager({
             <Link
               key={idx}
               href={getPageUrl(p)}
-              data-loading-message={`Memuat kategori halaman ${p}...`}
+              data-loading-message={
+                isEn
+                  ? `Loading categories page ${p}...`
+                  : `Memuat kategori halaman ${p}...`
+              }
               className="inline-flex h-8 min-w-8 items-center justify-center rounded-lg border border-latte bg-white px-2 text-xs font-semibold text-espresso-700 hover:bg-latte/50 transition"
             >
               {p}

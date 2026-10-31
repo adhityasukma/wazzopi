@@ -90,7 +90,7 @@ export default async function AdminHeroSlidesPage({
       {/* Filter Status & Search Bar */}
       <div className="rounded-xl border border-latte bg-white p-4 shadow-xs flex flex-wrap gap-3 items-center justify-between">
         <form
-          data-loading-message="Mencari slide..."
+          data-loading-message={isEn ? "Searching slides..." : "Mencari slide..."}
           className="flex flex-1 items-center gap-2 max-w-md"
         >
           {currentStatus !== "active" && <input type="hidden" name="status" value={currentStatus} />}
@@ -114,7 +114,7 @@ export default async function AdminHeroSlidesPage({
           {q && (
             <Link
               href={getResetSearchHref()}
-              data-loading-message="Mereset kata kunci pencarian..."
+              data-loading-message={isEn ? "Resetting search filter..." : "Mereset kata kunci pencarian..."}
               className="rounded-lg border border-espresso-200 px-3 py-2 text-xs font-semibold text-espresso-600 hover:bg-espresso-50 transition"
               title="Kosongkan pencarian"
             >
@@ -126,7 +126,7 @@ export default async function AdminHeroSlidesPage({
         <div className="flex flex-wrap items-center gap-2">
           <Link
             href={getStatusFilterHref("active")}
-            data-loading-message="Menyaring slide aktif..."
+            data-loading-message={isEn ? "Filtering active slides..." : "Menyaring slide aktif..."}
             className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
               currentStatus === "active"
                 ? "bg-espresso-700 text-cream"
@@ -137,7 +137,7 @@ export default async function AdminHeroSlidesPage({
           </Link>
           <Link
             href={getStatusFilterHref("inactive")}
-            data-loading-message="Menyaring slide tidak aktif..."
+            data-loading-message={isEn ? "Filtering inactive slides..." : "Menyaring slide tidak aktif..."}
             className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
               currentStatus === "inactive"
                 ? "bg-espresso-700 text-cream"
@@ -148,7 +148,7 @@ export default async function AdminHeroSlidesPage({
           </Link>
           <Link
             href={getStatusFilterHref("all")}
-            data-loading-message="Memuat semua slide..."
+            data-loading-message={isEn ? "Loading all slides..." : "Memuat semua slide..."}
             className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
               currentStatus === "all"
                 ? "bg-espresso-700 text-cream"
@@ -161,7 +161,7 @@ export default async function AdminHeroSlidesPage({
           {(q || currentStatus !== "active") && (
             <Link
               href={currentLimit !== "20" ? `/admin/hero-slides?limit=${currentLimit}` : "/admin/hero-slides"}
-              data-loading-message="Mereset semua filter slide..."
+              data-loading-message={isEn ? "Resetting all slide filters..." : "Mereset semua filter slide..."}
               className="rounded-lg border border-dashed border-espresso-300 px-3 py-1.5 text-xs font-medium text-espresso-500 hover:bg-espresso-50 hover:text-espresso-800 transition"
               title="Kembali ke tampilan awal slide aktif"
             >

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { CreditCard, Loader2, RefreshCw } from "lucide-react";
 import { requestSnapPayment, confirmMidtransSuccess } from "@/actions/midtrans";
 import { useAppLoading } from "@/components/loading-provider";
+import { useI18n } from "@/i18n/provider";
 
 declare global {
   interface Window {
@@ -70,13 +71,19 @@ export function MidtransPayButton({
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const { showLoading, hideLoading } = useAppLoading();
+  const { locale } = useI18n();
+  const isEn = locale === "en";
   const autoOpenedRef = useRef(false);
 
   async function handlePay() {
     if (loading) return;
     setError(null);
     setLoading(true);
-    showLoading("Membuka gerbang pembayaran Midtrans...");
+    showLoading(
+      isEn
+        ? "Opening Midtrans payment gateway..."
+        : "Membuka gerbang pembayaran Midtrans..."
+    );
 
     try {
       const res = await requestSnapPayment(orderNo);
@@ -91,12 +98,20 @@ export function MidtransPayButton({
       setLoading(false);
 
       if (!window.snap) {
-        throw new Error("Layanan Snap Midtrans belum siap");
+        throw new Error(
+          isEn
+            ? "Midtrans Snap service is not ready"
+            : "Layanan Snap Midtrans belum siap"
+        );
       }
 
       window.snap.pay(res.token, {
         onSuccess: async () => {
-          showLoading("Mengonfirmasi pembayaran Anda...");
+          showLoading(
+            isEn
+              ? "Confirming your payment..."
+              : "Mengonfirmasi pembayaran Anda..."
+          );
           await confirmMidtransSuccess(orderNo);
           hideLoading();
           router.refresh();

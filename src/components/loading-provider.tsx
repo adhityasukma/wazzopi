@@ -35,65 +35,134 @@ export function useLoading() {
   return useContext(LoadingContext);
 }
 
-// Pemetaan cerdas URL ke pesan preloader informatif
-function getLoadingMessageForHref(href: string, elementText?: string): string {
+// Deteksi bahasa aktif di sisi klien
+function getClientLocale(fallback: "en" | "id" = "en"): "en" | "id" {
+  if (typeof document === "undefined") return fallback;
+  const match = document.cookie.match(/(?:^|;\s*)wz_lang=(en|id)/);
+  if (match) return match[1] as "en" | "id";
+  const htmlLang = document.documentElement.lang?.toLowerCase();
+  if (htmlLang === "id" || htmlLang === "en") return htmlLang as "en" | "id";
+  return fallback;
+}
+
+// Pemetaan cerdas URL ke pesan preloader informatif (Multi-bahasa EN/ID)
+function getLoadingMessageForHref(
+  href: string,
+  elementText?: string,
+  locale: "en" | "id" = "en"
+): string {
+  const isEn = locale === "en";
   try {
     const url = new URL(href, window.location.href);
     const pathname = url.pathname;
     const searchParams = url.searchParams;
 
     // Rute Administrator
-    if (pathname === "/admin") return "Membuka Dashboard Admin...";
-    if (pathname === "/admin/hero-slides") return "Membuka Kelola Hero Slide (Banner)...";
-    if (pathname === "/admin/products/new") return "Membuka Form Tambah Produk...";
+    if (pathname === "/admin") {
+      return isEn ? "Opening Admin Dashboard..." : "Membuka Dashboard Admin...";
+    }
+    if (pathname === "/admin/hero-slides") {
+      return isEn ? "Opening Hero Slides (Banners)..." : "Membuka Kelola Hero Slide (Banner)...";
+    }
+    if (pathname === "/admin/products/new") {
+      return isEn ? "Opening Add Product Form..." : "Membuka Form Tambah Produk...";
+    }
     if (pathname.startsWith("/admin/products/") && pathname !== "/admin/products") {
-      return "Membuka Form Edit Produk...";
+      return isEn ? "Opening Edit Product Form..." : "Membuka Form Edit Produk...";
     }
     if (pathname === "/admin/products") {
-      if (searchParams.has("category")) return "Menyaring produk admin...";
-      if (searchParams.has("q")) return `Mencari "${searchParams.get("q")}"...`;
-      return "Membuka Kelola Produk...";
+      if (searchParams.has("category")) {
+        return isEn ? "Filtering products..." : "Menyaring produk admin...";
+      }
+      if (searchParams.has("q")) {
+        return isEn
+          ? `Searching products "${searchParams.get("q")}"...`
+          : `Mencari "${searchParams.get("q")}"...`;
+      }
+      return isEn ? "Opening Products Management..." : "Membuka Kelola Produk...";
     }
-    if (pathname.startsWith("/admin/categories")) return "Membuka Kelola Kategori...";
+    if (pathname.startsWith("/admin/categories")) {
+      return isEn ? "Opening Categories Management..." : "Membuka Kelola Kategori...";
+    }
     if (pathname.startsWith("/admin/orders/") && pathname !== "/admin/orders") {
-      return "Membuka Rincian Pesanan...";
+      return isEn ? "Opening Order Details..." : "Membuka Rincian Pesanan...";
     }
     if (pathname === "/admin/orders") {
-      if (searchParams.has("status")) return "Menyaring daftar pesanan...";
-      if (searchParams.has("q")) return `Mencari pesanan "${searchParams.get("q")}"...`;
-      return "Membuka Kelola Pesanan...";
+      if (searchParams.has("status")) {
+        return isEn ? "Filtering orders list..." : "Menyaring daftar pesanan...";
+      }
+      if (searchParams.has("q")) {
+        return isEn
+          ? `Searching order "${searchParams.get("q")}"...`
+          : `Mencari pesanan "${searchParams.get("q")}"...`;
+      }
+      return isEn ? "Opening Orders Management..." : "Membuka Kelola Pesanan...";
     }
-    if (pathname.startsWith("/admin/customers")) return "Membuka Data Pelanggan...";
-    if (pathname.startsWith("/admin/reports")) return "Membuka Laporan Penjualan...";
-    if (pathname.startsWith("/admin/settings")) return "Membuka Pengaturan Toko...";
-    if (pathname.startsWith("/admin/login")) return "Membuka Halaman Masuk Admin...";
+    if (pathname.startsWith("/admin/customers")) {
+      return isEn ? "Opening Customers Data..." : "Membuka Data Pelanggan...";
+    }
+    if (pathname.startsWith("/admin/reports")) {
+      return isEn ? "Opening Sales Reports..." : "Membuka Laporan Penjualan...";
+    }
+    if (pathname.startsWith("/admin/settings")) {
+      return isEn ? "Opening Store Settings..." : "Membuka Pengaturan Toko...";
+    }
+    if (pathname.startsWith("/admin/login")) {
+      return isEn ? "Opening Admin Login..." : "Membuka Halaman Masuk Admin...";
+    }
 
     // Rute Publik Toko
-    if (pathname === "/") return "Membuka Beranda Wazzopi...";
-    if (pathname === "/cerita-kami") return "Membuka Cerita Kami...";
-    if (pathname === "/cart") return "Membuka Keranjang Belanja...";
-    if (pathname === "/checkout") return "Membuka Halaman Pembayaran...";
-    if (pathname.startsWith("/checkout/success")) return "Memuat konfirmasi pesanan...";
-    if (pathname.startsWith("/products/")) return "Membuka Detail Produk...";
-    if (pathname === "/products") {
-      if (searchParams.has("sort")) return "Menyaring katalog produk...";
-      if (searchParams.has("category")) return "Memuat kategori produk...";
-      if (searchParams.has("q")) return `Mencari "${searchParams.get("q")}"...`;
-      return "Membuka Katalog Produk...";
+    if (pathname === "/") {
+      return isEn ? "Opening Wazzopi Home..." : "Membuka Beranda Wazzopi...";
     }
-    if (pathname === "/account") return "Membuka Akun Saya...";
-    if (pathname === "/login") return "Membuka Halaman Masuk...";
-    if (pathname === "/register") return "Membuka Halaman Registrasi...";
+    if (pathname === "/cerita-kami") {
+      return isEn ? "Opening Our Story..." : "Membuka Cerita Kami...";
+    }
+    if (pathname === "/cart") {
+      return isEn ? "Opening Shopping Cart..." : "Membuka Keranjang Belanja...";
+    }
+    if (pathname === "/checkout") {
+      return isEn ? "Opening Checkout Page..." : "Membuka Halaman Pembayaran...";
+    }
+    if (pathname.startsWith("/checkout/success")) {
+      return isEn ? "Loading order confirmation..." : "Memuat konfirmasi pesanan...";
+    }
+    if (pathname.startsWith("/products/")) {
+      return isEn ? "Opening Product Details..." : "Membuka Detail Produk...";
+    }
+    if (pathname === "/products") {
+      if (searchParams.has("sort")) {
+        return isEn ? "Sorting product catalog..." : "Menyaring katalog produk...";
+      }
+      if (searchParams.has("category")) {
+        return isEn ? "Loading category products..." : "Memuat kategori produk...";
+      }
+      if (searchParams.has("q")) {
+        return isEn
+          ? `Searching "${searchParams.get("q")}"...`
+          : `Mencari "${searchParams.get("q")}"...`;
+      }
+      return isEn ? "Opening Products Catalog..." : "Membuka Katalog Produk...";
+    }
+    if (pathname === "/account") {
+      return isEn ? "Opening My Account..." : "Membuka Akun Saya...";
+    }
+    if (pathname === "/login") {
+      return isEn ? "Opening Login Page..." : "Membuka Halaman Masuk...";
+    }
+    if (pathname === "/register") {
+      return isEn ? "Opening Registration Page..." : "Membuka Halaman Registrasi...";
+    }
 
     // Jika ada teks singkat pada elemen link
     const cleanText = elementText?.replace(/\s+/g, " ").trim();
     if (cleanText && cleanText.length > 1 && cleanText.length <= 35) {
-      return `Membuka ${cleanText}...`;
+      return isEn ? `Opening ${cleanText}...` : `Membuka ${cleanText}...`;
     }
 
-    return "Memuat halaman...";
+    return isEn ? "Loading page..." : "Memuat halaman...";
   } catch {
-    return "Memuat halaman...";
+    return isEn ? "Loading page..." : "Memuat halaman...";
   }
 }
 
@@ -114,9 +183,17 @@ function RouteWatcher({ onNavigate }: { onNavigate: () => void }) {
   return null;
 }
 
-export function LoadingProvider({ children }: { children: ReactNode }) {
+export function LoadingProvider({
+  children,
+  initialLocale = "en",
+}: {
+  children: ReactNode;
+  initialLocale?: "en" | "id";
+}) {
   const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState("Memuat data...");
+  const [message, setMessage] = useState(
+    initialLocale === "en" ? "Loading data..." : "Memuat data..."
+  );
   const [isPending, startTransition] = useTransition();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const transitionActiveRef = useRef(false);
@@ -129,8 +206,10 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   }, []);
 
-  const showLoading = useCallback((customMessage = "Sedang memproses...") => {
-    setMessage(customMessage);
+  const showLoading = useCallback((customMessage?: string) => {
+    const loc = getClientLocale(initialLocale);
+    const defaultMsg = loc === "en" ? "Processing..." : "Sedang memproses...";
+    setMessage(customMessage || defaultMsg);
     setIsLoading(true);
 
     // Timeout pengaman maksimal 12 detik agar tidak terkunci jika server timeout
@@ -138,17 +217,19 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
     timeoutRef.current = setTimeout(() => {
       setIsLoading(false);
     }, 12000);
-  }, []);
+  }, [initialLocale]);
 
   const startTransitionLoading = useCallback(
-    (action: () => void, customMessage = "Sedang memuat data...") => {
+    (action: () => void, customMessage?: string) => {
+      const loc = getClientLocale(initialLocale);
+      const defaultMsg = loc === "en" ? "Loading data..." : "Sedang memuat data...";
       transitionActiveRef.current = true;
-      showLoading(customMessage);
+      showLoading(customMessage || defaultMsg);
       startTransition(() => {
         action();
       });
     },
-    [showLoading]
+    [showLoading, initialLocale]
   );
 
   // Pantau useTransition selesai HANYA jika dipicu secara eksplisit oleh startTransitionLoading
@@ -213,9 +294,10 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
 
         // Ambil pesan dari data-loading-message atau pemetaan URL otomatis
         const explicitElement = target.closest("[data-loading-message]");
+        const currentLoc = getClientLocale(initialLocale);
         const msg =
           explicitElement?.getAttribute("data-loading-message") ||
-          getLoadingMessageForHref(rawHref, anchor.innerText?.trim());
+          getLoadingMessageForHref(rawHref, anchor.innerText?.trim(), currentLoc);
 
         showLoading(msg);
         return;
@@ -276,11 +358,13 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      showLoading("Sedang memproses permintaan...");
+      const currentLoc = getClientLocale(initialLocale);
+      showLoading(currentLoc === "en" ? "Processing request..." : "Sedang memproses permintaan...");
     };
 
     const handlePopState = () => {
-      showLoading("Memuat halaman...");
+      const currentLoc = getClientLocale(initialLocale);
+      showLoading(currentLoc === "en" ? "Loading page..." : "Memuat halaman...");
     };
 
     document.addEventListener("click", handleClick, { capture: true });

@@ -100,13 +100,23 @@ export function OrderTrackingForm({
       if (!validation.valid) {
         // Tampilkan preloader sebentar untuk mensimulasikan pengecekan kurir,
         // lalu TUTUP preloader sepenuhnya SEBELUM memunculkan modal peringatan
-        showLoading("Memeriksa kesesuaian nomor resi & kurir...");
+        showLoading(
+          isEn
+            ? "Checking waybill and courier format..."
+            : "Memeriksa kesesuaian nomor resi & kurir..."
+        );
         setTimeout(() => {
           hideLoading();
           setValidationModal({
             isOpen: true,
-            title: "Peringatan Kesesuaian Kurir & Nomor Resi",
-            message: validation.error || "Nomor resi tidak sesuai dengan ekspedisi yang dipilih.",
+            title: isEn
+              ? "Courier & Tracking Number Match Warning"
+              : "Peringatan Kesesuaian Kurir & Nomor Resi",
+            message:
+              validation.error ||
+              (isEn
+                ? "The tracking number format does not match the selected courier."
+                : "Nomor resi tidak sesuai dengan ekspedisi yang dipilih."),
             trackingNumber: trimmedAwb,
             selectedCourierCode: courierCode,
             selectedCourierName: getCourierName(courierCode),
@@ -117,7 +127,11 @@ export function OrderTrackingForm({
       }
     }
 
-    showLoading("Menyimpan & memverifikasi nomor resi...");
+    showLoading(
+      isEn
+        ? "Saving and verifying tracking number..."
+        : "Menyimpan & memverifikasi nomor resi..."
+    );
 
     const formData = new FormData(e.currentTarget);
     startTransition(async () => {
@@ -159,7 +173,11 @@ export function OrderTrackingForm({
     setCourierCode(targetCourierCode);
     setValidationModal(null);
     setMessage(null);
-    showLoading(`Menyimpan resi untuk ${getCourierName(targetCourierCode)}...`);
+    showLoading(
+      isEn
+        ? `Saving tracking number for ${getCourierName(targetCourierCode)}...`
+        : `Menyimpan resi untuk ${getCourierName(targetCourierCode)}...`
+    );
 
     startTransition(async () => {
       try {
@@ -174,14 +192,22 @@ export function OrderTrackingForm({
             type: "success",
             text:
               (res as any).message ||
-              `Nomor resi berhasil disimpan untuk ekspedisi ${getCourierName(targetCourierCode)}!`,
+              (isEn
+                ? `Tracking number saved for ${getCourierName(targetCourierCode)}!`
+                : `Nomor resi berhasil disimpan untuk ekspedisi ${getCourierName(targetCourierCode)}!`),
           });
         } else {
-          setMessage({ type: "error", text: res.error || "Gagal menyimpan nomor resi" });
+          setMessage({
+            type: "error",
+            text: res.error || (isEn ? "Failed to save tracking number" : "Gagal menyimpan nomor resi"),
+          });
         }
       } catch {
         hideLoading();
-        setMessage({ type: "error", text: "Gagal menyimpan nomor resi" });
+        setMessage({
+          type: "error",
+          text: isEn ? "Failed to save tracking number" : "Gagal menyimpan nomor resi",
+        });
       }
     });
   };
@@ -189,7 +215,11 @@ export function OrderTrackingForm({
   const handleForceSave = () => {
     setValidationModal(null);
     setMessage(null);
-    showLoading("Menyimpan resi dalam mode estimasi toko...");
+    showLoading(
+      isEn
+        ? "Saving tracking number in estimated mode..."
+        : "Menyimpan resi dalam mode estimasi toko..."
+    );
 
     startTransition(async () => {
       try {

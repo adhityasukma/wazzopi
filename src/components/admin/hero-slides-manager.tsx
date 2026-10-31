@@ -100,7 +100,7 @@ export function HeroSlidesManager({
     } else {
       hideLoading();
     }
-  }, [isPending, editingSlide, showLoading, hideLoading]);
+  }, [isPending, editingSlide, showLoading, hideLoading, isEn]);
 
   function handleEdit(s: HeroSlideItem) {
     setEditingSlide(s);
@@ -430,7 +430,11 @@ export function HeroSlidesManager({
                       <Link
                         key={opt}
                         href={getLimitUrl(opt)}
-                        data-loading-message={`Menampilkan ${opt === "all" ? "semua" : opt} slide per halaman...`}
+                        data-loading-message={
+                          isEn
+                            ? `Showing ${opt === "all" ? "all" : opt} slides per page...`
+                            : `Menampilkan ${opt === "all" ? "semua" : opt} slide per halaman...`
+                        }
                         className="rounded-md px-2.5 py-1 font-semibold text-espresso-600 hover:text-espresso-900 transition"
                       >
                         {label}
@@ -550,7 +554,12 @@ export function HeroSlidesManager({
 
                       <div className="flex items-center gap-1.5 sm:self-center">
                         {/* Toggle Aktif / Nonaktif */}
-                        <form action={toggleHeroSlide} data-loading-message="Mengubah status slide...">
+                        <form
+                          action={toggleHeroSlide}
+                          data-loading-message={
+                            isEn ? "Updating slide status..." : "Mengubah status slide..."
+                          }
+                        >
                           <input type="hidden" name="id" value={s.id} />
                           <button
                             type="submit"

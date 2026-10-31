@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Outfit } from "next/font/google";
 import { LoadingProvider } from "@/components/loading-provider";
+import { getServerLocale } from "@/i18n/server";
 import "./globals.css";
 
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
@@ -15,11 +16,12 @@ export const metadata: Metadata = {
     "Wazzopi menghadirkan kopi pilihan dari berbagai penjuru Nusantara. Satu Teguk, Banyak Cerita.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const locale = await getServerLocale();
   return (
-    <html lang="id" className={`${inter.variable} ${outfit.variable} h-full antialiased`}>
+    <html lang={locale} className={`${inter.variable} ${outfit.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
-        <LoadingProvider>{children}</LoadingProvider>
+        <LoadingProvider initialLocale={locale}>{children}</LoadingProvider>
       </body>
     </html>
   );

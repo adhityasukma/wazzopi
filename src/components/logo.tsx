@@ -21,7 +21,6 @@ export function Logo({
   return (
     <Link
       href={href}
-      data-loading-message={href === "/admin" ? "Membuka Dashboard Admin..." : "Membuka Beranda..."}
       className={cn("inline-flex items-center gap-2", className)}
       aria-label="Wazzopi"
     >

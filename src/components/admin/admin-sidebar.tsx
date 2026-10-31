@@ -25,7 +25,8 @@ type Props = {
 
 export function AdminSidebar({ role }: Props) {
   const pathname = usePathname();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const isEn = locale === "en";
 
   // Menu untuk Administrator
   const adminNav = [
@@ -68,7 +69,7 @@ export function AdminSidebar({ role }: Props) {
               <Link
                 key={item.href}
                 href={item.href}
-                data-loading-message={`Membuka ${item.label}...`}
+                data-loading-message={isEn ? `Opening ${item.label}...` : `Membuka ${item.label}...`}
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                   active
@@ -85,7 +86,7 @@ export function AdminSidebar({ role }: Props) {
       </div>
 
       <div className="border-t border-espresso-800 p-4">
-        <form action={adminLogout} data-loading-message="Logging out...">
+        <form action={adminLogout} data-loading-message={isEn ? "Logging out..." : "Keluar dari akun admin..."}>
           <button
             type="submit"
             className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-rose-300 hover:bg-espresso-800 hover:text-rose-200"

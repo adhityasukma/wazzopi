@@ -379,7 +379,11 @@ export function CustomersTable({
                   <Link
                     key={opt}
                     href={getLimitUrl(opt)}
-                    data-loading-message={`Menampilkan ${opt === "all" ? "semua" : opt} pelanggan per halaman...`}
+                    data-loading-message={
+                      isEn
+                        ? `Showing ${opt === "all" ? "all" : opt} customers per page...`
+                        : `Menampilkan ${opt === "all" ? "semua" : opt} pelanggan per halaman...`
+                    }
                     className="rounded-md px-2.5 py-1 font-semibold text-espresso-600 hover:text-espresso-900 transition"
                   >
                     {label}
