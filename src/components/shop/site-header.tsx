@@ -7,6 +7,8 @@ import { ChevronDown, LayoutDashboard, Menu, Search, ShoppingBag, Truck, User, X
 import { Logo } from "@/components/logo";
 import { useHydrated } from "@/components/currency-provider";
 import { useAppLoading } from "@/components/loading-provider";
+import { LanguageSwitcher } from "@/components/shop/language-switcher";
+import { useI18n } from "@/i18n/provider";
 import { cartCount, useCart } from "@/store/cart";
 import { cn } from "@/lib/utils";
 
@@ -26,11 +28,12 @@ export function SiteHeader({ user, categories, announcement }: Props) {
   const count = hydrated ? cartCount(items) : 0;
 
   const { startTransitionLoading } = useAppLoading();
+  const { t } = useI18n();
 
   const nav = [
-    { href: "/", label: "Beranda" },
-    { href: "/products", label: "Semua Produk" },
-    { href: "/cerita-kami", label: "Cerita Kami" },
+    { href: "/", label: t.common.home },
+    { href: "/products", label: t.common.allProducts },
+    { href: "/cerita-kami", label: t.common.ourStory },
   ];
 
   function onSearch(e: React.FormEvent<HTMLFormElement>) {
@@ -121,9 +124,9 @@ export function SiteHeader({ user, categories, announcement }: Props) {
             )}
             <Link
               href="/cart"
-              data-loading-message="Membuka Keranjang Belanja..."
+              data-loading-message={t.cart.pageTitle ? `Membuka ${t.common.cart}...` : "Opening Cart..."}
               className="relative rounded-lg p-2.5 text-espresso-700 hover:bg-latte"
-              aria-label="Keranjang"
+              aria-label={t.common.cart}
             >
               <ShoppingBag className="h-5 w-5" />
               {count > 0 && (
@@ -132,6 +135,11 @@ export function SiteHeader({ user, categories, announcement }: Props) {
                 </span>
               )}
             </Link>
+
+            {/* Language Switcher di samping keranjang */}
+            <div className="ml-1 pl-1 border-l border-latte hidden sm:block">
+              <LanguageSwitcher />
+            </div>
           </div>
         </div>
         {searchOpen && (
@@ -187,6 +195,13 @@ export function SiteHeader({ user, categories, announcement }: Props) {
                   {c.name}
                 </Link>
               ))}
+
+              <div className="pt-4 mt-4 border-t border-latte">
+                <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-espresso-400">Language / Bahasa</p>
+                <div className="px-3">
+                  <LanguageSwitcher />
+                </div>
+              </div>
             </nav>
           </div>
         </div>

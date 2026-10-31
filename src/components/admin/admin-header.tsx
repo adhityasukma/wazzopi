@@ -2,12 +2,16 @@
 
 import Link from "next/link";
 import { ExternalLink, ShieldCheck, User } from "lucide-react";
+import { LanguageSwitcher } from "@/components/shop/language-switcher";
+import { useI18n } from "@/i18n/provider";
 
 export function AdminHeader({
   user,
 }: {
   user: { name: string; role: string; email: string };
 }) {
+  const { t } = useI18n();
+
   return (
     <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-latte bg-cream/90 px-6 backdrop-blur">
       <div className="flex items-center gap-3">
@@ -16,11 +20,14 @@ export function AdminHeader({
           target="_blank"
           className="inline-flex items-center gap-1.5 rounded-lg border border-espresso-200 bg-white px-3 py-1.5 text-xs font-medium text-espresso-700 shadow-xs hover:bg-latte transition-colors"
         >
-          <ExternalLink className="h-3.5 w-3.5" /> Lihat Toko Depan
+          <ExternalLink className="h-3.5 w-3.5" /> {t.admin.viewPublicStore}
         </Link>
       </div>
 
       <div className="flex items-center gap-4">
+        {/* Language Switcher di Header Admin */}
+        <LanguageSwitcher />
+
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-espresso-700 text-xs font-bold text-cream">
             {user.name.charAt(0)}
