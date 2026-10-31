@@ -9,6 +9,7 @@ import {
   type IndonesianRegion,
 } from "@/lib/indonesia-regions";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/i18n/provider";
 
 interface CityProvinceSelectorProps {
   defaultCity?: string | null;
@@ -45,6 +46,8 @@ export function CityProvinceSelector({
   onChange,
   onPostalCodeChange,
 }: CityProvinceSelectorProps) {
+  const { locale } = useI18n();
+  const isEn = locale === "en";
   const [cityInput, setCityInput] = useState(defaultCity || "");
   const [selectedCity, setSelectedCity] = useState(defaultCity || "");
   const [selectedProvince, setSelectedProvince] = useState(() => {
@@ -195,10 +198,10 @@ export function CityProvinceSelector({
       >
         <label className="mb-1.5 flex items-center justify-between text-sm font-medium text-espresso-800">
           <span>
-            Kota / Kabupaten {required && <span className="text-rose-500">*</span>}
+            {isEn ? "City / Regency" : "Kota / Kabupaten"} {required && <span className="text-rose-500">*</span>}
           </span>
           <span className="text-xs font-normal text-espresso-400">
-            Ketik untuk mencari
+            {isEn ? "Type to search" : "Ketik untuk mencari"}
           </span>
         </label>
 
@@ -230,7 +233,7 @@ export function CityProvinceSelector({
             }}
             onFocus={() => setIsOpen(true)}
             onKeyDown={handleKeyDown}
-            placeholder="Cari Kota/Kabupaten (cth: Tangerang, Bandung)..."
+            placeholder={isEn ? "Search City/Regency (e.g. Tangerang, Bandung)..." : "Cari Kota/Kabupaten (cth: Tangerang, Bandung)..."}
             autoComplete="off"
             className="w-full h-10 rounded-lg border border-espresso-100 bg-white pl-9 pr-16 text-sm text-espresso-900 placeholder:text-espresso-300 transition-colors focus:border-caramel-400 focus:outline-none focus:ring-2 focus:ring-caramel-100"
           />
@@ -245,7 +248,7 @@ export function CityProvinceSelector({
                 type="button"
                 onClick={handleClear}
                 className="rounded-full p-1 text-espresso-300 hover:bg-espresso-50 hover:text-espresso-600 transition"
-                title="Hapus pilihan"
+                title={isEn ? "Clear selection" : "Hapus pilihan"}
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -276,13 +279,13 @@ export function CityProvinceSelector({
           <div className="absolute z-50 mt-1.5 max-h-60 w-full overflow-auto rounded-lg border border-espresso-100 bg-white p-1 shadow-lg">
             {!cityInput.trim() && (
               <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-espresso-400">
-                Kota Populer di Indonesia
+                {isEn ? "Popular Cities in Indonesia" : "Kota Populer di Indonesia"}
               </div>
             )}
 
             {suggestions.length === 0 ? (
               <div className="px-3 py-3 text-center text-xs text-espresso-400">
-                Kota &quot;{cityInput}&quot; tidak ditemukan dalam daftar resmi.
+                {isEn ? `City "${cityInput}" not found in official list.` : <>Kota &quot;{cityInput}&quot; tidak ditemukan dalam daftar resmi.</>}
               </div>
             ) : (
               <ul ref={listRef} role="listbox" className="space-y-0.5">
@@ -331,11 +334,11 @@ export function CityProvinceSelector({
       <div className={cn(showPostalCode ? "sm:col-span-4" : "sm:col-span-1")}>
         <label className="mb-1.5 flex items-center justify-between text-sm font-medium text-espresso-800">
           <span>
-            Provinsi {required && <span className="text-rose-500">*</span>}
+            {isEn ? "Province" : "Provinsi"} {required && <span className="text-rose-500">*</span>}
           </span>
           <span className="inline-flex items-center gap-1 text-[11px] font-normal text-emerald-600">
             <Lock className="h-3 w-3" />
-            Otomatis terisi
+            {isEn ? "Auto-filled" : "Otomatis terisi"}
           </span>
         </label>
 
@@ -344,13 +347,13 @@ export function CityProvinceSelector({
             type="text"
             readOnly
             value={selectedProvince}
-            placeholder="Terisi otomatis saat memilih Kota"
+            placeholder={isEn ? "Filled automatically when selecting City" : "Terisi otomatis saat memilih Kota"}
             className="w-full h-10 rounded-lg border border-espresso-100 bg-cream/50 px-3 text-sm font-medium text-espresso-800 placeholder:text-espresso-300 focus:outline-none cursor-default"
           />
           {selectedProvince && (
             <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center text-xs text-emerald-600 font-medium">
               <Check className="mr-1 h-3.5 w-3.5" />
-              Tersinkron
+              {isEn ? "Synced" : "Tersinkron"}
             </div>
           )}
         </div>
@@ -364,10 +367,10 @@ export function CityProvinceSelector({
         <div className="sm:col-span-3">
           <label className="mb-1.5 flex items-center justify-between text-sm font-medium text-espresso-800">
             <span>
-              Kode Pos {postalCodeRequired && <span className="text-rose-500">*</span>}
+              {isEn ? "Postal Code" : "Kode Pos"} {postalCodeRequired && <span className="text-rose-500">*</span>}
             </span>
             <span className="text-[11px] font-normal text-espresso-400">
-              Dapat diedit
+              {isEn ? "Editable" : "Dapat diedit"}
             </span>
           </label>
 
@@ -386,7 +389,7 @@ export function CityProvinceSelector({
                   postalCode: val,
                 });
               }}
-              placeholder="Contoh: 15111"
+              placeholder={isEn ? "E.g.: 15111" : "Contoh: 15111"}
               required={postalCodeRequired}
               maxLength={10}
               className="w-full h-10 rounded-lg border border-espresso-100 bg-white px-3 text-sm text-espresso-900 placeholder:text-espresso-300 transition-colors focus:border-caramel-400 focus:outline-none focus:ring-2 focus:ring-caramel-100"

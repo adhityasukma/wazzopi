@@ -296,16 +296,16 @@ export function SettingsForm({
               {/* Grup 1: Identitas Brand & Toko */}
               <div>
                 <h3 className="text-xs font-bold uppercase tracking-wider text-caramel-800 mb-3">
-                  Identitas Brand & Toko
+                  {isEn ? "Brand & Store Identity" : "Identitas Brand & Toko"}
                 </h3>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Nama Brand / Toko">
+                  <Field label={isEn ? "Brand / Store Name" : "Nama Brand / Toko"}>
                     <Input name="storeName" defaultValue={initialSettings.general.storeName} required />
                   </Field>
-                  <Field label="Tagline Toko">
+                  <Field label={isEn ? "Store Tagline" : "Tagline Toko"}>
                     <Input name="tagline" defaultValue={initialSettings.general.tagline} />
                   </Field>
-                  <Field label="Negara">
+                  <Field label={isEn ? "Country" : "Negara"}>
                     <Input name="country" defaultValue={initialSettings.general.country} />
                   </Field>
                 </div>
@@ -315,20 +315,20 @@ export function SettingsForm({
               <div className="pt-5 border-t border-latte">
                 <div className="mb-3">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-caramel-800">
-                    Kontak & Lokasi (Footer &quot;Kunjungi Kami&quot;)
+                    {isEn ? "Contact & Location (\"Visit Us\" Footer)" : "Kontak & Lokasi (Footer \"Kunjungi Kami\")"}
                   </h3>
                   <p className="text-[11px] text-espresso-500 mt-0.5">
-                    Data di bawah ini ditampilkan langsung di bagian footer &quot;Kunjungi Kami&quot; toko Anda.
+                    {isEn ? "The information below is displayed directly in your store's \"Visit Us\" footer." : "Data di bawah ini ditampilkan langsung di bagian footer \"Kunjungi Kami\" toko Anda."}
                   </p>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Nomor Telepon CS" hint="Ditampilkan dengan ikon telepon di footer">
+                  <Field label={isEn ? "CS Phone Number" : "Nomor Telepon CS"} hint={isEn ? "Displayed with phone icon in footer" : "Ditampilkan dengan ikon telepon di footer"}>
                     <Input name="phone" defaultValue={initialSettings.general.phone} required />
                   </Field>
                   <Field
-                    label="Nomor WhatsApp Toko (WA Phone)"
-                    hint="Nomor WA aktif untuk tombol 'Chat dengan WA' & konfirmasi pesanan (contoh: 6282353538212)"
+                    label={isEn ? "Store WhatsApp (WA Phone)" : "Nomor WhatsApp Toko (WA Phone)"}
+                    hint={isEn ? "Active WA number for 'Chat on WhatsApp' & order confirmation (e.g.: 6282353538212)" : "Nomor WA aktif untuk tombol 'Chat dengan WA' & konfirmasi pesanan (contoh: 6282353538212)"}
                   >
                     <Input
                       name="whatsapp"
@@ -337,21 +337,21 @@ export function SettingsForm({
                       required
                     />
                   </Field>
-                  <Field label="Email Resmi Toko" hint="Ditampilkan dengan ikon email di footer & penerima notifikasi admin">
+                  <Field label={isEn ? "Official Store Email" : "Email Resmi Toko"} hint={isEn ? "Displayed with email icon in footer & recipient of admin notifications" : "Ditampilkan dengan ikon email di footer & penerima notifikasi admin"}>
                     <Input name="email" type="email" defaultValue={initialSettings.general.email} required />
                   </Field>
                   <Field
-                    label="Jam Operasional Toko"
-                    hint="Ditampilkan dengan ikon jam di footer 'Kunjungi Kami'"
+                    label={isEn ? "Store Operating Hours" : "Jam Operasional Toko"}
+                    hint={isEn ? "Displayed with clock icon in 'Visit Us' footer" : "Ditampilkan dengan ikon jam di footer 'Kunjungi Kami'"}
                     className="sm:col-span-2"
                   >
                     <Input
                       name="openingHours"
                       defaultValue={initialSettings.general.openingHours || "Setiap hari, 08.00 - 22.00"}
-                      placeholder="Contoh: Setiap hari, 08.00 - 22.00"
+                      placeholder={isEn ? "E.g.: Every day, 08.00 - 22.00" : "Contoh: Setiap hari, 08.00 - 22.00"}
                     />
                   </Field>
-                  <Field label="Alamat Fisik Toko" className="sm:col-span-2">
+                  <Field label={isEn ? "Physical Store Address" : "Alamat Fisik Toko"} className="sm:col-span-2">
                     <Textarea name="address" defaultValue={initialSettings.general.address} rows={2} />
                   </Field>
                   <div className="sm:col-span-2">
@@ -364,8 +364,8 @@ export function SettingsForm({
                     />
                   </div>
                   <Field
-                    label="URL Google Maps / Tautan Peta Lokasi"
-                    hint="Jika diisi, klik pada alamat di footer akan membuka peta ini"
+                    label={isEn ? "Google Maps URL / Map Link" : "URL Google Maps / Tautan Peta Lokasi"}
+                    hint={isEn ? "If filled, clicking the address in the footer opens this map" : "Jika diisi, klik pada alamat di footer akan membuka peta ini"}
                     className="sm:col-span-2"
                   >
                     <Input
@@ -399,19 +399,19 @@ export function SettingsForm({
             {/* Live Preview Box */}
             <div className="mt-6 rounded-lg border border-caramel-200 bg-caramel-50/40 p-4">
               <span className="text-xs font-bold uppercase tracking-wider text-caramel-800">
-                Live Preview Tampilan Harga:
+                {isEn ? "Live Price Display Preview:" : "Live Preview Tampilan Harga:"}
               </span>
               <p className="mt-1 font-display text-3xl font-bold text-espresso-900">
                 {formatCurrency(125000, currencyConfig)}
               </p>
               <p className="mt-1 text-xs text-espresso-500">
-                Contoh format harga produk Rp 125.000 dengan pengaturan di bawah ini.
+                {isEn ? "Example product price formatting (Rp 125,000) with settings below." : "Contoh format harga produk Rp 125.000 dengan pengaturan di bawah ini."}
               </p>
             </div>
 
             <form action={currencyAction} className="mt-6 space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Pilihan Mata Uang">
+                <Field label={isEn ? "Currency Selection" : "Pilihan Mata Uang"}>
                   <Select
                     name="code"
                     value={currencyConfig.code}
@@ -434,7 +434,7 @@ export function SettingsForm({
                   </Select>
                 </Field>
 
-                <Field label="Simbol Mata Uang">
+                <Field label={isEn ? "Currency Symbol" : "Simbol Mata Uang"}>
                   <Input
                     name="symbol"
                     value={currencyConfig.symbol}
@@ -444,7 +444,7 @@ export function SettingsForm({
                   />
                 </Field>
 
-                <Field label="Pemisah Ribuan (Thousand Separator)">
+                <Field label={isEn ? "Thousand Separator" : "Pemisah Ribuan (Thousand Separator)"}>
                   <Select
                     name="thousandSep"
                     value={currencyConfig.thousandSep}
@@ -452,13 +452,13 @@ export function SettingsForm({
                       setCurrencyConfig((prev) => ({ ...prev, thousandSep: e.target.value }))
                     }
                   >
-                    <option value=".">Titik ( . ) - Standar Indonesia</option>
-                    <option value=",">Koma ( , ) - Standar US</option>
-                    <option value="space">Spasi ( &nbsp; )</option>
+                    <option value=".">{isEn ? "Dot ( . ) - Indonesian Standard" : "Titik ( . ) - Standar Indonesia"}</option>
+                    <option value=",">{isEn ? "Comma ( , ) - US Standard" : "Koma ( , ) - Standar US"}</option>
+                    <option value="space">{isEn ? "Space ( &nbsp; )" : "Spasi ( &nbsp; )"}</option>
                   </Select>
                 </Field>
 
-                <Field label="Pemisah Desimal (Decimal Separator)">
+                <Field label={isEn ? "Decimal Separator" : "Pemisah Desimal (Decimal Separator)"}>
                   <Select
                     name="decimalSep"
                     value={currencyConfig.decimalSep}
@@ -466,12 +466,12 @@ export function SettingsForm({
                       setCurrencyConfig((prev) => ({ ...prev, decimalSep: e.target.value }))
                     }
                   >
-                    <option value=",">Koma ( , ) - Standar Indonesia</option>
-                    <option value=".">Titik ( . ) - Standar US</option>
+                    <option value=",">{isEn ? "Comma ( , ) - Indonesian Standard" : "Koma ( , ) - Standar Indonesia"}</option>
+                    <option value=".">{isEn ? "Dot ( . ) - US Standard" : "Titik ( . ) - Standar US"}</option>
                   </Select>
                 </Field>
 
-                <Field label="Jumlah Angka Desimal">
+                <Field label={isEn ? "Decimal Places" : "Jumlah Angka Desimal"}>
                   <Input
                     name="decimals"
                     type="number"
@@ -487,7 +487,7 @@ export function SettingsForm({
                   />
                 </Field>
 
-                <Field label="Posisi Simbol Mata Uang">
+                <Field label={isEn ? "Currency Symbol Position" : "Posisi Simbol Mata Uang"}>
                   <Select
                     name="position"
                     value={currencyConfig.position}
@@ -498,10 +498,10 @@ export function SettingsForm({
                       }))
                     }
                   >
-                    <option value="left_space">Kiri dengan spasi (Rp 100.000)</option>
-                    <option value="left">Kiri tanpa spasi (Rp100.000)</option>
-                    <option value="right_space">Kanan dengan spasi (100.000 Rp)</option>
-                    <option value="right">Kanan tanpa spasi (100.000Rp)</option>
+                    <option value="left_space">{isEn ? "Left with space (Rp 100,000)" : "Kiri dengan spasi (Rp 100.000)"}</option>
+                    <option value="left">{isEn ? "Left without space (Rp100,000)" : "Kiri tanpa spasi (Rp100.000)"}</option>
+                    <option value="right_space">{isEn ? "Right with space (100,000 Rp)" : "Kanan dengan spasi (100.000 Rp)"}</option>
+                    <option value="right">{isEn ? "Right without space (100,000Rp)" : "Kanan tanpa spasi (100.000Rp)"}</option>
                   </Select>
                 </Field>
               </div>
@@ -529,8 +529,8 @@ export function SettingsForm({
               <div className="rounded-lg border border-latte p-4 space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-semibold text-espresso-900">Transfer Bank Manual</h3>
-                    <p className="text-xs text-espresso-400">Pembayaran langsung ke nomor rekening toko</p>
+                    <h3 className="font-semibold text-espresso-900">{isEn ? "Manual Bank Transfer" : "Transfer Bank Manual"}</h3>
+                    <p className="text-xs text-espresso-400">{isEn ? "Direct payment to store bank accounts" : "Pembayaran langsung ke nomor rekening toko"}</p>
                   </div>
                   <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-espresso-800">
                     <input
@@ -539,7 +539,7 @@ export function SettingsForm({
                       defaultChecked={initialSettings.payment.bankTransfer.enabled}
                       className="rounded border-espresso-300 text-caramel-600 focus:ring-caramel-500 h-4 w-4"
                     />
-                    Aktif
+                    {isEn ? "Active" : "Aktif"}
                   </label>
                 </div>
 
@@ -558,7 +558,7 @@ export function SettingsForm({
                       </div>
                       <div className="flex-1 min-w-36">
                         <Input
-                          placeholder="No. Rekening"
+                          placeholder={isEn ? "Account Number" : "No. Rekening"}
                           value={b.number}
                           onChange={(e) => updateBankField(i, "number", e.target.value)}
                           className="h-8 text-xs font-mono"
@@ -566,7 +566,7 @@ export function SettingsForm({
                       </div>
                       <div className="flex-1 min-w-36">
                         <Input
-                          placeholder="Atas Nama"
+                          placeholder={isEn ? "Account Holder Name" : "Atas Nama"}
                           value={b.holder}
                           onChange={(e) => updateBankField(i, "holder", e.target.value)}
                           className="h-8 text-xs"
@@ -587,7 +587,7 @@ export function SettingsForm({
                     onClick={addBankAccount}
                     className="inline-flex items-center gap-1.5 text-xs font-semibold text-caramel-600 hover:underline"
                   >
-                    <Plus className="h-3.5 w-3.5" /> Tambah Rekening Bank
+                    <Plus className="h-3.5 w-3.5" /> {isEn ? "Add Bank Account" : "Tambah Rekening Bank"}
                   </button>
                 </div>
               </div>
@@ -596,8 +596,8 @@ export function SettingsForm({
               <div className="rounded-lg border border-latte p-4 space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-semibold text-espresso-900">Bayar di Tempat (COD)</h3>
-                    <p className="text-xs text-espresso-400">Pelanggan membayar tunai saat kurir tiba</p>
+                    <h3 className="font-semibold text-espresso-900">{isEn ? "Cash on Delivery (COD)" : "Bayar di Tempat (COD)"}</h3>
+                    <p className="text-xs text-espresso-400">{isEn ? "Customer pays cash upon delivery" : "Pelanggan membayar tunai saat kurir tiba"}</p>
                   </div>
                   <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-espresso-800">
                     <input
@@ -606,11 +606,11 @@ export function SettingsForm({
                       defaultChecked={initialSettings.payment.cod.enabled}
                       className="rounded border-espresso-300 text-caramel-600 focus:ring-caramel-500 h-4 w-4"
                     />
-                    Aktif
+                    {isEn ? "Active" : "Aktif"}
                   </label>
                 </div>
                 <div className="max-w-xs">
-                  <Field label="Biaya Penanganan COD (Fee)">
+                  <Field label={isEn ? "COD Handling Fee" : "Biaya Penanganan COD (Fee)"}>
                     <Input
                       name="codFee"
                       type="number"
@@ -625,9 +625,9 @@ export function SettingsForm({
               <div className="rounded-lg border border-latte p-4 space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-semibold text-espresso-900">Payment Gateway Midtrans (Snap)</h3>
+                    <h3 className="font-semibold text-espresso-900">{isEn ? "Midtrans Payment Gateway (Snap)" : "Payment Gateway Midtrans (Snap)"}</h3>
                     <p className="text-xs text-espresso-400">
-                      Menerima QRIS, GoPay, OVO, ShopeePay, Virtual Account, & Kartu Kredit
+                      {isEn ? "Accepts QRIS, GoPay, OVO, ShopeePay, Virtual Accounts, & Credit Cards" : "Menerima QRIS, GoPay, OVO, ShopeePay, Virtual Account, & Kartu Kredit"}
                     </p>
                   </div>
                   <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-espresso-800">
@@ -637,14 +637,14 @@ export function SettingsForm({
                       defaultChecked={initialSettings.payment.midtrans.enabled}
                       className="rounded border-espresso-300 text-caramel-600 focus:ring-caramel-500 h-4 w-4"
                     />
-                    Aktif
+                    {isEn ? "Active" : "Aktif"}
                   </label>
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Field label="Environment Mode">
                     <Select name="midtransMode" defaultValue={initialSettings.payment.midtrans.mode}>
-                      <option value="sandbox">Sandbox (Testing / Pengembangan)</option>
+                      <option value="sandbox">{isEn ? "Sandbox (Testing / Development)" : "Sandbox (Testing / Pengembangan)"}</option>
                       <option value="production">Production (Live)</option>
                     </Select>
                   </Field>
@@ -677,10 +677,10 @@ export function SettingsForm({
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div>
                       <h4 className="text-xs font-bold uppercase tracking-wider text-caramel-800">
-                        Channel Pembayaran Midtrans yang Ditampilkan di Checkout
+                        {isEn ? "Midtrans Payment Channels Displayed on Checkout" : "Channel Pembayaran Midtrans yang Ditampilkan di Checkout"}
                       </h4>
                       <p className="text-[11px] text-espresso-500 mt-0.5">
-                        Centang channel yang aktif di portal Midtrans Anda untuk ditampilkan secara jelas seperti pilihan di Shopee.
+                        {isEn ? "Check the channels active in your Midtrans portal to display them clearly on checkout." : "Centang channel yang aktif di portal Midtrans Anda untuk ditampilkan secara jelas seperti pilihan di Shopee."}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -689,7 +689,7 @@ export function SettingsForm({
                         onClick={selectAllChannels}
                         className="text-[11px] font-semibold text-caramel-700 hover:text-caramel-900 underline cursor-pointer"
                       >
-                        Pilih Semua
+                        {isEn ? "Select All" : "Pilih Semua"}
                       </button>
                       <span className="text-espresso-300">|</span>
                       <button
@@ -697,7 +697,7 @@ export function SettingsForm({
                         onClick={clearAllChannels}
                         className="text-[11px] font-semibold text-espresso-500 hover:text-espresso-700 underline cursor-pointer"
                       >
-                        Hapus Semua
+                        {isEn ? "Clear All" : "Hapus Semua"}
                       </button>
                     </div>
                   </div>
@@ -711,7 +711,7 @@ export function SettingsForm({
                   {/* Kategori 1: QRIS & E-Wallet */}
                   <div>
                     <span className="text-[11px] font-bold text-espresso-700 block mb-2">
-                      1. QRIS & E-Wallet
+                      {isEn ? "1. QRIS & E-Wallet" : "1. QRIS & E-Wallet"}
                     </span>
                     <div className="grid gap-2 sm:grid-cols-2">
                       {MIDTRANS_CHANNEL_LIST.filter(
@@ -757,7 +757,7 @@ export function SettingsForm({
                   {/* Kategori 2: Virtual Account (Transfer Otomatis) */}
                   <div className="pt-2">
                     <span className="text-[11px] font-bold text-espresso-700 block mb-2">
-                      2. Virtual Account (Verifikasi Otomatis)
+                      {isEn ? "2. Virtual Account (Auto Verification)" : "2. Virtual Account (Verifikasi Otomatis)"}
                     </span>
                     <div className="grid gap-2 sm:grid-cols-2">
                       {MIDTRANS_CHANNEL_LIST.filter((c) => c.category === "va").map((c) => {
@@ -801,7 +801,7 @@ export function SettingsForm({
                   {/* Kategori 3: Kartu Kredit & Retail */}
                   <div className="pt-2">
                     <span className="text-[11px] font-bold text-espresso-700 block mb-2">
-                      3. Kartu Kredit & Gerai Retail
+                      {isEn ? "3. Credit Card & Retail Outlets" : "3. Kartu Kredit & Gerai Retail"}
                     </span>
                     <div className="grid gap-2 sm:grid-cols-2">
                       {MIDTRANS_CHANNEL_LIST.filter(
@@ -850,9 +850,9 @@ export function SettingsForm({
               <div className="rounded-lg border border-latte p-4 space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-semibold text-espresso-900">Payment Gateway Stripe</h3>
+                    <h3 className="font-semibold text-espresso-900">{isEn ? "Stripe Payment Gateway" : "Payment Gateway Stripe"}</h3>
                     <p className="text-xs text-espresso-400">
-                      Menerima Kartu Kredit Internasional (Visa, Mastercard, Amex, Apple Pay, Google Pay)
+                      {isEn ? "Accepts Global Credit Cards (Visa, Mastercard, Amex, Apple Pay, Google Pay)" : "Menerima Kartu Kredit Internasional (Visa, Mastercard, Amex, Apple Pay, Google Pay)"}
                     </p>
                   </div>
                   <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-espresso-800">
@@ -862,13 +862,13 @@ export function SettingsForm({
                       defaultChecked={initialSettings.payment.stripe?.enabled ?? false}
                       className="rounded border-espresso-300 text-caramel-600 focus:ring-caramel-500 h-4 w-4"
                     />
-                    Aktif
+                    {isEn ? "Active" : "Aktif"}
                   </label>
                 </div>
 
                 <div className="space-y-3">
                   <div className="max-w-xs">
-                    <Field label="Mode Transaksi">
+                    <Field label={isEn ? "Transaction Mode" : "Mode Transaksi"}>
                       <select
                         name="stripeMode"
                         defaultValue={initialSettings.payment.stripe?.mode || "test"}
@@ -903,9 +903,9 @@ export function SettingsForm({
               <div className="rounded-lg border border-latte p-4 space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-semibold text-espresso-900">Payment Gateway PayPal</h3>
+                    <h3 className="font-semibold text-espresso-900">{isEn ? "PayPal Payment Gateway" : "Payment Gateway PayPal"}</h3>
                     <p className="text-xs text-espresso-400">
-                      Menerima saldo PayPal & kartu debit/kredit global via PayPal Checkout
+                      {isEn ? "Accepts PayPal balance & global debit/credit cards via PayPal Checkout" : "Menerima saldo PayPal & kartu debit/kredit global via PayPal Checkout"}
                     </p>
                   </div>
                   <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-espresso-800">
@@ -915,13 +915,13 @@ export function SettingsForm({
                       defaultChecked={initialSettings.payment.paypal?.enabled ?? false}
                       className="rounded border-espresso-300 text-caramel-600 focus:ring-caramel-500 h-4 w-4"
                     />
-                    Aktif
+                    {isEn ? "Active" : "Aktif"}
                   </label>
                 </div>
 
                 <div className="space-y-3">
                   <div className="max-w-xs">
-                    <Field label="Mode Transaksi">
+                    <Field label={isEn ? "Transaction Mode" : "Mode Transaksi"}>
                       <select
                         name="paypalMode"
                         defaultValue={initialSettings.payment.paypal?.mode || "sandbox"}
@@ -937,7 +937,7 @@ export function SettingsForm({
                       <Input
                         name="paypalClientId"
                         defaultValue={initialSettings.payment.paypal?.clientId || ""}
-                        placeholder="Client ID dari developer.paypal.com"
+                        placeholder={isEn ? "Client ID from developer.paypal.com" : "Client ID dari developer.paypal.com"}
                       />
                     </Field>
                     <Field label="PayPal Secret Key">
@@ -945,7 +945,7 @@ export function SettingsForm({
                         name="paypalClientSecret"
                         type="password"
                         defaultValue={initialSettings.payment.paypal?.clientSecret || ""}
-                        placeholder="Secret Key PayPal"
+                        placeholder={isEn ? "PayPal Secret Key" : "Secret Key PayPal"}
                       />
                     </Field>
                   </div>
@@ -974,7 +974,7 @@ export function SettingsForm({
               <input type="hidden" name="methods" value={JSON.stringify(shippingMethods)} />
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Kota Asal Pengiriman">
+                <Field label={isEn ? "Shipping Origin City" : "Kota Asal Pengiriman"}>
                   <Input
                     name="originCity"
                     defaultValue={initialSettings.shipping.originCity}
@@ -986,10 +986,10 @@ export function SettingsForm({
                   <div className="flex items-center justify-between">
                     <div>
                       <span className="text-xs font-bold uppercase tracking-wider text-espresso-800 block">
-                        Promo Gratis Ongkir
+                        {isEn ? "Free Shipping Promotion" : "Promo Gratis Ongkir"}
                       </span>
                       <p className="text-[11px] text-espresso-400">
-                        Aktifkan jika ingin memberikan gratis ongkir dengan syarat minimal belanja
+                        {isEn ? "Enable to offer free shipping with minimum order spend requirement" : "Aktifkan jika ingin memberikan gratis ongkir dengan syarat minimal belanja"}
                       </p>
                     </div>
                     <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-espresso-800 shrink-0">
@@ -1005,7 +1005,7 @@ export function SettingsForm({
                   </div>
 
                   {freeShippingEnabled && (
-                    <Field label="Minimal Belanja (IDR)">
+                    <Field label={isEn ? "Minimum Spend (IDR)" : "Minimal Belanja (IDR)"}>
                       <Input
                         name="freeShippingMin"
                         type="number"
@@ -1021,14 +1021,14 @@ export function SettingsForm({
 
               <div className="space-y-3">
                 <label className="text-xs font-bold uppercase tracking-wider text-espresso-500 block">
-                  Daftar Pilihan Jasa Ekspedisi / Kurir
+                  {isEn ? "Available Couriers & Shipping Carriers List" : "Daftar Pilihan Jasa Ekspedisi / Kurir"}
                 </label>
 
                 {shippingMethods.map((m, i) => (
                   <div key={m.id} className="flex flex-wrap items-center gap-2 rounded-lg bg-cream/40 p-3">
                     <div className="flex-1 min-w-36">
                       <Input
-                        placeholder="Nama Kurir (JNE Reguler)"
+                        placeholder={isEn ? "Courier Name (JNE Regular)" : "Nama Kurir (JNE Reguler)"}
                         value={m.name}
                         onChange={(e) => updateShippingField(i, "name", e.target.value)}
                         className="h-8 text-xs"
@@ -1036,7 +1036,7 @@ export function SettingsForm({
                     </div>
                     <div className="w-28">
                       <Input
-                        placeholder="Tarif (IDR)"
+                        placeholder={isEn ? "Fee (IDR)" : "Tarif (IDR)"}
                         type="number"
                         value={m.cost}
                         onChange={(e) => updateShippingField(i, "cost", Number(e.target.value))}
@@ -1045,7 +1045,7 @@ export function SettingsForm({
                     </div>
                     <div className="w-28">
                       <Input
-                        placeholder="Estimasi (2-3 hari)"
+                        placeholder={isEn ? "Estimate (2-3 days)" : "Estimasi (2-3 hari)"}
                         value={m.etd}
                         onChange={(e) => updateShippingField(i, "etd", e.target.value)}
                         className="h-8 text-xs"
@@ -1075,7 +1075,7 @@ export function SettingsForm({
                   onClick={addShippingMethod}
                   className="inline-flex items-center gap-1.5 text-xs font-semibold text-caramel-600 hover:underline"
                 >
-                  <Plus className="h-3.5 w-3.5" /> Tambah Kurir Pengiriman
+                  <Plus className="h-3.5 w-3.5" /> {isEn ? "Add Shipping Courier" : "Tambah Kurir Pengiriman"}
                 </button>
               </div>
 
@@ -1087,10 +1087,10 @@ export function SettingsForm({
                     defaultChecked={initialSettings.shipping.pickupEnabled}
                     className="rounded border-espresso-300 text-caramel-600 focus:ring-caramel-500 h-4 w-4"
                   />
-                  Izinkan Pengambilan Sendiri di Toko (Pickup Store)
+                  {isEn ? "Allow In-Store Pickup (Pickup Store)" : "Izinkan Pengambilan Sendiri di Toko (Pickup Store)"}
                 </label>
                 <p className="mt-1 text-xs text-espresso-400">
-                  Pelanggan dapat memilih opsi mengambil pesanan langsung di toko fisik tanpa biaya kirim.
+                  {isEn ? "Customers can choose to pick up orders directly at physical store free of charge." : "Pelanggan dapat memilih opsi mengambil pesanan langsung di toko fisik tanpa biaya kirim."}
                 </p>
               </div>
 
@@ -1098,22 +1098,26 @@ export function SettingsForm({
               <div className="rounded-lg border border-latte p-4 bg-latte/20 space-y-3">
                 <div>
                   <h3 className="font-semibold text-espresso-900 text-sm">
-                    Integrasi API Pelacak Resi Otomatis (Binderbyte)
+                    {isEn ? "Automatic Waybill Tracking API Integration (Binderbyte)" : "Integrasi API Pelacak Resi Otomatis (Binderbyte)"}
                   </h3>
                   <p className="text-xs text-espresso-500">
-                    Otomatis melacak posisi kurir (JNE, J&T, SiCepat, Anteraja, POS, TIKI) ke server ekspedisi resmi.
+                    {isEn ? "Automatically tracks courier checkpoints (JNE, J&T, SiCepat, Anteraja, POS, TIKI) via official servers." : "Otomatis melacak posisi kurir (JNE, J&T, SiCepat, Anteraja, POS, TIKI) ke server ekspedisi resmi."}
                   </p>
                 </div>
 
-                <Field label="Binderbyte API Key (Opsional / Free Tier)">
+                <Field label={isEn ? "Binderbyte API Key (Optional / Free Tier)" : "Binderbyte API Key (Opsional / Free Tier)"}>
                   <Input
                     name="binderbyteApiKey"
                     type="password"
                     defaultValue={initialSettings.shipping.binderbyteApiKey || ""}
-                    placeholder="Masukkan API Key dari dashboard binderbyte.com"
+                    placeholder={isEn ? "Enter API Key from binderbyte.com dashboard" : "Masukkan API Key dari dashboard binderbyte.com"}
                   />
                   <p className="mt-1 text-[11px] text-espresso-400">
-                    Dapatkan API Key gratis di <strong>binderbyte.com</strong>. Jika dikosongkan, sistem pelacakan otomatis menggunakan mode fallback cerdas berbasis data pesanan.
+                    {isEn ? (
+                      <>Get free API Key at <strong>binderbyte.com</strong>. If left blank, automatic tracking uses intelligent fallback based on order data.</>
+                    ) : (
+                      <>Dapatkan API Key gratis di <strong>binderbyte.com</strong>. Jika dikosongkan, sistem pelacakan otomatis menggunakan mode fallback cerdas berbasis data pesanan.</>
+                    )}
                   </p>
                 </Field>
               </div>
@@ -1160,7 +1164,7 @@ export function SettingsForm({
                       Enable SMTP
                     </span>
                     <p className="text-xs text-espresso-500 mt-0.5">
-                      Aktifkan untuk mengirim seluruh email notifikasi toko menggunakan server SMTP kustom Anda. Jika dinonaktifkan (default), sistem akan menggunakan fallback Resend API.
+                      {isEn ? "Enable to send all store notification emails using your custom SMTP server. If disabled (default), the system falls back to Resend API." : "Aktifkan untuk mengirim seluruh email notifikasi toko menggunakan server SMTP kustom Anda. Jika dinonaktifkan (default), sistem akan menggunakan fallback Resend API."}
                     </p>
                   </div>
                 </label>
@@ -1178,7 +1182,7 @@ export function SettingsForm({
                       name="smtpHost"
                       value={smtpHost}
                       onChange={(e) => setSmtpHost(e.target.value)}
-                      placeholder="Contoh: smtp.gmail.com atau mail.domainanda.com"
+                      placeholder={isEn ? "E.g.: smtp.gmail.com or mail.yourdomain.com" : "Contoh: smtp.gmail.com atau mail.domainanda.com"}
                       required={smtpEnabled}
                     />
                   </Field>
@@ -1233,7 +1237,7 @@ export function SettingsForm({
                           name="smtpUsername"
                           value={smtpUsername}
                           onChange={(e) => setSmtpUsername(e.target.value)}
-                          placeholder="admin@domainanda.com atau akun@gmail.com"
+                          placeholder={isEn ? "admin@yourdomain.com or account@gmail.com" : "admin@domainanda.com atau akun@gmail.com"}
                           required={smtpEnabled && smtpAuthRequired}
                         />
                       </Field>
@@ -1248,7 +1252,7 @@ export function SettingsForm({
                             type={showSmtpPassword ? "text" : "password"}
                             value={smtpPassword}
                             onChange={(e) => setSmtpPassword(e.target.value)}
-                            placeholder="Password atau App Password"
+                            placeholder={isEn ? "Password or App Password" : "Password atau App Password"}
                             required={smtpEnabled && smtpAuthRequired}
                             className="pr-10"
                           />
@@ -1266,7 +1270,11 @@ export function SettingsForm({
                           </button>
                         </div>
                         <p className="mt-1 text-[11px] text-espresso-400">
-                          Gunakan <strong>App Password</strong> jika menggunakan akun Google Workspace / Gmail.
+                          {isEn ? (
+                            <>Use <strong>App Password</strong> if using Google Workspace / Gmail accounts.</>
+                          ) : (
+                            <>Gunakan <strong>App Password</strong> jika menggunakan akun Google Workspace / Gmail.</>
+                          )}
                         </p>
                       </div>
                     </div>
@@ -1280,7 +1288,7 @@ export function SettingsForm({
                       name="smtpFromEmail"
                       value={smtpFromEmail}
                       onChange={(e) => setSmtpFromEmail(e.target.value)}
-                      placeholder="Contoh: halo@wazzopi.com"
+                      placeholder={isEn ? "E.g.: hello@wazzopi.com" : "Contoh: halo@wazzopi.com"}
                       required={smtpEnabled}
                     />
                   </Field>
@@ -1313,7 +1321,7 @@ export function SettingsForm({
                 </h3>
               </div>
               <p className="text-xs text-espresso-500 leading-relaxed">
-                Uji apakah koneksi server SMTP dan kredensial autentikasi Anda sudah benar dengan mengirimkan satu email uji coba ke alamat Anda.
+                {isEn ? "Test whether your SMTP server connection and authentication credentials are correct by sending a test email to your address." : "Uji apakah koneksi server SMTP dan kredensial autentikasi Anda sudah benar dengan mengirimkan satu email uji coba ke alamat Anda."}
               </p>
 
               <div className="flex flex-col sm:flex-row items-center gap-3">
@@ -1322,7 +1330,7 @@ export function SettingsForm({
                     type="email"
                     value={testEmailTarget}
                     onChange={(e) => setTestEmailTarget(e.target.value)}
-                    placeholder="Masukkan alamat email penerima uji coba (misal: nama@gmail.com)"
+                    placeholder={isEn ? "Enter recipient test email (e.g.: name@gmail.com)" : "Masukkan alamat email penerima uji coba (misal: nama@gmail.com)"}
                     className="h-10 text-xs"
                   />
                 </div>
@@ -1336,12 +1344,12 @@ export function SettingsForm({
                   {testingSmtp ? (
                     <>
                       <Loader2 className="h-3.5 w-3.5 animate-spin text-caramel-600 mr-1.5" />
-                      <span>Sedang Menguji Koneksi...</span>
+                      <span>{isEn ? "Testing Connection..." : "Sedang Menguji Koneksi..."}</span>
                     </>
                   ) : (
                     <>
                       <Send className="h-3.5 w-3.5 text-caramel-600 mr-1.5" />
-                      <span>Kirim Email Tes & Verifikasi Koneksi</span>
+                      <span>{isEn ? "Send Test Email & Verify Connection" : "Kirim Email Tes & Verifikasi Koneksi"}</span>
                     </>
                   )}
                 </Button>
@@ -1362,7 +1370,7 @@ export function SettingsForm({
                   )}
                   <div>
                     <strong className="block font-semibold">
-                      {testSmtpResult.success ? "Verifikasi Berhasil:" : "Verifikasi Gagal:"}
+                      {testSmtpResult.success ? (isEn ? "Verification Succeeded:" : "Verifikasi Berhasil:") : (isEn ? "Verification Failed:" : "Verifikasi Gagal:")}
                     </strong>
                     <span className="break-all">{testSmtpResult.message}</span>
                   </div>
@@ -1383,26 +1391,26 @@ export function SettingsForm({
 
             <form action={otherAction} className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Meta Title SEO">
+                <Field label={isEn ? "SEO Meta Title" : "Meta Title SEO"}>
                   <Input name="metaTitle" defaultValue={initialSettings.other.metaTitle} />
                 </Field>
-                <Field label="Prefix Nomor Pesanan">
+                <Field label={isEn ? "Order Number Prefix" : "Prefix Nomor Pesanan"}>
                   <Input name="orderPrefix" defaultValue={initialSettings.other.orderPrefix} placeholder="WZ" />
                 </Field>
-                <Field label="Meta Description SEO" className="sm:col-span-2">
+                <Field label={isEn ? "SEO Meta Description" : "Meta Description SEO"} className="sm:col-span-2">
                   <Textarea name="metaDescription" defaultValue={initialSettings.other.metaDescription} rows={2} />
                 </Field>
-                <Field label="URL Akun Instagram">
+                <Field label={isEn ? "Instagram Profile URL" : "URL Akun Instagram"}>
                   <Input name="instagram" defaultValue={initialSettings.other.instagram} />
                 </Field>
-                <Field label="Nomor WhatsApp CS (WA Phone)" hint="Nomor WhatsApp aktif untuk tombol 'Chat dengan WA'">
+                <Field label={isEn ? "CS WhatsApp Number (WA Phone)" : "Nomor WhatsApp CS (WA Phone)"} hint={isEn ? "Active WhatsApp number for 'Chat on WhatsApp' button" : "Nomor WhatsApp aktif untuk tombol 'Chat dengan WA'"}>
                   <Input
                     name="whatsapp"
                     defaultValue={initialSettings.other.whatsapp || initialSettings.general.whatsapp || "6282353538212"}
                     placeholder="6282353538212"
                   />
                 </Field>
-                <Field label="Persentase Pajak / PPN (%)">
+                <Field label={isEn ? "Tax / VAT Percentage (%)" : "Persentase Pajak / PPN (%)"}>
                   <Input
                     name="taxPercent"
                     type="number"
@@ -1412,7 +1420,7 @@ export function SettingsForm({
                     placeholder="0"
                   />
                 </Field>
-                <Field label="Batas Notifikasi Stok Menipis (Threshold)">
+                <Field label={isEn ? "Low Stock Alert Threshold" : "Batas Notifikasi Stok Menipis (Threshold)"}>
                   <Input
                     name="lowStockThreshold"
                     type="number"

@@ -231,16 +231,16 @@ export function ProductsTable({
         {currentPage <= 1 ? (
           <span
             className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-latte bg-white text-espresso-300 opacity-50 cursor-not-allowed"
-            title="Halaman Sebelumnya"
+            title={isEn ? "Previous Page" : "Halaman Sebelumnya"}
           >
             <ChevronLeft className="h-4 w-4" />
           </span>
         ) : (
           <Link
             href={getPageUrl(currentPage - 1)}
-            data-loading-message={`Memuat produk halaman ${currentPage - 1}...`}
+            data-loading-message={isEn ? `Loading products page ${currentPage - 1}...` : `Memuat produk halaman ${currentPage - 1}...`}
             className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-latte bg-white text-espresso-600 hover:bg-latte/50 transition"
-            title="Halaman Sebelumnya"
+            title={isEn ? "Previous Page" : "Halaman Sebelumnya"}
           >
             <ChevronLeft className="h-4 w-4" />
           </Link>
@@ -273,7 +273,7 @@ export function ProductsTable({
             <Link
               key={idx}
               href={getPageUrl(p)}
-              data-loading-message={`Memuat produk halaman ${p}...`}
+              data-loading-message={isEn ? `Loading products page ${p}...` : `Memuat produk halaman ${p}...`}
               className="inline-flex h-8 min-w-8 items-center justify-center rounded-lg border border-latte bg-white px-2 text-xs font-semibold text-espresso-700 hover:bg-latte/50 transition"
             >
               {p}
