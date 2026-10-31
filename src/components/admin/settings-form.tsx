@@ -12,6 +12,7 @@ import {
   Eye,
   EyeOff,
   Landmark,
+  LayoutDashboard,
   Loader2,
   Mail,
   MapPin,
@@ -52,6 +53,21 @@ export function SettingsForm({
   const { locale } = useI18n();
   const isEn = locale === "en";
   const [generalSubTab, setGeneralSubTab] = useState<"identity" | "contact" | "address">("identity");
+  const [paymentSubTab, setPaymentSubTab] = useState<
+    "overview" | "bank" | "cod" | "midtrans" | "stripe" | "paypal"
+  >("overview");
+
+  // Controlled payment enabled states for visual feedback & sub-tab badges
+  const [bankEnabled, setBankEnabled] = useState(initialSettings.payment.bankTransfer.enabled);
+  const [codEnabled, setCodEnabled] = useState(initialSettings.payment.cod.enabled);
+  const [midtransEnabled, setMidtransEnabled] = useState(initialSettings.payment.midtrans.enabled);
+  const [stripeEnabled, setStripeEnabled] = useState(initialSettings.payment.stripe?.enabled ?? false);
+  const [paypalEnabled, setPaypalEnabled] = useState(initialSettings.payment.paypal?.enabled ?? false);
+
+  // Secret keys visibility toggles
+  const [showMidtransSecret, setShowMidtransSecret] = useState(false);
+  const [showStripeSecret, setShowStripeSecret] = useState(false);
+  const [showPaypalSecret, setShowPaypalSecret] = useState(false);
   const [activeTab, setActiveTab] = useState<
     "general" | "currency" | "payment" | "shipping" | "smtp" | "other"
   >("general");
@@ -706,99 +722,564 @@ export function SettingsForm({
         {/* TAB 3: PAYMENT */}
         {activeTab === "payment" && (
           <div className="rounded-xl border border-latte bg-white p-6 shadow-xs space-y-6">
-            <h2 className="text-base font-bold text-espresso-900 border-b border-latte pb-3">
-              {isEn ? "Payment Methods" : "Metode Pembayaran"}
-            </h2>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-latte pb-4">
+              <div>
+                <h2 className="text-base font-bold text-espresso-900">
+                  {isEn ? "Payment Methods Configuration" : "Pengaturan Metode Pembayaran"}
+                </h2>
+                <p className="text-xs text-espresso-500 mt-0.5">
+                  {isEn
+                    ? "Manage your payment gateways, bank transfers, and cash on delivery cleanly organized per method."
+                    : "Kelola gateway pembayaran, transfer bank, dan bayar di tempat secara terorganisir dan tidak menumpuk."}
+                </p>
+              </div>
+
+              {/* Sub-tab pills */}
+              <div className="flex items-center gap-1 overflow-x-auto rounded-xl border border-latte bg-cream/40 p-1 scrollbar-none">
+                {[
+                  {
+                    id: "overview",
+                    label: isEn ? "Overview" : "Semua Metode",
+                    icon: LayoutDashboard,
+                  },
+                  {
+                    id: "bank",
+                    label: isEn ? "Bank Transfer" : "Transfer Bank",
+                    icon: Landmark,
+                    enabled: bankEnabled,
+                  },
+                  {
+                    id: "cod",
+                    label: "COD",
+                    icon: Banknote,
+                    enabled: codEnabled,
+                  },
+                  {
+                    id: "midtrans",
+                    label: "Midtrans (Snap)",
+                    icon: QrCode,
+                    enabled: midtransEnabled,
+                  },
+                  {
+                    id: "stripe",
+                    label: "Stripe",
+                    icon: CreditCard,
+                    enabled: stripeEnabled,
+                  },
+                  {
+                    id: "paypal",
+                    label: "PayPal",
+                    icon: Wallet,
+                    enabled: paypalEnabled,
+                  },
+                ].map((s) => {
+                  const SIcon = s.icon;
+                  const active = paymentSubTab === s.id;
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => setPaymentSubTab(s.id as typeof paymentSubTab)}
+                      className={cn(
+                        "flex items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-semibold transition cursor-pointer",
+                        active
+                          ? "bg-espresso-900 text-white shadow-xs"
+                          : "text-espresso-700 hover:bg-latte/60"
+                      )}
+                    >
+                      <SIcon className={cn("h-3.5 w-3.5", active ? "text-caramel-300" : "text-caramel-600")} />
+                      <span>{s.label}</span>
+                      {s.enabled !== undefined && (
+                        <span
+                          className={cn(
+                            "h-2 w-2 rounded-full",
+                            s.enabled
+                              ? "bg-emerald-500 ring-2 ring-emerald-200"
+                              : "bg-espresso-300"
+                          )}
+                          title={s.enabled ? (isEn ? "Active" : "Aktif") : (isEn ? "Inactive" : "Nonaktif")}
+                        />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {paymentState?.error && <Alert tone="error">{paymentState.error}</Alert>}
             {paymentState?.success && <Alert tone="success">{paymentState.success}</Alert>}
 
             <form action={paymentAction} className="space-y-6">
-              {/* Transfer Bank */}
-              <div className="rounded-lg border border-latte p-4 space-y-4">
-                <div className="flex items-center justify-between">
+              {/* SUB-SECTION 0: OVERVIEW (RINGKASAN METODE PEMBAYARAN) */}
+              <div
+                className={cn(
+                  "space-y-4",
+                  paymentSubTab === "overview" ? "block animate-in fade-in-50 duration-200" : "hidden"
+                )}
+              >
+                <div className="flex items-center justify-between pb-1">
                   <div>
-                    <h3 className="font-semibold text-espresso-900">{isEn ? "Manual Bank Transfer" : "Transfer Bank Manual"}</h3>
-                    <p className="text-xs text-espresso-400">{isEn ? "Direct payment to store bank accounts" : "Pembayaran langsung ke nomor rekening toko"}</p>
+                    <h3 className="text-sm font-bold text-espresso-900">
+                      {isEn ? "Payment Methods Directory" : "Daftar Metode Pembayaran"}
+                    </h3>
+                    <p className="text-[11px] text-espresso-500">
+                      {isEn
+                        ? "Activate and click 'Configure' to manage individual account numbers, API credentials, or checkout channels."
+                        : "Aktifkan dan klik 'Konfigurasi' untuk mengelola detail rekening, kunci API, atau saluran checkout."}
+                    </p>
                   </div>
-                  <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-espresso-800">
+                  <span className="rounded-full bg-caramel-50 px-2.5 py-0.5 text-xs font-semibold text-caramel-800 border border-caramel-200">
+                    {[bankEnabled, codEnabled, midtransEnabled, stripeEnabled, paypalEnabled].filter(Boolean).length} / 5 {isEn ? "Active" : "Aktif"}
+                  </span>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {/* Card 1: Bank Transfer */}
+                  <div
+                    className={cn(
+                      "flex flex-col justify-between rounded-xl border p-4 transition shadow-2xs",
+                      bankEnabled
+                        ? "border-caramel-300 bg-caramel-50/20 ring-1 ring-caramel-200"
+                        : "border-latte bg-white"
+                    )}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-caramel-100 text-caramel-800">
+                            <Landmark className="h-4 w-4" />
+                          </div>
+                          <span className="font-bold text-xs text-espresso-900">
+                            {isEn ? "Bank Transfer" : "Transfer Bank"}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setBankEnabled(!bankEnabled)}
+                          className={cn(
+                            "rounded-full px-2 py-0.5 text-[10px] font-bold border transition cursor-pointer",
+                            bankEnabled
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                              : "bg-espresso-100 text-espresso-500 border-espresso-200"
+                          )}
+                        >
+                          {bankEnabled ? (isEn ? "Active" : "Aktif") : (isEn ? "Inactive" : "Nonaktif")}
+                        </button>
+                      </div>
+                      <p className="text-[11px] text-espresso-500 mt-2 line-clamp-2">
+                        {isEn
+                          ? "Manual transfer to store bank accounts with customer transfer proof verification."
+                          : "Pembayaran transfer manual ke rekening toko dengan instruksi verifikasi bukti transfer."}
+                      </p>
+                      <div className="mt-3 flex items-center gap-1.5 text-[11px] text-espresso-600">
+                        <span className="font-semibold">{bankAccounts.length}</span>
+                        <span>{isEn ? "registered account(s)" : "rekening terdaftar"}</span>
+                      </div>
+                    </div>
+                    <div className="mt-4 pt-3 border-t border-latte/70 flex items-center justify-between">
+                      <span className="text-[10px] text-espresso-400 font-mono">BCA, Mandiri, BRI...</span>
+                      <button
+                        type="button"
+                        onClick={() => setPaymentSubTab("bank")}
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-caramel-700 hover:text-caramel-900 cursor-pointer"
+                      >
+                        <span>{isEn ? "Configure" : "Kelola Rekening"}</span>
+                        <ArrowRight className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Card 2: COD */}
+                  <div
+                    className={cn(
+                      "flex flex-col justify-between rounded-xl border p-4 transition shadow-2xs",
+                      codEnabled
+                        ? "border-caramel-300 bg-caramel-50/20 ring-1 ring-caramel-200"
+                        : "border-latte bg-white"
+                    )}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-caramel-100 text-caramel-800">
+                            <Banknote className="h-4 w-4" />
+                          </div>
+                          <span className="font-bold text-xs text-espresso-900">
+                            {isEn ? "Cash on Delivery" : "Bayar di Tempat (COD)"}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setCodEnabled(!codEnabled)}
+                          className={cn(
+                            "rounded-full px-2 py-0.5 text-[10px] font-bold border transition cursor-pointer",
+                            codEnabled
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                              : "bg-espresso-100 text-espresso-500 border-espresso-200"
+                          )}
+                        >
+                          {codEnabled ? (isEn ? "Active" : "Aktif") : (isEn ? "Inactive" : "Nonaktif")}
+                        </button>
+                      </div>
+                      <p className="text-[11px] text-espresso-500 mt-2 line-clamp-2">
+                        {isEn
+                          ? "Customers pay cash directly to the courier upon product delivery."
+                          : "Pelanggan membayar tunai langsung kepada kurir saat pesanan tiba di alamat."}
+                      </p>
+                      <div className="mt-3 flex items-center gap-1.5 text-[11px] text-espresso-600">
+                        <span>{isEn ? "Handling Fee:" : "Biaya Penanganan:"}</span>
+                        <span className="font-semibold text-espresso-900">
+                          {initialSettings.payment.cod.fee ? `Rp ${initialSettings.payment.cod.fee.toLocaleString("id-ID")}` : (isEn ? "Free" : "Gratis")}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mt-4 pt-3 border-t border-latte/70 flex items-center justify-between">
+                      <span className="text-[10px] text-espresso-400 font-mono">Cash / Tunai</span>
+                      <button
+                        type="button"
+                        onClick={() => setPaymentSubTab("cod")}
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-caramel-700 hover:text-caramel-900 cursor-pointer"
+                      >
+                        <span>{isEn ? "Configure" : "Atur Biaya"}</span>
+                        <ArrowRight className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Card 3: Midtrans */}
+                  <div
+                    className={cn(
+                      "flex flex-col justify-between rounded-xl border p-4 transition shadow-2xs",
+                      midtransEnabled
+                        ? "border-caramel-300 bg-caramel-50/20 ring-1 ring-caramel-200"
+                        : "border-latte bg-white"
+                    )}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-caramel-100 text-caramel-800">
+                            <QrCode className="h-4 w-4" />
+                          </div>
+                          <span className="font-bold text-xs text-espresso-900">
+                            Midtrans (Snap)
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setMidtransEnabled(!midtransEnabled)}
+                          className={cn(
+                            "rounded-full px-2 py-0.5 text-[10px] font-bold border transition cursor-pointer",
+                            midtransEnabled
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                              : "bg-espresso-100 text-espresso-500 border-espresso-200"
+                          )}
+                        >
+                          {midtransEnabled ? (isEn ? "Active" : "Aktif") : (isEn ? "Inactive" : "Nonaktif")}
+                        </button>
+                      </div>
+                      <p className="text-[11px] text-espresso-500 mt-2 line-clamp-2">
+                        {isEn
+                          ? "Accepts QRIS (GoPay/ShopeePay), Virtual Accounts, Credit Cards, & Retail outlets."
+                          : "Otomatisasi pembayaran QRIS, Virtual Account bank, dan e-wallet secara instan."}
+                      </p>
+                      <div className="mt-3 flex items-center justify-between text-[11px] text-espresso-600">
+                        <span>{selectedChannels.length} {isEn ? "channels active" : "channel aktif"}</span>
+                        <span className="rounded bg-cream px-1.5 py-0.5 text-[10px] font-mono text-espresso-700">
+                          {initialSettings.payment.midtrans.mode === "production" ? "Production" : "Sandbox"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mt-4 pt-3 border-t border-latte/70 flex items-center justify-between">
+                      <span className="text-[10px] text-espresso-400 font-mono">QRIS, VA, E-Wallet</span>
+                      <button
+                        type="button"
+                        onClick={() => setPaymentSubTab("midtrans")}
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-caramel-700 hover:text-caramel-900 cursor-pointer"
+                      >
+                        <span>{isEn ? "Configure" : "Konfigurasi"}</span>
+                        <ArrowRight className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Card 4: Stripe */}
+                  <div
+                    className={cn(
+                      "flex flex-col justify-between rounded-xl border p-4 transition shadow-2xs",
+                      stripeEnabled
+                        ? "border-caramel-300 bg-caramel-50/20 ring-1 ring-caramel-200"
+                        : "border-latte bg-white"
+                    )}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-caramel-100 text-caramel-800">
+                            <CreditCard className="h-4 w-4" />
+                          </div>
+                          <span className="font-bold text-xs text-espresso-900">
+                            Stripe Gateway
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setStripeEnabled(!stripeEnabled)}
+                          className={cn(
+                            "rounded-full px-2 py-0.5 text-[10px] font-bold border transition cursor-pointer",
+                            stripeEnabled
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                              : "bg-espresso-100 text-espresso-500 border-espresso-200"
+                          )}
+                        >
+                          {stripeEnabled ? (isEn ? "Active" : "Aktif") : (isEn ? "Inactive" : "Nonaktif")}
+                        </button>
+                      </div>
+                      <p className="text-[11px] text-espresso-500 mt-2 line-clamp-2">
+                        {isEn
+                          ? "Global Visa, Mastercard, Amex, Apple Pay, and Google Pay card processing."
+                          : "Menerima kartu kredit internasional (Visa, Mastercard, Amex), Apple Pay & Google Pay."}
+                      </p>
+                      <div className="mt-3 flex items-center justify-between text-[11px] text-espresso-600">
+                        <span>{isEn ? "Global Cards" : "Kartu Global"}</span>
+                        <span className="rounded bg-cream px-1.5 py-0.5 text-[10px] font-mono text-espresso-700">
+                          {initialSettings.payment.stripe?.mode === "live" ? "Live" : "Test"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mt-4 pt-3 border-t border-latte/70 flex items-center justify-between">
+                      <span className="text-[10px] text-espresso-400 font-mono">Visa, MC, Amex</span>
+                      <button
+                        type="button"
+                        onClick={() => setPaymentSubTab("stripe")}
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-caramel-700 hover:text-caramel-900 cursor-pointer"
+                      >
+                        <span>{isEn ? "Configure" : "Konfigurasi"}</span>
+                        <ArrowRight className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Card 5: PayPal */}
+                  <div
+                    className={cn(
+                      "flex flex-col justify-between rounded-xl border p-4 transition shadow-2xs",
+                      paypalEnabled
+                        ? "border-caramel-300 bg-caramel-50/20 ring-1 ring-caramel-200"
+                        : "border-latte bg-white"
+                    )}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-caramel-100 text-caramel-800">
+                            <Wallet className="h-4 w-4" />
+                          </div>
+                          <span className="font-bold text-xs text-espresso-900">
+                            PayPal Gateway
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setPaypalEnabled(!paypalEnabled)}
+                          className={cn(
+                            "rounded-full px-2 py-0.5 text-[10px] font-bold border transition cursor-pointer",
+                            paypalEnabled
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                              : "bg-espresso-100 text-espresso-500 border-espresso-200"
+                          )}
+                        >
+                          {paypalEnabled ? (isEn ? "Active" : "Aktif") : (isEn ? "Inactive" : "Nonaktif")}
+                        </button>
+                      </div>
+                      <p className="text-[11px] text-espresso-500 mt-2 line-clamp-2">
+                        {isEn
+                          ? "Accepts PayPal account balance and international debit/credit cards."
+                          : "Menerima saldo dompet PayPal dan pembayaran kartu debit/kredit internasional."}
+                      </p>
+                      <div className="mt-3 flex items-center justify-between text-[11px] text-espresso-600">
+                        <span>{isEn ? "PayPal Checkout" : "PayPal Checkout"}</span>
+                        <span className="rounded bg-cream px-1.5 py-0.5 text-[10px] font-mono text-espresso-700">
+                          {initialSettings.payment.paypal?.mode === "live" ? "Live" : "Sandbox"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mt-4 pt-3 border-t border-latte/70 flex items-center justify-between">
+                      <span className="text-[10px] text-espresso-400 font-mono">PayPal, Wallet</span>
+                      <button
+                        type="button"
+                        onClick={() => setPaymentSubTab("paypal")}
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-caramel-700 hover:text-caramel-900 cursor-pointer"
+                      >
+                        <span>{isEn ? "Configure" : "Konfigurasi"}</span>
+                        <ArrowRight className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* SUB-SECTION 1: BANK TRANSFER */}
+              <div
+                className={cn(
+                  "space-y-4 rounded-xl border border-latte/80 bg-latte/10 p-5",
+                  paymentSubTab === "bank" ? "block animate-in fade-in-50 duration-200" : "hidden"
+                )}
+              >
+                <div className="flex items-center justify-between pb-3 border-b border-latte/60">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-caramel-100 text-caramel-800">
+                      <Landmark className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-espresso-900">
+                        {isEn ? "Manual Bank Transfer" : "Transfer Bank Manual"}
+                      </h3>
+                      <p className="text-[11px] text-espresso-500">
+                        {isEn ? "Direct payment instructions to your store bank accounts" : "Instruksi pembayaran langsung ke nomor rekening toko"}
+                      </p>
+                    </div>
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-espresso-800 bg-white px-3 py-1.5 rounded-lg border border-latte shadow-2xs">
                     <input
                       type="checkbox"
                       name="bankEnabled"
-                      defaultChecked={initialSettings.payment.bankTransfer.enabled}
+                      checked={bankEnabled}
+                      onChange={(e) => setBankEnabled(e.target.checked)}
                       className="rounded border-espresso-300 text-caramel-600 focus:ring-caramel-500 h-4 w-4"
                     />
-                    {isEn ? "Active" : "Aktif"}
+                    <span>{isEn ? "Enable Bank Transfer" : "Aktifkan Transfer Bank"}</span>
                   </label>
                 </div>
 
                 <input type="hidden" name="accounts" value={JSON.stringify(bankAccounts)} />
 
-                <div className="space-y-3">
+                <div className="space-y-3 pt-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-espresso-800">
+                      {isEn ? "Destination Bank Accounts" : "Daftar Rekening Tujuan"}
+                    </span>
+                    <span className="text-[11px] text-espresso-400">
+                      {bankAccounts.length} {isEn ? "account(s)" : "rekening"}
+                    </span>
+                  </div>
+
                   {bankAccounts.map((b, i) => (
-                    <div key={i} className="flex flex-wrap items-center gap-2 rounded-lg bg-cream/40 p-2.5">
-                      <div className="w-24">
+                    <div key={i} className="flex flex-wrap items-center gap-2.5 rounded-lg border border-latte bg-white p-3 shadow-2xs">
+                      <div className="w-28">
+                        <label className="text-[10px] font-semibold text-espresso-500 block mb-1">
+                          {isEn ? "Bank Name" : "Nama Bank"}
+                        </label>
                         <Input
-                          placeholder="Bank (BCA)"
+                          placeholder="BCA / Mandiri"
                           value={b.bank}
                           onChange={(e) => updateBankField(i, "bank", e.target.value)}
-                          className="h-8 text-xs"
+                          className="h-8 text-xs font-semibold"
                         />
                       </div>
                       <div className="flex-1 min-w-36">
+                        <label className="text-[10px] font-semibold text-espresso-500 block mb-1">
+                          {isEn ? "Account Number" : "Nomor Rekening"}
+                        </label>
                         <Input
-                          placeholder={isEn ? "Account Number" : "No. Rekening"}
+                          placeholder="1234567890"
                           value={b.number}
                           onChange={(e) => updateBankField(i, "number", e.target.value)}
                           className="h-8 text-xs font-mono"
                         />
                       </div>
                       <div className="flex-1 min-w-36">
+                        <label className="text-[10px] font-semibold text-espresso-500 block mb-1">
+                          {isEn ? "Account Holder Name" : "Atas Nama (Pemilik)"}
+                        </label>
                         <Input
-                          placeholder={isEn ? "Account Holder Name" : "Atas Nama"}
+                          placeholder="PT Wazzopi Kopi"
                           value={b.holder}
                           onChange={(e) => updateBankField(i, "holder", e.target.value)}
                           className="h-8 text-xs"
                         />
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => removeBankAccount(i)}
-                        className="rounded p-1 text-rose-500 hover:bg-rose-50"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      <div className="pt-4">
+                        <button
+                          type="button"
+                          onClick={() => removeBankAccount(i)}
+                          className="rounded-lg p-2 text-rose-500 hover:bg-rose-50 transition"
+                          title={isEn ? "Remove account" : "Hapus rekening"}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
                   ))}
 
                   <button
                     type="button"
                     onClick={addBankAccount}
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-caramel-600 hover:underline"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-caramel-300 bg-caramel-50/40 px-3 py-2 text-xs font-semibold text-caramel-700 hover:bg-caramel-100 transition cursor-pointer"
                   >
-                    <Plus className="h-3.5 w-3.5" /> {isEn ? "Add Bank Account" : "Tambah Rekening Bank"}
+                    <Plus className="h-3.5 w-3.5" />
+                    <span>{isEn ? "Add Bank Account" : "Tambah Rekening Baru"}</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between pt-3 border-t border-latte/60">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentSubTab("overview")}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-espresso-600 hover:text-espresso-900 cursor-pointer"
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                    <span>{isEn ? "Back to Overview" : "Kembali ke Ringkasan"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentSubTab("cod")}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-caramel-700 hover:text-caramel-900 cursor-pointer"
+                  >
+                    <span>{isEn ? "Next: Cash on Delivery (COD)" : "Lanjut: Bayar di Tempat (COD)"}</span>
+                    <ArrowRight className="h-3.5 w-3.5" />
                   </button>
                 </div>
               </div>
 
-              {/* Bayar di Tempat (COD) */}
-              <div className="rounded-lg border border-latte p-4 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold text-espresso-900">{isEn ? "Cash on Delivery (COD)" : "Bayar di Tempat (COD)"}</h3>
-                    <p className="text-xs text-espresso-400">{isEn ? "Customer pays cash upon delivery" : "Pelanggan membayar tunai saat kurir tiba"}</p>
+              {/* SUB-SECTION 2: CASH ON DELIVERY (COD) */}
+              <div
+                className={cn(
+                  "space-y-4 rounded-xl border border-latte/80 bg-latte/10 p-5",
+                  paymentSubTab === "cod" ? "block animate-in fade-in-50 duration-200" : "hidden"
+                )}
+              >
+                <div className="flex items-center justify-between pb-3 border-b border-latte/60">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-caramel-100 text-caramel-800">
+                      <Banknote className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-espresso-900">
+                        {isEn ? "Cash on Delivery (COD)" : "Bayar di Tempat (COD)"}
+                      </h3>
+                      <p className="text-[11px] text-espresso-500">
+                        {isEn ? "Customer pays cash upon delivery by the courier" : "Pelanggan membayar tunai saat kurir tiba mengantarkan paket"}
+                      </p>
+                    </div>
                   </div>
-                  <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-espresso-800">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-espresso-800 bg-white px-3 py-1.5 rounded-lg border border-latte shadow-2xs">
                     <input
                       type="checkbox"
                       name="codEnabled"
-                      defaultChecked={initialSettings.payment.cod.enabled}
+                      checked={codEnabled}
+                      onChange={(e) => setCodEnabled(e.target.checked)}
                       className="rounded border-espresso-300 text-caramel-600 focus:ring-caramel-500 h-4 w-4"
                     />
-                    {isEn ? "Active" : "Aktif"}
+                    <span>{isEn ? "Enable COD" : "Aktifkan COD"}</span>
                   </label>
                 </div>
-                <div className="max-w-xs">
-                  <Field label={isEn ? "COD Handling Fee" : "Biaya Penanganan COD (Fee)"}>
+
+                <div className="max-w-md pt-2">
+                  <Field
+                    label={isEn ? "COD Handling Fee (IDR)" : "Biaya Penanganan COD (Rp)"}
+                    hint={isEn ? "Additional fee charged to customer when choosing COD (0 for free)" : "Biaya tambahan yang dikenakan jika memilih COD (isi 0 jika gratis)"}
+                  >
                     <Input
                       name="codFee"
                       type="number"
@@ -807,62 +1288,112 @@ export function SettingsForm({
                     />
                   </Field>
                 </div>
+
+                <div className="flex items-center justify-between pt-3 border-t border-latte/60">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentSubTab("overview")}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-espresso-600 hover:text-espresso-900 cursor-pointer"
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                    <span>{isEn ? "Back to Overview" : "Kembali ke Ringkasan"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentSubTab("midtrans")}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-caramel-700 hover:text-caramel-900 cursor-pointer"
+                  >
+                    <span>{isEn ? "Next: Midtrans Gateway" : "Lanjut: Midtrans Gateway"}</span>
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
 
-              {/* Payment Gateway Midtrans */}
-              <div className="rounded-lg border border-latte p-4 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold text-espresso-900">{isEn ? "Midtrans Payment Gateway (Snap)" : "Payment Gateway Midtrans (Snap)"}</h3>
-                    <p className="text-xs text-espresso-400">
-                      {isEn ? "Accepts QRIS, GoPay, OVO, ShopeePay, Virtual Accounts, & Credit Cards" : "Menerima QRIS, GoPay, OVO, ShopeePay, Virtual Account, & Kartu Kredit"}
-                    </p>
+              {/* SUB-SECTION 3: MIDTRANS PAYMENT GATEWAY */}
+              <div
+                className={cn(
+                  "space-y-5 rounded-xl border border-latte/80 bg-latte/10 p-5",
+                  paymentSubTab === "midtrans" ? "block animate-in fade-in-50 duration-200" : "hidden"
+                )}
+              >
+                <div className="flex items-center justify-between pb-3 border-b border-latte/60">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-caramel-100 text-caramel-800">
+                      <QrCode className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-espresso-900">
+                        {isEn ? "Midtrans Payment Gateway (Snap)" : "Payment Gateway Midtrans (Snap)"}
+                      </h3>
+                      <p className="text-[11px] text-espresso-500">
+                        {isEn
+                          ? "Accepts QRIS, GoPay, OVO, ShopeePay, Virtual Accounts, & Credit Cards"
+                          : "Menerima QRIS, GoPay, OVO, ShopeePay, Virtual Account, & Kartu Kredit"}
+                      </p>
+                    </div>
                   </div>
-                  <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-espresso-800">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-espresso-800 bg-white px-3 py-1.5 rounded-lg border border-latte shadow-2xs">
                     <input
                       type="checkbox"
                       name="midtransEnabled"
-                      defaultChecked={initialSettings.payment.midtrans.enabled}
+                      checked={midtransEnabled}
+                      onChange={(e) => setMidtransEnabled(e.target.checked)}
                       className="rounded border-espresso-300 text-caramel-600 focus:ring-caramel-500 h-4 w-4"
                     />
-                    {isEn ? "Active" : "Aktif"}
+                    <span>{isEn ? "Enable Midtrans" : "Aktifkan Midtrans"}</span>
                   </label>
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Field label="Environment Mode">
-                    <Select name="midtransMode" defaultValue={initialSettings.payment.midtrans.mode}>
-                      <option value="sandbox">{isEn ? "Sandbox (Testing / Development)" : "Sandbox (Testing / Pengembangan)"}</option>
-                      <option value="production">Production (Live)</option>
-                    </Select>
-                  </Field>
-                  <Field label="Merchant ID">
-                    <Input
-                      name="merchantId"
-                      defaultValue={initialSettings.payment.midtrans.merchantId}
-                      placeholder="G123456789"
-                    />
-                  </Field>
-                  <Field label="Client Key">
-                    <Input
-                      name="clientKey"
-                      defaultValue={initialSettings.payment.midtrans.clientKey}
-                      placeholder="SB-Mid-client-..."
-                    />
-                  </Field>
-                  <Field label="Server Key">
-                    <Input
-                      name="serverKey"
-                      type="password"
-                      defaultValue={initialSettings.payment.midtrans.serverKey}
-                      placeholder="SB-Mid-server-..."
-                    />
-                  </Field>
+                {/* API Credentials */}
+                <div className="rounded-xl border border-latte bg-white p-4 space-y-4 shadow-2xs">
+                  <span className="text-xs font-bold uppercase tracking-wider text-espresso-800 block border-b border-latte pb-2">
+                    {isEn ? "API Credentials & Environment" : "Kredensial API & Mode Lingkungan"}
+                  </span>
+                  <div className="grid gap-3.5 sm:grid-cols-2">
+                    <Field label={isEn ? "Environment Mode" : "Mode Lingkungan"}>
+                      <Select name="midtransMode" defaultValue={initialSettings.payment.midtrans.mode}>
+                        <option value="sandbox">{isEn ? "Sandbox (Testing / Development)" : "Sandbox (Testing / Pengembangan)"}</option>
+                        <option value="production">Production (Live)</option>
+                      </Select>
+                    </Field>
+                    <Field label="Merchant ID">
+                      <Input
+                        name="merchantId"
+                        defaultValue={initialSettings.payment.midtrans.merchantId}
+                        placeholder="G123456789"
+                      />
+                    </Field>
+                    <Field label="Client Key">
+                      <Input
+                        name="clientKey"
+                        defaultValue={initialSettings.payment.midtrans.clientKey}
+                        placeholder="SB-Mid-client-..."
+                      />
+                    </Field>
+                    <Field label="Server Key">
+                      <div className="relative">
+                        <Input
+                          name="serverKey"
+                          type={showMidtransSecret ? "text" : "password"}
+                          defaultValue={initialSettings.payment.midtrans.serverKey}
+                          placeholder="SB-Mid-server-..."
+                          className="pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowMidtransSecret(!showMidtransSecret)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-espresso-400 hover:text-espresso-700"
+                        >
+                          {showMidtransSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </Field>
+                  </div>
                 </div>
 
                 {/* Centang Channel Midtrans yang Aktif */}
-                <div className="mt-4 pt-4 border-t border-latte/80 space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="rounded-xl border border-latte bg-white p-4 space-y-4 shadow-2xs">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-latte pb-3">
                     <div>
                       <h4 className="text-xs font-bold uppercase tracking-wider text-caramel-800">
                         {isEn ? "Midtrans Payment Channels Displayed on Checkout" : "Channel Pembayaran Midtrans yang Ditampilkan di Checkout"}
@@ -1032,42 +1563,76 @@ export function SettingsForm({
                     </div>
                   </div>
                 </div>
+
+                <div className="flex items-center justify-between pt-3 border-t border-latte/60">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentSubTab("overview")}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-espresso-600 hover:text-espresso-900 cursor-pointer"
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                    <span>{isEn ? "Back to Overview" : "Kembali ke Ringkasan"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentSubTab("stripe")}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-caramel-700 hover:text-caramel-900 cursor-pointer"
+                  >
+                    <span>{isEn ? "Next: Stripe Gateway" : "Lanjut: Stripe Gateway"}</span>
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
 
-              {/* Payment Gateway Stripe (Global Credit Cards) */}
-              <div className="rounded-lg border border-latte p-4 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold text-espresso-900">{isEn ? "Stripe Payment Gateway" : "Payment Gateway Stripe"}</h3>
-                    <p className="text-xs text-espresso-400">
-                      {isEn ? "Accepts Global Credit Cards (Visa, Mastercard, Amex, Apple Pay, Google Pay)" : "Menerima Kartu Kredit Internasional (Visa, Mastercard, Amex, Apple Pay, Google Pay)"}
-                    </p>
+              {/* SUB-SECTION 4: STRIPE PAYMENT GATEWAY */}
+              <div
+                className={cn(
+                  "space-y-4 rounded-xl border border-latte/80 bg-latte/10 p-5",
+                  paymentSubTab === "stripe" ? "block animate-in fade-in-50 duration-200" : "hidden"
+                )}
+              >
+                <div className="flex items-center justify-between pb-3 border-b border-latte/60">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-caramel-100 text-caramel-800">
+                      <CreditCard className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-espresso-900">
+                        {isEn ? "Stripe Payment Gateway" : "Payment Gateway Stripe"}
+                      </h3>
+                      <p className="text-[11px] text-espresso-500">
+                        {isEn
+                          ? "Accepts Global Credit Cards (Visa, Mastercard, Amex, Apple Pay, Google Pay)"
+                          : "Menerima Kartu Kredit Internasional (Visa, Mastercard, Amex, Apple Pay, Google Pay)"}
+                      </p>
+                    </div>
                   </div>
-                  <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-espresso-800">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-espresso-800 bg-white px-3 py-1.5 rounded-lg border border-latte shadow-2xs">
                     <input
                       type="checkbox"
                       name="stripeEnabled"
-                      defaultChecked={initialSettings.payment.stripe?.enabled ?? false}
+                      checked={stripeEnabled}
+                      onChange={(e) => setStripeEnabled(e.target.checked)}
                       className="rounded border-espresso-300 text-caramel-600 focus:ring-caramel-500 h-4 w-4"
                     />
-                    {isEn ? "Active" : "Aktif"}
+                    <span>{isEn ? "Enable Stripe" : "Aktifkan Stripe"}</span>
                   </label>
                 </div>
 
-                <div className="space-y-3">
+                <div className="rounded-xl border border-latte bg-white p-4 space-y-4 shadow-2xs">
                   <div className="max-w-xs">
                     <Field label={isEn ? "Transaction Mode" : "Mode Transaksi"}>
                       <select
                         name="stripeMode"
                         defaultValue={initialSettings.payment.stripe?.mode || "test"}
-                        className="w-full rounded-lg border border-latte bg-white px-3 py-2 text-sm text-espresso-900 focus:border-caramel-500 focus:outline-none"
+                        className="w-full rounded-lg border border-espresso-200 bg-white px-3 py-2 text-sm text-espresso-900 focus:border-caramel-500 focus:outline-none"
                       >
                         <option value="test">Test Mode (Sandbox)</option>
                         <option value="live">Live Mode (Production)</option>
                       </select>
                     </Field>
                   </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="grid gap-3.5 sm:grid-cols-2">
                     <Field label="Stripe Publishable Key">
                       <Input
                         name="stripePublishableKey"
@@ -1076,51 +1641,95 @@ export function SettingsForm({
                       />
                     </Field>
                     <Field label="Stripe Secret Key">
-                      <Input
-                        name="stripeSecretKey"
-                        type="password"
-                        defaultValue={initialSettings.payment.stripe?.secretKey || ""}
-                        placeholder="sk_test_..."
-                      />
+                      <div className="relative">
+                        <Input
+                          name="stripeSecretKey"
+                          type={showStripeSecret ? "text" : "password"}
+                          defaultValue={initialSettings.payment.stripe?.secretKey || ""}
+                          placeholder="sk_test_..."
+                          className="pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowStripeSecret(!showStripeSecret)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-espresso-400 hover:text-espresso-700"
+                        >
+                          {showStripeSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
                     </Field>
                   </div>
                 </div>
+
+                <div className="flex items-center justify-between pt-3 border-t border-latte/60">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentSubTab("overview")}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-espresso-600 hover:text-espresso-900 cursor-pointer"
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                    <span>{isEn ? "Back to Overview" : "Kembali ke Ringkasan"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentSubTab("paypal")}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-caramel-700 hover:text-caramel-900 cursor-pointer"
+                  >
+                    <span>{isEn ? "Next: PayPal Gateway" : "Lanjut: PayPal Gateway"}</span>
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
 
-              {/* Payment Gateway PayPal */}
-              <div className="rounded-lg border border-latte p-4 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold text-espresso-900">{isEn ? "PayPal Payment Gateway" : "Payment Gateway PayPal"}</h3>
-                    <p className="text-xs text-espresso-400">
-                      {isEn ? "Accepts PayPal balance & global debit/credit cards via PayPal Checkout" : "Menerima saldo PayPal & kartu debit/kredit global via PayPal Checkout"}
-                    </p>
+              {/* SUB-SECTION 5: PAYPAL PAYMENT GATEWAY */}
+              <div
+                className={cn(
+                  "space-y-4 rounded-xl border border-latte/80 bg-latte/10 p-5",
+                  paymentSubTab === "paypal" ? "block animate-in fade-in-50 duration-200" : "hidden"
+                )}
+              >
+                <div className="flex items-center justify-between pb-3 border-b border-latte/60">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-caramel-100 text-caramel-800">
+                      <Wallet className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-espresso-900">
+                        {isEn ? "PayPal Payment Gateway" : "Payment Gateway PayPal"}
+                      </h3>
+                      <p className="text-[11px] text-espresso-500">
+                        {isEn
+                          ? "Accepts PayPal balance & global debit/credit cards via PayPal Checkout"
+                          : "Menerima saldo dompet PayPal & kartu debit/kredit global via PayPal Checkout"}
+                      </p>
+                    </div>
                   </div>
-                  <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-espresso-800">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-espresso-800 bg-white px-3 py-1.5 rounded-lg border border-latte shadow-2xs">
                     <input
                       type="checkbox"
                       name="paypalEnabled"
-                      defaultChecked={initialSettings.payment.paypal?.enabled ?? false}
+                      checked={paypalEnabled}
+                      onChange={(e) => setPaypalEnabled(e.target.checked)}
                       className="rounded border-espresso-300 text-caramel-600 focus:ring-caramel-500 h-4 w-4"
                     />
-                    {isEn ? "Active" : "Aktif"}
+                    <span>{isEn ? "Enable PayPal" : "Aktifkan PayPal"}</span>
                   </label>
                 </div>
 
-                <div className="space-y-3">
+                <div className="rounded-xl border border-latte bg-white p-4 space-y-4 shadow-2xs">
                   <div className="max-w-xs">
                     <Field label={isEn ? "Transaction Mode" : "Mode Transaksi"}>
                       <select
                         name="paypalMode"
                         defaultValue={initialSettings.payment.paypal?.mode || "sandbox"}
-                        className="w-full rounded-lg border border-latte bg-white px-3 py-2 text-sm text-espresso-900 focus:border-caramel-500 focus:outline-none"
+                        className="w-full rounded-lg border border-espresso-200 bg-white px-3 py-2 text-sm text-espresso-900 focus:border-caramel-500 focus:outline-none"
                       >
                         <option value="sandbox">Sandbox (Testing)</option>
                         <option value="live">Live (Production)</option>
                       </select>
                     </Field>
                   </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="grid gap-3.5 sm:grid-cols-2">
                     <Field label="PayPal Client ID">
                       <Input
                         name="paypalClientId"
@@ -1129,18 +1738,49 @@ export function SettingsForm({
                       />
                     </Field>
                     <Field label="PayPal Secret Key">
-                      <Input
-                        name="paypalClientSecret"
-                        type="password"
-                        defaultValue={initialSettings.payment.paypal?.clientSecret || ""}
-                        placeholder={isEn ? "PayPal Secret Key" : "Secret Key PayPal"}
-                      />
+                      <div className="relative">
+                        <Input
+                          name="paypalClientSecret"
+                          type={showPaypalSecret ? "text" : "password"}
+                          defaultValue={initialSettings.payment.paypal?.clientSecret || ""}
+                          placeholder={isEn ? "PayPal Secret Key" : "Secret Key PayPal"}
+                          className="pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPaypalSecret(!showPaypalSecret)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-espresso-400 hover:text-espresso-700"
+                        >
+                          {showPaypalSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
                     </Field>
                   </div>
                 </div>
+
+                <div className="flex items-center justify-between pt-3 border-t border-latte/60">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentSubTab("overview")}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-espresso-600 hover:text-espresso-900 cursor-pointer"
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                    <span>{isEn ? "Back to Overview" : "Kembali ke Ringkasan"}</span>
+                  </button>
+                </div>
               </div>
 
-              <div className="pt-4 border-t border-latte">
+              {/* Action Bar (Always accessible) */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-latte">
+                <div className="text-xs text-espresso-500 font-medium">
+                  {paymentSubTab === "overview" && (isEn ? "Overview: All payment methods at a glance" : "Tinjauan: Semua metode pembayaran")}
+                  {paymentSubTab === "bank" && (isEn ? "Method 1 of 5: Manual Bank Transfer" : "Metode 1 dari 5: Transfer Bank Manual")}
+                  {paymentSubTab === "cod" && (isEn ? "Method 2 of 5: Cash on Delivery (COD)" : "Metode 2 dari 5: Bayar di Tempat (COD)")}
+                  {paymentSubTab === "midtrans" && (isEn ? "Method 3 of 5: Midtrans Gateway (Snap)" : "Metode 3 dari 5: Gateway Midtrans (Snap)")}
+                  {paymentSubTab === "stripe" && (isEn ? "Method 4 of 5: Stripe Gateway (Credit Cards)" : "Metode 4 dari 5: Gateway Stripe (Kartu Global)")}
+                  {paymentSubTab === "paypal" && (isEn ? "Method 5 of 5: PayPal Gateway" : "Metode 5 dari 5: Gateway PayPal")}
+                </div>
+
                 <Button type="submit" disabled={paymentPending} className="justify-center">
                   {paymentPending ? (isEn ? "Saving..." : "Menyimpan...") : (isEn ? "Save Payment Methods" : "Simpan Metode Pembayaran")}
                 </Button>
