@@ -17,6 +17,7 @@ import {
   Globe,
 } from "lucide-react";
 import { confirmOrderReceived, refreshOrderTracking } from "@/actions/orders";
+import { useI18n } from "@/i18n/provider";
 import {
   resolveEffectiveCourier,
   isInternationalCourier,
@@ -56,6 +57,8 @@ export function OrderTrackingModal({
   isCustomerView = true,
 }: OrderTrackingModalProps) {
   const router = useRouter();
+  const { locale } = useI18n();
+  const isEn = locale === "en";
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -66,6 +69,7 @@ export function OrderTrackingModal({
     courierCode,
     courierName,
     shippingMethod,
+    locale,
   });
 
   const sanitizeHistory = (items: TrackingCheckpoint[]) => {
@@ -120,7 +124,10 @@ export function OrderTrackingModal({
   };
 
   const handleConfirmReceived = async () => {
-    if (!window.confirm("Apakah Anda yakin telah menerima paket ini dalam kondisi baik?")) {
+    const confirmPrompt = isEn
+      ? "Are you sure you have received this package in good condition?"
+      : "Apakah Anda yakin telah menerima paket ini dalam kondisi baik?";
+    if (!window.confirm(confirmPrompt)) {
       return;
     }
     setIsConfirming(true);
@@ -144,7 +151,7 @@ export function OrderTrackingModal({
         className="inline-flex items-center gap-1.5 rounded-lg border border-caramel-500/40 bg-caramel-50 px-3 py-1.5 text-xs font-semibold text-caramel-700 hover:bg-caramel-100 transition-colors shadow-2xs"
       >
         <Truck className="h-3.5 w-3.5 text-caramel-600" />
-        Lacak Pengiriman
+        {isEn ? "Track Shipment" : "Lacak Pengiriman"}
       </button>
 
       {isOpen && (
@@ -158,10 +165,10 @@ export function OrderTrackingModal({
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-espresso-900">
-                    Lacak Pengiriman Paket
+                    {isEn ? "Track Package Shipment" : "Lacak Pengiriman Paket"}
                   </h3>
                   <p className="text-xs text-espresso-500 font-mono">
-                    No. Pesanan: #{orderNo}
+                    {isEn ? "Order No:" : "No. Pesanan:"} #{orderNo}
                   </p>
                 </div>
               </div>
@@ -180,12 +187,12 @@ export function OrderTrackingModal({
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] font-semibold uppercase tracking-wider text-espresso-400">
-                      Ekspedisi Kurir
+                      {isEn ? "Shipping Courier" : "Ekspedisi Kurir"}
                     </span>
                     {isInternationalCourier(effective.courierCode) && (
                       <span className="inline-flex items-center gap-1 text-[10px] font-bold text-sky-700 bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-full">
                         <Globe className="h-2.5 w-2.5" />
-                        Internasional
+                        {isEn ? "International" : "Internasional"}
                       </span>
                     )}
                   </div>
@@ -199,18 +206,18 @@ export function OrderTrackingModal({
                     <button
                       type="button"
                       onClick={handleCopyResi}
-                      className="inline-flex items-center gap-1 text-[11px] text-espresso-600 hover:text-caramel-600 transition-colors font-medium"
-                      title="Salin nomor resi"
+                      className="inline-flex items-center gap-1 text-[11px] text-espresso-600 hover:text-caramel-600 transition-colors font-medium cursor-pointer"
+                      title={isEn ? "Copy tracking number" : "Salin nomor resi"}
                     >
                       {copied ? (
                         <>
                           <Check className="h-3 w-3 text-emerald-600" />
-                          <span className="text-emerald-600">Disalin</span>
+                          <span className="text-emerald-600">{isEn ? "Copied" : "Disalin"}</span>
                         </>
                       ) : (
                         <>
                           <Copy className="h-3 w-3" />
-                          <span>Salin</span>
+                          <span>{isEn ? "Copy" : "Salin"}</span>
                         </>
                       )}
                     </button>
@@ -228,12 +235,12 @@ export function OrderTrackingModal({
                     {isDelivered ? (
                       <>
                         <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                        Paket Diterima
+                        {isEn ? "Delivered" : "Paket Diterima"}
                       </>
                     ) : (
                       <>
                         <Clock className="h-3.5 w-3.5 text-caramel-600" />
-                        Dalam Pengiriman
+                        {isEn ? "In Transit" : "Dalam Pengiriman"}
                       </>
                     )}
                   </span>
@@ -245,7 +252,7 @@ export function OrderTrackingModal({
                     className="inline-flex items-center gap-1 text-[11px] text-espresso-500 hover:text-espresso-800 transition-colors disabled:opacity-50"
                   >
                     <RotateCw className={`h-3 w-3 ${isRefreshing ? "animate-spin" : ""}`} />
-                    Perbarui status
+                    {isEn ? "Refresh status" : "Perbarui status"}
                   </button>
                 </div>
               </div>
@@ -255,9 +262,14 @@ export function OrderTrackingModal({
                   <div className="flex items-start gap-2.5">
                     <Info className="h-4 w-4 shrink-0 text-amber-700 mt-0.5" />
                     <div>
-                      <span className="font-bold text-amber-950 block">Catatan Pengiriman:</span>
+                      <span className="font-bold text-amber-950 block">
+                        {isEn ? "Shipping Notice:" : "Catatan Pengiriman:"}
+                      </span>
                       <p className="text-[11px] text-amber-800 leading-relaxed mt-0.5">
-                        {effective.customerNotice || `Paket Anda dikirim menggunakan ${effective.courierName} untuk rute pengantaran yang lebih optimal tanpa biaya tambahan.`}
+                        {effective.customerNotice ||
+                          (isEn
+                            ? `Your package is shipped via ${effective.courierName} for an optimal delivery route at no extra cost.`
+                            : `Paket Anda dikirim menggunakan ${effective.courierName} untuk rute pengantaran yang lebih optimal tanpa biaya tambahan.`)}
                       </p>
                     </div>
                   </div>
@@ -268,12 +280,14 @@ export function OrderTrackingModal({
             {/* Stepper Timeline Ala Shopee (Scrollable) */}
             <div className="flex-1 overflow-y-auto px-6 py-5">
               <h4 className="text-xs font-bold uppercase tracking-wider text-espresso-400 mb-4">
-                Riwayat Perjalanan Paket
+                {isEn ? "Package Journey History" : "Riwayat Perjalanan Paket"}
               </h4>
 
               {currentHistory.length === 0 ? (
                 <div className="py-8 text-center text-espresso-500 text-sm">
-                  Belum ada catatan riwayat perjalanan untuk nomor resi ini.
+                  {isEn
+                    ? "No journey history records available yet for this tracking number."
+                    : "Belum ada catatan riwayat perjalanan untuk nomor resi ini."}
                 </div>
               ) : (
                 <div className="relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-3 before:bottom-3 before:w-0.5 before:bg-espresso-100">
@@ -340,7 +354,7 @@ export function OrderTrackingModal({
             <div className="border-t border-latte px-6 py-4 bg-espresso-50/50 flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs text-espresso-500">
-                  Layanan Pelacakan Otomatis Wazzopi
+                  {isEn ? "Wazzopi Automated Tracking Service" : "Layanan Pelacakan Otomatis Wazzopi"}
                 </span>
                 {effective.trackingPortalUrl && (
                   <>
@@ -351,7 +365,7 @@ export function OrderTrackingModal({
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 text-xs text-caramel-700 hover:text-caramel-800 font-semibold underline decoration-caramel-300 underline-offset-2 transition-colors"
                     >
-                      <span>Web Resmi {effective.courierName.split(" ")[0]}</span>
+                      <span>{isEn ? `Official ${effective.courierName.split(" ")[0]} Web` : `Web Resmi ${effective.courierName.split(" ")[0]}`}</span>
                       <ExternalLink className="h-3 w-3" />
                     </a>
                   </>
@@ -366,7 +380,7 @@ export function OrderTrackingModal({
                       className="inline-flex items-center gap-1 text-xs text-sky-700 hover:text-sky-800 font-semibold underline decoration-sky-300 underline-offset-2 transition-colors"
                     >
                       <Globe className="h-3 w-3" />
-                      <span>17TRACK Global (Multi-bahasa)</span>
+                      <span>{isEn ? "17TRACK Global (Multilingual)" : "17TRACK Global (Multi-bahasa)"}</span>
                       <ExternalLink className="h-3 w-3" />
                     </a>
                   </>
@@ -382,7 +396,9 @@ export function OrderTrackingModal({
                     className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors shadow-xs disabled:opacity-50"
                   >
                     <CheckCircle2 className="h-3.5 w-3.5" />
-                    {isConfirming ? "Memproses..." : "Pesanan Sudah Diterima"}
+                    {isConfirming
+                      ? (isEn ? "Processing..." : "Memproses...")
+                      : (isEn ? "Order Received" : "Pesanan Sudah Diterima")}
                   </button>
                 )}
 
@@ -391,7 +407,7 @@ export function OrderTrackingModal({
                   onClick={() => setIsOpen(false)}
                   className="rounded-lg border border-espresso-200 bg-white px-4 py-2 text-xs font-semibold text-espresso-700 hover:bg-espresso-100 transition-colors"
                 >
-                  Tutup
+                  {isEn ? "Close" : "Tutup"}
                 </button>
               </div>
             </div>

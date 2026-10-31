@@ -144,11 +144,15 @@ export default async function AdminOrderDetailPage({
                   {order.address}, {order.city}, {order.province} {order.postalCode}
                 </p>
               </div>
-              {order.notes && (
-                <div className="sm:col-span-2 rounded-lg bg-latte/40 p-3 text-xs text-espresso-700">
-                  <strong>{isEn ? "Order Notes:" : "Catatan Pesanan:"}</strong> {order.notes}
-                </div>
-              )}
+              {(() => {
+                const cleanNotes = order.notes?.replace(/\[LANG:(en|id)\]/gi, "").trim();
+                if (!cleanNotes) return null;
+                return (
+                  <div className="sm:col-span-2 rounded-lg bg-latte/40 p-3 text-xs text-espresso-700">
+                    <strong>{isEn ? "Order Notes:" : "Catatan Pesanan:"}</strong> {cleanNotes}
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>

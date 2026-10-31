@@ -392,11 +392,13 @@ export function resolveEffectiveCourier(params: {
   courierCode?: string | null;
   courierName?: string | null;
   shippingMethod?: string | null;
+  locale?: "en" | "id";
 }): EffectiveCourierResolution {
   const awb = (params.trackingNumber || "").trim().toUpperCase();
   const originalCode = (params.courierCode || "").trim().toLowerCase();
   const originalName = (params.courierName || "").trim();
   const selectedMethod = (params.shippingMethod || "").trim();
+  const isEn = params.locale === "en";
 
   // 1. Deteksi kurir berdasarkan karakteristik nomor resi
   const detected = awb ? detectCourierByAwb(awb) : null;
@@ -470,8 +472,12 @@ export function resolveEffectiveCourier(params: {
 
     if (!isSameFamily) {
       isCourierSwitched = true;
-      switchReason = `Pengiriman dialihkan dari ${selectedMethod} ke ${effectiveName}`;
-      customerNotice = `Catatan Pengiriman: Paket Anda dikirim menggunakan ${effectiveName} untuk memastikan rute pengantaran ke alamat Anda lebih optimal dan cepat sampai tanpa biaya tambahan.`;
+      switchReason = isEn
+        ? `Shipment routed from ${selectedMethod} to ${effectiveName}`
+        : `Pengiriman dialihkan dari ${selectedMethod} ke ${effectiveName}`;
+      customerNotice = isEn
+        ? `Your package is being shipped via ${effectiveName} to ensure an optimal delivery route to your address and faster arrival at no extra cost.`
+        : `Paket Anda dikirim menggunakan ${effectiveName} untuk memastikan rute pengantaran ke alamat Anda lebih optimal dan cepat sampai tanpa biaya tambahan.`;
     }
   }
 

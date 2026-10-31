@@ -462,6 +462,7 @@ export function MemberAreaView({
                         courierCode: latestOrder.courierCode,
                         courierName: latestOrder.courierName,
                         shippingMethod: latestOrder.shippingMethod,
+                        locale,
                       })
                     : null;
 
@@ -584,7 +585,8 @@ export function MemberAreaView({
 
                           {effective.isCourierSwitched && (
                             <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200/70 rounded-md px-2.5 py-1">
-                              {effective.customerNotice || (isEn ? `Routed via ${effective.courierName} for optimal delivery at no extra cost.` : `Dialihkan ke ${effective.courierName} untuk rute pengantaran yang lebih optimal tanpa biaya tambahan.`)}
+                              <strong className="font-semibold text-amber-950">{isEn ? "Shipping Notice: " : "Catatan Pengiriman: "}</strong>
+                              {effective.customerNotice || (isEn ? `Your package is being shipped via ${effective.courierName} to ensure an optimal delivery route to your address at no extra cost.` : `Paket Anda dikirim menggunakan ${effective.courierName} untuk rute pengantaran yang lebih optimal tanpa biaya tambahan.`)}
                             </p>
                           )}
                         </div>
@@ -876,6 +878,7 @@ export function MemberAreaView({
                           courierCode: order.courierCode,
                           courierName: order.courierName,
                           shippingMethod: order.shippingMethod,
+                          locale,
                         })
                       : null;
 
@@ -1004,7 +1007,8 @@ export function MemberAreaView({
 
                           {effective?.isCourierSwitched && (
                             <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200/70 rounded px-2 py-0.5 mt-1 inline-block">
-                              {effective.customerNotice || (isEn ? `Routed via ${effective.courierName} for optimal delivery.` : `Dialihkan ke ${effective.courierName} untuk rute pengantaran lebih optimal.`)}
+                              <strong className="font-semibold text-amber-950">{isEn ? "Shipping Notice: " : "Catatan Pengiriman: "}</strong>
+                              {effective.customerNotice || (isEn ? `Routed via ${effective.courierName} for an optimal delivery route at no extra cost.` : `Dialihkan ke ${effective.courierName} untuk rute pengantaran lebih optimal.`)}
                             </p>
                           )}
                         </div>

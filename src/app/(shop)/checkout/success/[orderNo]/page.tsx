@@ -372,6 +372,7 @@ export default async function CheckoutSuccessPage({
               courierCode: order.courierCode,
               courierName: order.courierName,
               shippingMethod: order.shippingMethod,
+              locale,
             });
             return (
               <div className="rounded-xl bg-latte/40 p-3.5 border border-latte space-y-2">
@@ -408,7 +409,7 @@ export default async function CheckoutSuccessPage({
                   <div className="rounded-lg bg-amber-50/80 border border-amber-200/80 px-3 py-2 text-xs text-amber-900 leading-relaxed">
                     <p className="font-medium text-amber-950">{isEn ? "Shipping Notice:" : "Catatan Pengiriman:"}</p>
                     <p className="text-[11px] text-amber-800 mt-0.5">
-                      {effective.customerNotice || `Paket Anda dikirim menggunakan ${effective.courierName} untuk rute pengantaran yang lebih optimal tanpa biaya tambahan.`}
+                      {effective.customerNotice || (isEn ? `Your package is being shipped via ${effective.courierName} to ensure an optimal delivery route to your address and faster arrival at no extra cost.` : `Paket Anda dikirim menggunakan ${effective.courierName} untuk rute pengantaran yang lebih optimal tanpa biaya tambahan.`)}
                     </p>
                   </div>
                 )}

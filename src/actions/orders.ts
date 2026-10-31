@@ -20,6 +20,7 @@ import {
 import { generateOrderNo, ORDER_STATUSES, ORDER_STATUS_LABEL } from "@/lib/utils";
 import { calculateDynamicRates } from "@/lib/shipping-calculator";
 import { isMidtransPayment, DEFAULT_MIDTRANS_CHANNELS } from "@/lib/midtrans-channels";
+import { getServerLocale } from "@/i18n/server";
 import type { FormState } from "./auth";
 
 const checkoutSchema = z.object({
@@ -138,7 +139,9 @@ export async function placeOrder(_: FormState, formData: FormData): Promise<Form
   const total = subtotal + shippingCost + codFee + tax;
 
   const orderNo = generateOrderNo(settings.other.orderPrefix || "WZ");
-  const extraNotes = [d.notes, codFee ? `Biaya COD: ${codFee}` : "", tax ? `Pajak: ${tax}` : ""].filter(Boolean).join(" | ");
+  const userLocale = await getServerLocale();
+  const baseNotes = [d.notes, codFee ? `Biaya COD: ${codFee}` : "", tax ? `Pajak: ${tax}` : ""].filter(Boolean).join(" | ");
+  const extraNotes = baseNotes ? `${baseNotes}\n[LANG:${userLocale}]` : `[LANG:${userLocale}]`;
 
   let assignedUserId: string | null = null;
   let newAccountInfo: { email: string; tempPassword: string } | null = null;
@@ -259,6 +262,7 @@ export async function placeOrder(_: FormState, formData: FormData): Promise<Form
         tempPassword: newAccountInfo.tempPassword,
         storeName: settings.general.storeName,
         whatsappContact: getStoreWhatsApp(settings),
+        locale: userLocale,
       });
     } catch (accountEmailErr) {
       console.error("[placeOrder newAccount Email Error]:", accountEmailErr);
@@ -271,6 +275,7 @@ export async function placeOrder(_: FormState, formData: FormData): Promise<Form
         customerPhone: d.customerPhone,
         registrationSource: "Pemesanan Pertama (Checkout Otomatis)",
         storeName: settings.general.storeName,
+        locale: userLocale,
       });
     } catch (adminUserErr) {
       console.error("[placeOrder Admin New User Email Error]:", adminUserErr);
@@ -284,6 +289,7 @@ export async function placeOrder(_: FormState, formData: FormData): Promise<Form
       customerName: d.customerName,
       customerEmail: finalCustomerEmail,
       orderNo,
+      locale: userLocale,
       items: lines.map((l) => ({
         productName: l.productName,
         variantName: l.variantName,
@@ -310,6 +316,7 @@ export async function placeOrder(_: FormState, formData: FormData): Promise<Form
       customerName: d.customerName,
       customerEmail: finalCustomerEmail,
       customerPhone: d.customerPhone,
+      locale: userLocale,
       items: lines.map((l) => ({
         productName: l.productName,
         variantName: l.variantName,
