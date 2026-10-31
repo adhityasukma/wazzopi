@@ -9,8 +9,10 @@ import {
   CheckCircle2,
   Coins,
   CreditCard,
+  ExternalLink,
   Eye,
   EyeOff,
+  Globe,
   Landmark,
   LayoutDashboard,
   Loader2,
@@ -1938,7 +1940,7 @@ export function SettingsForm({
               <div className="rounded-lg border border-latte p-4 bg-latte/20 space-y-3">
                 <div>
                   <h3 className="font-semibold text-espresso-900 text-sm">
-                    {isEn ? "Automatic Waybill Tracking API Integration (Binderbyte)" : "Integrasi API Pelacak Resi Otomatis (Binderbyte)"}
+                    {isEn ? "Domestic Automatic Tracking API (Binderbyte - Indonesia)" : "Integrasi API Pelacak Resi Domestik (Binderbyte - Indonesia)"}
                   </h3>
                   <p className="text-xs text-espresso-500">
                     {isEn ? "Automatically tracks courier checkpoints (JNE, J&T, SiCepat, Anteraja, POS, TIKI) via official servers." : "Otomatis melacak posisi kurir (JNE, J&T, SiCepat, Anteraja, POS, TIKI) ke server ekspedisi resmi."}
@@ -1960,6 +1962,90 @@ export function SettingsForm({
                     )}
                   </p>
                 </Field>
+              </div>
+
+              {/* Pengiriman & Pelacakan Internasional (Luar Negeri) */}
+              <div className="rounded-xl border border-sky-200 bg-sky-50/40 p-5 space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sky-100 text-sky-700 border border-sky-200">
+                    <Globe className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-sky-950">
+                      {isEn ? "International Shipping & Global Tracking (Outside Indonesia)" : "Pengiriman & Pelacakan Internasional (Luar Negeri)"}
+                    </h3>
+                    <p className="text-xs text-sky-800/90 mt-0.5 leading-relaxed">
+                      {isEn
+                        ? "How do international customers track their shipments outside Indonesia?"
+                        : "Bagaimana pelanggan di luar Indonesia melihat pelacakan pengiriman mereka?"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2 text-xs text-sky-900/90">
+                  <div className="rounded-lg bg-white/80 p-3.5 border border-sky-100 space-y-1">
+                    <span className="font-bold text-sky-950 block">
+                      {isEn ? "1. Direct Carrier Portals" : "1. Tautan Portal Resmi Maskapai"}
+                    </span>
+                    <p className="text-[11px] text-sky-800 leading-relaxed">
+                      {isEn
+                        ? "When you ship using international carriers (DHL, FedEx, UPS, EMS, etc.), customers can click directly to the carrier's official tracking portal from their order page and email notification."
+                        : "Saat admin mengirimkan pesanan via ekspedisi internasional (DHL, FedEx, UPS, EMS, dll.), pelanggan mendapatkan tombol langsung ke portal pelacakan resmi maskapai di halaman pesanan dan email."}
+                    </p>
+                  </div>
+
+                  <div className="rounded-lg bg-white/80 p-3.5 border border-sky-100 space-y-1">
+                    <span className="font-bold text-sky-950 block">
+                      {isEn ? "2. Universal 17TRACK Integration" : "2. Integrasi 17TRACK Global"}
+                    </span>
+                    <p className="text-[11px] text-sky-800 leading-relaxed">
+                      {isEn
+                        ? "Wazzopi automatically links to 17TRACK, supporting 2,200+ global carriers with automatic detection and real-time translation into 30+ languages."
+                        : "Sistem otomatis menyediakan tautan universal 17TRACK (mendukung 2.200+ ekspedisi internasional dalam 30+ bahasa) dengan deteksi kurir otomatis."}
+                    </p>
+                  </div>
+
+                  <div className="rounded-lg bg-white/80 p-3.5 border border-sky-100 space-y-1">
+                    <span className="font-bold text-sky-950 block">
+                      {isEn ? "3. Cross-Border Timeline" : "3. Linimasa Lintas Batas Otomatis"}
+                    </span>
+                    <p className="text-[11px] text-sky-800 leading-relaxed">
+                      {isEn
+                        ? "The customer order modal automatically shows cross-border stages: export packaging, airport air cargo facility, export customs clearance, and destination country inbound delivery."
+                        : "Modal pelacakan pelanggan otomatis menampilkan tahapan ekspor: pengemasan ekspor, hub kargo bandara, pemeriksaan bea cukai, hingga penerbangan ke negara tujuan."}
+                    </p>
+                  </div>
+
+                  <div className="rounded-lg bg-white/80 p-3.5 border border-sky-100 space-y-1">
+                    <span className="font-bold text-sky-950 block">
+                      {isEn ? "4. Supported International Carriers" : "4. Ekspedisi yang Didukung"}
+                    </span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {["DHL Express", "FedEx", "UPS", "EMS Pos Ekspor", "Aramex", "Singapore Post", "USPS", "Royal Mail", "17TRACK"].map((name) => (
+                        <span key={name} className="inline-block bg-sky-100/70 text-sky-800 px-1.5 py-0.5 rounded text-[10px] font-semibold border border-sky-200/60">
+                          {name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-sky-200/60 text-xs">
+                  <span className="text-[11px] text-sky-700">
+                    {isEn
+                      ? "Select the international courier when managing orders in Admin > Orders."
+                      : "Pilih kurir internasional saat mengatur resi pesanan di Admin > Pesanan."}
+                  </span>
+                  <a
+                    href="https://t.17track.net/en"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 font-semibold text-sky-800 hover:text-sky-950 underline underline-offset-2"
+                  >
+                    <span>{isEn ? "Preview 17TRACK Global Portal" : "Buka Portal 17TRACK Global"}</span>
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
               </div>
 
               <div className="pt-4 border-t border-latte">

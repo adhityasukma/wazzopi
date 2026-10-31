@@ -7,6 +7,8 @@ import {
   detectCourierByAwb,
   validateAwbForCourier,
   getCourierTrackingUrl,
+  getGlobalTrackingUrl,
+  isInternationalCourier,
   resolveEffectiveCourier,
   type TrackingCheckpoint,
   type TrackingResult,
@@ -19,6 +21,8 @@ export {
   detectCourierByAwb,
   validateAwbForCourier,
   getCourierTrackingUrl,
+  getGlobalTrackingUrl,
+  isInternationalCourier,
   resolveEffectiveCourier,
   type TrackingCheckpoint,
   type TrackingResult,
@@ -262,79 +266,152 @@ export async function trackShipment(
     return new Date(clampedTime);
   };
 
+  const isIntl = isInternationalCourier(courier);
   const rawCheckpoints: TrackingCheckpoint[] = [];
 
-  // Milestone 1: Pesanan Dibuat
-  rawCheckpoints.push({
-    date: formatDateStr(created),
-    desc: "Pesanan telah berhasil dibuat dan terkonfirmasi di sistem toko.",
-    location: originCity,
-    status: "PENDING",
-  });
-
-  // Milestone 2: Pengemasan oleh Penjual
-  const tPackaging = t0 + Math.min(25 * 60 * 1000, Math.max(5 * 60 * 1000, (tShipped - t0) * 0.5));
-  rawCheckpoints.push({
-    date: formatDateStr(clampDate(tPackaging)),
-    desc: `Pesanan telah selesai disiapkan dan dikemas rapi oleh penjual Wazzopi ${originCity}.`,
-    location: originCity,
-    status: "PROCESSING",
-  });
-
-  // Milestone 3: Penjual Mengatur Pengiriman & Menerbitkan Nomor Resi
-  rawCheckpoints.push({
-    date: formatDateStr(clampDate(tShipped)),
-    desc: `Penjual telah mengatur pengiriman dengan ${courierName}. Nomor resi terbit: ${awb}. Menunggu penyerahan paket ke kurir.`,
-    location: originCity,
-    status: "ON_PROCESS",
-  });
-
-  // Milestone 4: Paket Diserahkan ke Drop Point / Agen Kurir
-  // Hanya muncul jika sudah berlalu minimal 2 jam sejak resi diterbitkan ATAU pesanan sudah COMPLETED
-  if (shippedElapsed >= 2 * 3600 * 1000 || isCompleted) {
-    const tDropPoint = tShipped + Math.min(1.5 * 3600 * 1000, shippedElapsed * 0.4);
+  if (isIntl) {
+    // Kronologi Pengiriman Internasional (Cross-Border / Export)
+    // Milestone 1: Pesanan Dibuat
     rawCheckpoints.push({
-      date: formatDateStr(clampDate(tDropPoint)),
-      desc: `Paket telah diserahterimakan dan diterima oleh kurir ${courierName} di Agen/Drop Point ${originCity}.`,
+      date: formatDateStr(created),
+      desc: "Pesanan internasional telah terkonfirmasi di sistem toko Wazzopi.",
+      location: originCity,
+      status: "PENDING",
+    });
+
+    // Milestone 2: Pengemasan & Kelengkapan Dokumen Ekspor (Invoice, CN22/CN23)
+    const tPackaging = t0 + Math.min(25 * 60 * 1000, Math.max(5 * 60 * 1000, (tShipped - t0) * 0.5));
+    rawCheckpoints.push({
+      date: formatDateStr(clampDate(tPackaging)),
+      desc: `Pesanan dikemas rapi dengan dokumen ekspor lengkap untuk pengiriman internasional.`,
+      location: originCity,
+      status: "PROCESSING",
+    });
+
+    // Milestone 3: Terbit AWB Ekspedisi Internasional
+    rawCheckpoints.push({
+      date: formatDateStr(clampDate(tShipped)),
+      desc: `Pengiriman diatur via ${courierName}. Nomor resi internasional: ${awb}. Menunggu serah terima paket.`,
       location: originCity,
       status: "ON_PROCESS",
     });
-  }
 
-  // Milestone 5: Pusat Sortir Logistik Kota Asal
-  // Hanya muncul jika sudah berlalu minimal 6 jam sejak resi diterbitkan ATAU pesanan sudah COMPLETED
-  if (shippedElapsed >= 6 * 3600 * 1000 || isCompleted) {
-    const tSortir = tShipped + Math.min(5 * 3600 * 1000, shippedElapsed * 0.65);
+    // Milestone 4: Tiba di Hub Kargo Udara Internasional (Gateway Bandara)
+    if (shippedElapsed >= 2 * 3600 * 1000 || isCompleted) {
+      const tAirport = tShipped + Math.min(2 * 3600 * 1000, shippedElapsed * 0.35);
+      rawCheckpoints.push({
+        date: formatDateStr(clampDate(tAirport)),
+        desc: `Paket diterima di Fasilitas Kargo Udara Internasional (Gateway Bandara Internasional CGK/Sub Hub).`,
+        location: "CGK Int'l Cargo Hub",
+        status: "ON_PROCESS",
+      });
+    }
+
+    // Milestone 5: Pemeriksaan Bea Cukai Ekspor Selesai & Berangkat Penerbangan Internasional
+    if (shippedElapsed >= 8 * 3600 * 1000 || isCompleted) {
+      const tCustoms = tShipped + Math.min(6 * 3600 * 1000, shippedElapsed * 0.6);
+      rawCheckpoints.push({
+        date: formatDateStr(clampDate(tCustoms)),
+        desc: `Pemeriksaan kepabeanan ekspor (Export Customs Clearance) selesai. Paket diberangkatkan menuju negara tujuan via penerbangan kargo udara internasional.`,
+        location: "International Gateway",
+        status: "ON_PROCESS",
+      });
+    }
+
+    // Milestone 6: Tiba di Bandara Negara Tujuan & Penyerahan ke Kurir Lokal
+    if (shippedElapsed >= 24 * 3600 * 1000 || isCompleted) {
+      const tArrival = tShipped + Math.min(20 * 3600 * 1000, shippedElapsed * 0.85);
+      rawCheckpoints.push({
+        date: formatDateStr(clampDate(tArrival)),
+        desc: `Paket tiba di hub inbound negara tujuan (${destCity}). Bea cukai impor selesai dan diteruskan ke kurir kurir pengantaran lokal.`,
+        location: destCity,
+        status: "ON_PROCESS",
+      });
+    }
+
+    // Milestone 7: Selesai / Diterima
+    if (isCompleted) {
+      rawCheckpoints.push({
+        date: formatDateStr(now),
+        desc: `Paket internasional telah berhasil diterima oleh [${customer}]. Transaksi pengiriman selesai.`,
+        location: destCity,
+        status: "DELIVERED",
+      });
+    }
+  } else {
+    // Kronologi Pengiriman Domestik Indonesia
+    // Milestone 1: Pesanan Dibuat
     rawCheckpoints.push({
-      date: formatDateStr(clampDate(tSortir)),
-      desc: isSameCity
-        ? `Paket telah diproses di Pusat Sortir logistik ${originCity}. Mempersiapkan rute pengantaran ke alamat tujuan.`
-        : `Paket telah diproses di Pusat Sortir logistik ${originCity} dan sedang diberangkatkan menuju kota tujuan (${destCity}).`,
+      date: formatDateStr(created),
+      desc: "Pesanan telah berhasil dibuat dan terkonfirmasi di sistem toko.",
+      location: originCity,
+      status: "PENDING",
+    });
+
+    // Milestone 2: Pengemasan oleh Penjual
+    const tPackaging = t0 + Math.min(25 * 60 * 1000, Math.max(5 * 60 * 1000, (tShipped - t0) * 0.5));
+    rawCheckpoints.push({
+      date: formatDateStr(clampDate(tPackaging)),
+      desc: `Pesanan telah selesai disiapkan dan dikemas rapi oleh penjual Wazzopi ${originCity}.`,
+      location: originCity,
+      status: "PROCESSING",
+    });
+
+    // Milestone 3: Penjual Mengatur Pengiriman & Menerbitkan Nomor Resi
+    rawCheckpoints.push({
+      date: formatDateStr(clampDate(tShipped)),
+      desc: `Penjual telah mengatur pengiriman dengan ${courierName}. Nomor resi terbit: ${awb}. Menunggu penyerahan paket ke kurir.`,
       location: originCity,
       status: "ON_PROCESS",
     });
-  }
 
-  // Milestone 6: Kurir Membawa Paket Menuju Alamat Penerima di Kota Tujuan
-  // Hanya muncul jika sudah berlalu minimal 20 jam sejak resi diterbitkan ATAU pesanan sudah COMPLETED
-  if (shippedElapsed >= 20 * 3600 * 1000 || isCompleted) {
-    const tDelivery = tShipped + Math.min(22 * 3600 * 1000, shippedElapsed * 0.9);
-    rawCheckpoints.push({
-      date: formatDateStr(clampDate(tDelivery)),
-      desc: `Paket telah tiba di fasilitas logistik ${destCity} dan sedang dibawa oleh kurir ${courierName} menuju alamat penerima.`,
-      location: destCity,
-      status: "ON_PROCESS",
-    });
-  }
+    // Milestone 4: Paket Diserahkan ke Drop Point / Agen Kurir
+    // Hanya muncul jika sudah berlalu minimal 2 jam sejak resi diterbitkan ATAU pesanan sudah COMPLETED
+    if (shippedElapsed >= 2 * 3600 * 1000 || isCompleted) {
+      const tDropPoint = tShipped + Math.min(1.5 * 3600 * 1000, shippedElapsed * 0.4);
+      rawCheckpoints.push({
+        date: formatDateStr(clampDate(tDropPoint)),
+        desc: `Paket telah diserahterimakan dan diterima oleh kurir ${courierName} di Agen/Drop Point ${originCity}.`,
+        location: originCity,
+        status: "ON_PROCESS",
+      });
+    }
 
-  // Milestone 7: Paket Diterima (HANYA jika status pesanan COMPLETED)
-  if (isCompleted) {
-    rawCheckpoints.push({
-      date: formatDateStr(now),
-      desc: `Paket telah diterima dengan baik di alamat tujuan oleh [${customer} (Penerima Sendiri)]. Transaksi selesai.`,
-      location: destCity,
-      status: "DELIVERED",
-    });
+    // Milestone 5: Pusat Sortir Logistik Kota Asal
+    // Hanya muncul jika sudah berlalu minimal 6 jam sejak resi diterbitkan ATAU pesanan sudah COMPLETED
+    if (shippedElapsed >= 6 * 3600 * 1000 || isCompleted) {
+      const tSortir = tShipped + Math.min(5 * 3600 * 1000, shippedElapsed * 0.65);
+      rawCheckpoints.push({
+        date: formatDateStr(clampDate(tSortir)),
+        desc: isSameCity
+          ? `Paket telah diproses di Pusat Sortir logistik ${originCity}. Mempersiapkan rute pengantaran ke alamat tujuan.`
+          : `Paket telah diproses di Pusat Sortir logistik ${originCity} dan sedang diberangkatkan menuju kota tujuan (${destCity}).`,
+        location: originCity,
+        status: "ON_PROCESS",
+      });
+    }
+
+    // Milestone 6: Kurir Membawa Paket Menuju Alamat Penerima di Kota Tujuan
+    // Hanya muncul jika sudah berlalu minimal 20 jam sejak resi diterbitkan ATAU pesanan sudah COMPLETED
+    if (shippedElapsed >= 20 * 3600 * 1000 || isCompleted) {
+      const tDelivery = tShipped + Math.min(22 * 3600 * 1000, shippedElapsed * 0.9);
+      rawCheckpoints.push({
+        date: formatDateStr(clampDate(tDelivery)),
+        desc: `Paket telah tiba di fasilitas logistik ${destCity} dan sedang dibawa oleh kurir ${courierName} menuju alamat penerima.`,
+        location: destCity,
+        status: "ON_PROCESS",
+      });
+    }
+
+    // Milestone 7: Paket Diterima (HANYA jika status pesanan COMPLETED)
+    if (isCompleted) {
+      rawCheckpoints.push({
+        date: formatDateStr(now),
+        desc: `Paket telah diterima dengan baik di alamat tujuan oleh [${customer} (Penerima Sendiri)]. Transaksi selesai.`,
+        location: destCity,
+        status: "DELIVERED",
+      });
+    }
   }
 
   // Urutkan dari yang terbaru (paling atas) ke yang terlama (paling bawah)

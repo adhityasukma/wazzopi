@@ -296,9 +296,18 @@ export function generateOrderEmailHtml(params: SendOrderStatusEmailParams): stri
           </tr>
         </table>
         <div style="margin-top: 16px; text-align: center;">
-          <a href="https://wazzopi.vercel.app/account" style="display: inline-block; background-color: #1e40af; color: #ffffff; text-decoration: none; padding: 10px 24px; border-radius: 8px; font-size: 13px; font-weight: 600;">
-            Lacak Perjalanan Paket Anda &rarr;
+          <a href="https://wazzopi.vercel.app/account" style="display: inline-block; background-color: #1e40af; color: #ffffff; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; margin: 4px;">
+            Lacak di Akun Wazzopi &rarr;
           </a>
+          ${
+            trackingNumber
+              ? `<a href="https://t.17track.net/en#nums=${encodeURIComponent(
+                  trackingNumber.trim()
+                )}" target="_blank" rel="noopener noreferrer" style="display: inline-block; background-color: #0284c7; color: #ffffff; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; margin: 4px;">
+            Lacak via 17TRACK Global &rarr;
+          </a>`
+              : ""
+          }
         </div>
       </div>
     `;

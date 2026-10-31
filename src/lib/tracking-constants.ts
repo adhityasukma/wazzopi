@@ -19,19 +19,37 @@ export type TrackingResult = {
   error?: string;
 };
 
-export const SUPPORTED_COURIERS: { code: string; name: string }[] = [
+export const SUPPORTED_COURIERS: { code: string; name: string; isInternational?: boolean }[] = [
+  // Ekspedisi Domestik Indonesia
   { code: "jne", name: "JNE Express / Reguler" },
   { code: "jnt", name: "J&T Express" },
   { code: "sicepat", name: "SiCepat Ekspres" },
   { code: "anteraja", name: "Anteraja" },
-  { code: "pos", name: "POS Indonesia" },
+  { code: "pos", name: "POS Indonesia (Domestik)" },
   { code: "tiki", name: "TIKI" },
   { code: "ninja", name: "Ninja Xpress" },
   { code: "lion", name: "Lion Parcel" },
   { code: "wahana", name: "Wahana Express" },
   { code: "ide", name: "ID Express" },
   { code: "spx", name: "Shopee Xpress" },
+
+  // Ekspedisi Internasional (Luar Negeri)
+  { code: "dhl", name: "DHL Express International", isInternational: true },
+  { code: "fedex", name: "FedEx International", isInternational: true },
+  { code: "ups", name: "UPS International", isInternational: true },
+  { code: "ems", name: "EMS (Pos Ekspor Internasional)", isInternational: true },
+  { code: "aramex", name: "Aramex International", isInternational: true },
+  { code: "singpost", name: "Singapore Post (SingPost)", isInternational: true },
+  { code: "usps", name: "USPS (United States Postal Service)", isInternational: true },
+  { code: "royalmail", name: "Royal Mail International", isInternational: true },
+  { code: "global", name: "Universal International (17TRACK)", isInternational: true },
 ];
+
+export function isInternationalCourier(code: string): boolean {
+  const c = (code || "").toLowerCase();
+  const found = SUPPORTED_COURIERS.find((item) => item.code === c);
+  return Boolean(found?.isInternational);
+}
 
 export function getCourierName(code: string): string {
   const found = SUPPORTED_COURIERS.find((c) => c.code.toLowerCase() === code.toLowerCase());
@@ -39,13 +57,80 @@ export function getCourierName(code: string): string {
 }
 
 /**
- * Mendeteksi kemungkinan kurir berdasarkan karakteristik nomor resi Indonesia.
+ * Universal Global Package Tracking URL (17TRACK - 2,200+ global couriers)
+ */
+export function getGlobalTrackingUrl(awb: string): string {
+  const cleanAwb = (awb || "").trim();
+  return cleanAwb
+    ? `https://t.17track.net/en#nums=${encodeURIComponent(cleanAwb)}`
+    : "https://t.17track.net/en";
+}
+
+/**
+ * Mendeteksi kemungkinan kurir berdasarkan karakteristik nomor resi (Domestik Indonesia & Internasional).
  */
 export function detectCourierByAwb(awbRaw: string): { code: string; name: string; reason: string } | null {
   const awb = awbRaw.trim().toUpperCase();
   if (!awb || awb.length < 4) return null;
 
-  // JNE Express: awalan kode cabang kota (CM, CGK, BDO, BDG, SUB, SOC, JOG, SMG, DPS, MDN, PLM, BPN, UPG, TGR, BKI, BOO, DPK) diikuti angka, atau awalan JNE, atau numerik 15-16 digit
+  // 1. Ekspedisi Internasional:
+  // UPS: Format standar dimulai dengan 1Z diikuti 16 karakter alfanumerik (total 18 karakter)
+  if (/^1Z[A-Z0-9]{16}$/i.test(awb)) {
+    return {
+      code: "ups",
+      name: "UPS International",
+      reason: "Awalan '1Z' 18 karakter alfanumerik adalah format resmi standar global UPS",
+    };
+  }
+
+  // EMS (Universal Postal Union S10 format): diawali huruf E (Express), huruf kedua kode layanan, 9 digit angka, diakhiri 2 huruf kode negara (e.g. EE123456789ID, EA987654321US)
+  if (/^E[A-Z]\d{9}[A-Z]{2}$/i.test(awb)) {
+    const country = awb.slice(-2);
+    return {
+      code: "ems",
+      name: "EMS (Pos Ekspor Internasional)",
+      reason: `Format UPU S10 diawali 'E' dengan akhiran '${country}' adalah standar internasional pos cepat EMS`,
+    };
+  }
+
+  // Singapore Post (SingPost): 2 huruf awalan, 9 digit angka, akhiran 'SG'
+  if (/^[A-Z]{2}\d{9}SG$/i.test(awb)) {
+    return {
+      code: "singpost",
+      name: "Singapore Post (SingPost)",
+      reason: "Resi 13 karakter berakhiran 'SG' adalah format standar Singapore Post",
+    };
+  }
+
+  // Royal Mail International: 2 huruf awalan, 9 digit angka, akhiran 'GB'
+  if (/^[A-Z]{2}\d{9}GB$/i.test(awb)) {
+    return {
+      code: "royalmail",
+      name: "Royal Mail International",
+      reason: "Resi 13 karakter berakhiran 'GB' adalah format standar pos Royal Mail Inggris",
+    };
+  }
+
+  // DHL Express: 10 digit angka atau awalan JJD / JD
+  if (/^JJD\d{16,18}$/i.test(awb) || (/^\d{10}$/.test(awb) && !awb.startsWith("00"))) {
+    return {
+      code: "dhl",
+      name: "DHL Express International",
+      reason: "10 digit numerik atau awalan JJD adalah format resmi DHL Express",
+    };
+  }
+
+  // FedEx Express: 12 digit angka (standar FedEx Express)
+  if (/^\d{12}$/.test(awb) && !awb.startsWith("00")) {
+    return {
+      code: "fedex",
+      name: "FedEx International",
+      reason: "12 digit numerik adalah format standar waybill FedEx International",
+    };
+  }
+
+  // 2. Ekspedisi Domestik Indonesia:
+  // JNE Express: awalan kode cabang kota diikuti angka, atau awalan JNE, atau numerik 15-16 digit
   if (
     /^(CM|CGK|BDO|BDG|SUB|SOC|JOG|SMG|DPS|MDN|PLM|BPN|UPG|TGR|BKI|BOO|DPK|JNE)\d{8,14}$/.test(awb) ||
     (awb.startsWith("CM") && awb.length >= 10) ||
@@ -239,7 +324,49 @@ export function getCourierTrackingUrl(courierCode: string, awb?: string): string
       return `https://idexpress.com`;
     case "spx":
       return `https://spx.co.id`;
+    // Kurir Internasional
+    case "dhl":
+      return cleanAwb
+        ? `https://www.dhl.com/en/express/tracking.html?AWB=${encodeURIComponent(cleanAwb)}`
+        : `https://www.dhl.com/en/express/tracking.html`;
+    case "fedex":
+      return cleanAwb
+        ? `https://www.fedex.com/fedextrack/?trknbr=${encodeURIComponent(cleanAwb)}`
+        : `https://www.fedex.com/fedextrack/`;
+    case "ups":
+      return cleanAwb
+        ? `https://www.ups.com/track?tracknum=${encodeURIComponent(cleanAwb)}`
+        : `https://www.ups.com/track`;
+    case "ems":
+      return cleanAwb
+        ? `https://ems.posindonesia.co.id/`
+        : `https://ems.posindonesia.co.id/`;
+    case "aramex":
+      return cleanAwb
+        ? `https://www.aramex.com/track/results?shipmentNumber=${encodeURIComponent(cleanAwb)}`
+        : `https://www.aramex.com/track`;
+    case "singpost":
+      return cleanAwb
+        ? `https://www.singpost.com/track-items?tracking=${encodeURIComponent(cleanAwb)}`
+        : `https://www.singpost.com/track-items`;
+    case "usps":
+      return cleanAwb
+        ? `https://tools.usps.com/go/TrackConfirmAction?tLabels=${encodeURIComponent(cleanAwb)}`
+        : `https://tools.usps.com`;
+    case "royalmail":
+      return cleanAwb
+        ? `https://www.royalmail.com/track-your-item#/tracking-results/${encodeURIComponent(cleanAwb)}`
+        : `https://www.royalmail.com`;
+    case "global":
+      return cleanAwb
+        ? `https://t.17track.net/en#nums=${encodeURIComponent(cleanAwb)}`
+        : `https://t.17track.net/en`;
     default:
+      if (isInternationalCourier(code)) {
+        return cleanAwb
+          ? `https://t.17track.net/en#nums=${encodeURIComponent(cleanAwb)}`
+          : "https://t.17track.net/en";
+      }
       return cleanAwb
         ? `https://berdu.id/cek-resi?kurir=${encodeURIComponent(code)}&resi=${encodeURIComponent(cleanAwb)}`
         : "https://berdu.id/cek-resi";

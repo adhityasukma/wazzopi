@@ -14,9 +14,14 @@ import {
   X,
   ExternalLink,
   Info,
+  Globe,
 } from "lucide-react";
 import { confirmOrderReceived, refreshOrderTracking } from "@/actions/orders";
-import { resolveEffectiveCourier } from "@/lib/tracking-constants";
+import {
+  resolveEffectiveCourier,
+  isInternationalCourier,
+  getGlobalTrackingUrl,
+} from "@/lib/tracking-constants";
 
 export type TrackingCheckpoint = {
   date: string;
@@ -173,9 +178,17 @@ export function OrderTrackingModal({
             <div className="px-6 py-4 border-b border-latte/60 bg-white">
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-latte/30 p-4 border border-latte">
                 <div>
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-espresso-400">
-                    Ekspedisi Kurir
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-espresso-400">
+                      Ekspedisi Kurir
+                    </span>
+                    {isInternationalCourier(effective.courierCode) && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-sky-700 bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-full">
+                        <Globe className="h-2.5 w-2.5" />
+                        Internasional
+                      </span>
+                    )}
+                  </div>
                   <p className="text-sm font-bold text-espresso-900">
                     {effective.courierName}
                   </p>
@@ -325,7 +338,7 @@ export function OrderTrackingModal({
 
             {/* Footer Actions */}
             <div className="border-t border-latte px-6 py-4 bg-espresso-50/50 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs text-espresso-500">
                   Layanan Pelacakan Otomatis Wazzopi
                 </span>
@@ -338,7 +351,22 @@ export function OrderTrackingModal({
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 text-xs text-caramel-700 hover:text-caramel-800 font-semibold underline decoration-caramel-300 underline-offset-2 transition-colors"
                     >
-                      <span>Cek di Web Resmi {effective.courierName.split(" ")[0]}</span>
+                      <span>Web Resmi {effective.courierName.split(" ")[0]}</span>
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </>
+                )}
+                {isInternationalCourier(effective.courierCode) && (
+                  <>
+                    <span className="hidden sm:inline text-espresso-300">|</span>
+                    <a
+                      href={getGlobalTrackingUrl(trackingNumber)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-sky-700 hover:text-sky-800 font-semibold underline decoration-sky-300 underline-offset-2 transition-colors"
+                    >
+                      <Globe className="h-3 w-3" />
+                      <span>17TRACK Global (Multi-bahasa)</span>
                       <ExternalLink className="h-3 w-3" />
                     </a>
                   </>

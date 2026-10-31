@@ -28,6 +28,14 @@ type OrderTrackingFormProps = {
 function getInitialCourier(currentCode?: string | null, shippingMethod?: string | null): string {
   if (currentCode) return currentCode;
   const sm = (shippingMethod || "").toLowerCase();
+  if (sm.includes("dhl")) return "dhl";
+  if (sm.includes("fedex")) return "fedex";
+  if (sm.includes("ups")) return "ups";
+  if (sm.includes("ems")) return "ems";
+  if (sm.includes("aramex")) return "aramex";
+  if (sm.includes("singpost") || sm.includes("singapore post")) return "singpost";
+  if (sm.includes("usps")) return "usps";
+  if (sm.includes("royal mail") || sm.includes("royalmail")) return "royalmail";
   if (sm.includes("jne")) return "jne";
   if (sm.includes("j&t") || sm.includes("jnt")) return "jnt";
   if (sm.includes("sicepat")) return "sicepat";
@@ -256,13 +264,22 @@ export function OrderTrackingForm({
             name="courierCode"
             value={courierCode}
             onChange={(e) => setCourierCode(e.target.value)}
-            className="w-full rounded-lg border border-espresso-200 bg-white p-2.5 text-sm text-espresso-900 focus:outline-none focus:ring-2 focus:ring-caramel-500"
+            className="w-full rounded-lg border border-espresso-200 bg-white p-2.5 text-sm text-espresso-900 focus:outline-none focus:ring-2 focus:ring-caramel-500 font-medium"
           >
-            {SUPPORTED_COURIERS.map((c) => (
-              <option key={c.code} value={c.code}>
-                {c.name} ({c.code.toUpperCase()})
-              </option>
-            ))}
+            <optgroup label={isEn ? "Domestic Couriers (Indonesia)" : "Kurir Domestik (Indonesia)"}>
+              {SUPPORTED_COURIERS.filter((c) => !c.isInternational).map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.name} ({c.code.toUpperCase()})
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label={isEn ? "International Couriers (Worldwide)" : "Kurir Internasional (Luar Negeri)"}>
+              {SUPPORTED_COURIERS.filter((c) => c.isInternational).map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.name} ({c.code.toUpperCase()})
+                </option>
+              ))}
+            </optgroup>
           </select>
         </div>
 
