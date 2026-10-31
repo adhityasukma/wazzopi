@@ -29,6 +29,14 @@ interface CityProvinceSelectorProps {
   required?: boolean;
   showPostalCode?: boolean;
   postalCodeRequired?: boolean;
+  countryName?: string;
+  cityName?: string;
+  provinceName?: string;
+  postalCodeName?: string;
+  countryLabel?: string;
+  cityLabel?: string;
+  provinceLabel?: string;
+  postalCodeLabel?: string;
   onChange?: (data: { city: string; province: string; postalCode?: string; country?: string }) => void;
   onPostalCodeChange?: (postalCode: string) => void;
   onCountryChange?: (country: string) => void;
@@ -69,6 +77,14 @@ export function CityProvinceSelector({
   required = true,
   showPostalCode = false,
   postalCodeRequired = false,
+  countryName = "country",
+  cityName = "city",
+  provinceName = "province",
+  postalCodeName = "postalCode",
+  countryLabel,
+  cityLabel,
+  provinceLabel,
+  postalCodeLabel,
   onChange,
   onPostalCodeChange,
   onCountryChange,
@@ -398,7 +414,7 @@ export function CityProvinceSelector({
           <label className="mb-1.5 flex items-center justify-between text-xs font-semibold text-espresso-700">
             <span className="flex items-center gap-1.5">
               <Globe className="h-3.5 w-3.5 text-caramel-600" />
-              {isEn ? "Country / Region" : "Negara / Wilayah"} {required && <span className="text-rose-500">*</span>}
+              {countryLabel || (isEn ? "Country / Region" : "Negara / Wilayah")} {required && <span className="text-rose-500">*</span>}
             </span>
             <span className="text-[11px] font-normal text-espresso-400">
               {isEn ? "Type to search country" : "Ketik untuk mencari negara"}
@@ -467,7 +483,7 @@ export function CityProvinceSelector({
           </div>
 
           {/* Hidden input agar submit form tetap membawa nama negara terpilih */}
-          <input type="hidden" name="country" value={selectedCountry} />
+          <input type="hidden" name={countryName} value={selectedCountry} />
 
           {/* Dropdown Hasil Pencarian Negara */}
           {isCountryOpen && (
@@ -536,7 +552,7 @@ export function CityProvinceSelector({
 
       {/* Jika showCountry false, pastikan input hidden country tetap terkirim */}
       {!showCountry && (
-        <input type="hidden" name="country" value={selectedCountry} />
+        <input type="hidden" name={countryName} value={selectedCountry} />
       )}
 
       {/* Grid: Kota, Provinsi, Kode Pos */}
@@ -553,7 +569,7 @@ export function CityProvinceSelector({
         >
           <label className="mb-1.5 flex items-center justify-between text-xs font-semibold text-espresso-700">
             <span>
-              {isEn ? "City / Regency" : "Kota / Kabupaten"} {required && <span className="text-rose-500">*</span>}
+              {cityLabel || (isEn ? "City / Regency" : "Kota / Kabupaten")} {required && <span className="text-rose-500">*</span>}
             </span>
             <span className="text-[11px] font-normal text-espresso-400">
               {isEn ? "Type to search" : "Ketik untuk mencari"}
@@ -628,7 +644,7 @@ export function CityProvinceSelector({
           </div>
 
           {/* Input Tersembunyi untuk Form Submit */}
-          <input type="hidden" name="city" value={selectedCity || cityInput} required={required} />
+          <input type="hidden" name={cityName} value={selectedCity || cityInput} required={required} />
 
           {/* Dropdown Hasil Pencarian */}
           {isOpen && (
@@ -730,7 +746,7 @@ export function CityProvinceSelector({
         <div className={cn(showPostalCode ? "sm:col-span-4" : "sm:col-span-1")}>
           <label className="mb-1.5 flex items-center justify-between text-xs font-semibold text-espresso-700">
             <span>
-              {isEn ? "Province / State" : "Provinsi / Wilayah"} {required && <span className="text-rose-500">*</span>}
+              {provinceLabel || (isEn ? "Province / State" : "Provinsi / Wilayah")} {required && <span className="text-rose-500">*</span>}
             </span>
             <span
               className={cn(
@@ -752,7 +768,7 @@ export function CityProvinceSelector({
           <div className="relative">
             <input
               type="text"
-              name="province"
+              name={provinceName}
               readOnly={isProvinceReadOnly}
               value={selectedProvince}
               onChange={(e) => {
@@ -788,7 +804,7 @@ export function CityProvinceSelector({
           <div className="sm:col-span-3">
             <label className="mb-1.5 flex items-center justify-between text-xs font-semibold text-espresso-700">
               <span>
-                {isEn ? "Postal Code" : "Kode Pos"} {postalCodeRequired && <span className="text-rose-500">*</span>}
+                {postalCodeLabel || (isEn ? "Postal Code" : "Kode Pos")} {postalCodeRequired && <span className="text-rose-500">*</span>}
               </span>
               <span className="text-[11px] font-normal text-espresso-400">
                 {isEn ? "Editable" : "Dapat diedit"}
@@ -798,7 +814,7 @@ export function CityProvinceSelector({
             <div className="relative">
               <input
                 type="text"
-                name="postalCode"
+                name={postalCodeName}
                 value={postalCode}
                 onChange={(e) => {
                   const val = e.target.value;

@@ -29,7 +29,13 @@ export async function getSettings(): Promise<AllSettings> {
     }
   }
 
-  // Normalisasi kota asal toko jika kosong
+  // Normalisasi kota asal toko: sinkronkan dengan alamat fisik toko jika tidak memakai gudang khusus
+  if (!result.shipping?.useCustomOrigin && result.general?.city) {
+    result.shipping.originCity = result.general.city;
+    if (result.general.province) result.shipping.originProvince = result.general.province;
+    if (result.general.country) result.shipping.originCountry = result.general.country;
+    if (result.general.postalCode) result.shipping.originPostalCode = result.general.postalCode;
+  }
   if (!result.shipping?.originCity) {
     result.shipping.originCity = DEFAULT_SETTINGS.shipping.originCity;
   }

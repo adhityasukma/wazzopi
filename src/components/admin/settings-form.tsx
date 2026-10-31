@@ -153,9 +153,14 @@ export function SettingsForm({
     Boolean(initialSettings.shipping.freeShippingEnabled)
   );
 
+  const [useCustomOrigin, setUseCustomOrigin] = useState<boolean>(
+    Boolean(initialSettings.shipping.useCustomOrigin)
+  );
+
   useEffect(() => {
     setFreeShippingEnabled(Boolean(initialSettings.shipping.freeShippingEnabled));
     setShippingMethods(initialSettings.shipping.methods);
+    setUseCustomOrigin(Boolean(initialSettings.shipping.useCustomOrigin));
   }, [initialSettings.shipping]);
 
   function addBankAccount() {
@@ -1815,50 +1820,142 @@ export function SettingsForm({
             <form action={shippingAction} className="space-y-6">
               <input type="hidden" name="methods" value={JSON.stringify(shippingMethods)} />
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label={isEn ? "Shipping Origin City" : "Kota Asal Pengiriman"}>
-                  <Input
-                    name="originCity"
-                    defaultValue={initialSettings.shipping.originCity}
-                    placeholder="Bandung"
-                  />
-                </Field>
-
-                <div className="rounded-lg border border-latte p-4 bg-cream/30 space-y-3">
-                  <div className="flex items-center justify-between">
+              {/* Shipping Origin Location Card */}
+              <div className="rounded-xl border border-latte bg-cream/20 p-5 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-latte/60">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-caramel-100 text-caramel-800">
+                      <MapPin className="h-4 w-4" />
+                    </div>
                     <div>
-                      <span className="text-xs font-bold uppercase tracking-wider text-espresso-800 block">
-                        {isEn ? "Free Shipping Promotion" : "Promo Gratis Ongkir"}
-                      </span>
-                      <p className="text-[11px] text-espresso-400">
-                        {isEn ? "Enable to offer free shipping with minimum order spend requirement" : "Aktifkan jika ingin memberikan gratis ongkir dengan syarat minimal belanja"}
+                      <h3 className="text-sm font-bold text-espresso-900">
+                        {isEn ? "Shipping Origin Location" : "Lokasi Asal Pengiriman Toko / Gudang"}
+                      </h3>
+                      <p className="text-[11px] text-espresso-500">
+                        {isEn
+                          ? "Origin country and city used for carrier dispatch, rate calculation, and tracking timelines"
+                          : "Negara dan kota asal pengiriman untuk penjemputan kurir, kalkulasi ongkir, dan status resi"}
                       </p>
                     </div>
-                    <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-espresso-800 shrink-0">
-                      <input
-                        type="checkbox"
-                        name="freeShippingEnabled"
-                        checked={freeShippingEnabled}
-                        onChange={(e) => setFreeShippingEnabled(e.target.checked)}
-                        className="rounded border-espresso-300 text-caramel-600 focus:ring-caramel-500 h-4 w-4"
-                      />
-                      Aktif
-                    </label>
                   </div>
 
-                  {freeShippingEnabled && (
-                    <Field label={isEn ? "Minimum Spend (IDR)" : "Minimal Belanja (IDR)"}>
-                      <Input
-                        name="freeShippingMin"
-                        type="number"
-                        min={1000}
-                        defaultValue={initialSettings.shipping.freeShippingMin || 300000}
-                        placeholder="300000"
-                        required={freeShippingEnabled}
-                      />
-                    </Field>
-                  )}
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-espresso-800 bg-white px-3 py-1.5 rounded-lg border border-latte shadow-2xs hover:bg-latte/20 transition shrink-0">
+                    <input
+                      type="checkbox"
+                      name="useCustomOrigin"
+                      value="true"
+                      checked={useCustomOrigin}
+                      onChange={(e) => setUseCustomOrigin(e.target.checked)}
+                      className="rounded border-espresso-300 text-caramel-600 focus:ring-caramel-500 h-4 w-4"
+                    />
+                    <span>
+                      {isEn ? "Custom warehouse location" : "Gunakan lokasi gudang berbeda"}
+                    </span>
+                  </label>
                 </div>
+
+                {!useCustomOrigin ? (
+                  <div className="rounded-lg bg-white border border-latte p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                    <div className="space-y-1">
+                      <span className="text-[11px] font-semibold text-caramel-700 uppercase tracking-wider block">
+                        {isEn ? "Default Origin (Synced with Physical Store)" : "Asal Pengiriman Default (Sesuai Alamat Toko Fisik)"}
+                      </span>
+                      <p className="font-semibold text-sm text-espresso-950">
+                        {initialSettings.general.city || "Tangerang"}, {initialSettings.general.province || "Banten"} &mdash; {initialSettings.general.country || "Indonesia"}
+                        {initialSettings.general.postalCode ? ` (${initialSettings.general.postalCode})` : ""}
+                      </p>
+                      <p className="text-[11px] text-espresso-500">
+                        {isEn
+                          ? "Shipment dispatch and carrier pickup will automatically originate from your physical store address."
+                          : "Penjemputan paket kurir dan resi otomatis berangkat dari alamat toko fisik Anda."}
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setUseCustomOrigin(true)}
+                      className="text-xs font-semibold text-caramel-700 hover:text-caramel-900 underline shrink-0 cursor-pointer"
+                    >
+                      {isEn ? "Change to different warehouse &rarr;" : "Ubah ke gudang lain &rarr;"}
+                    </button>
+
+                    {/* Hidden inputs to preserve origin when not custom */}
+                    <input type="hidden" name="originCountry" value={initialSettings.general.country || "Indonesia"} />
+                    <input type="hidden" name="originCity" value={initialSettings.general.city || "Tangerang"} />
+                    <input type="hidden" name="originProvince" value={initialSettings.general.province || "Banten"} />
+                    <input type="hidden" name="originPostalCode" value={initialSettings.general.postalCode || ""} />
+                  </div>
+                ) : (
+                  <div className="rounded-lg bg-white border border-latte p-4 space-y-3">
+                    <div className="flex items-center justify-between text-xs pb-1">
+                      <span className="font-bold text-espresso-900">
+                        {isEn ? "Select Custom Dispatch Origin:" : "Tentukan Lokasi Gudang Pengiriman:"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setUseCustomOrigin(false)}
+                        className="text-[11px] font-medium text-espresso-500 hover:text-espresso-800 underline cursor-pointer"
+                      >
+                        {isEn ? "Reset to physical store address" : "Gunakan kembali alamat toko fisik"}
+                      </button>
+                    </div>
+
+                    <CityProvinceSelector
+                      showCountry={true}
+                      defaultCountry={initialSettings.shipping.originCountry || initialSettings.general.country || "Indonesia"}
+                      defaultCity={initialSettings.shipping.originCity || initialSettings.general.city || "Tangerang"}
+                      defaultProvince={initialSettings.shipping.originProvince || initialSettings.general.province || "Banten"}
+                      defaultPostalCode={initialSettings.shipping.originPostalCode || initialSettings.general.postalCode || ""}
+                      countryName="originCountry"
+                      cityName="originCity"
+                      provinceName="originProvince"
+                      postalCodeName="originPostalCode"
+                      countryLabel={isEn ? "Origin Country / Region" : "Negara Asal Pengiriman"}
+                      cityLabel={isEn ? "Shipping Origin City" : "Kota Asal Pengiriman"}
+                      provinceLabel={isEn ? "Origin Province / State" : "Provinsi / Wilayah Asal"}
+                      postalCodeLabel={isEn ? "Origin Postal Code" : "Kode Pos Asal"}
+                      showPostalCode={true}
+                      required={true}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Free Shipping Promotion Card */}
+              <div className="rounded-lg border border-latte p-4 bg-cream/30 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold uppercase tracking-wider text-espresso-800 block">
+                      {isEn ? "Free Shipping Promotion" : "Promo Gratis Ongkir"}
+                    </span>
+                    <p className="text-[11px] text-espresso-400">
+                      {isEn ? "Enable to offer free shipping with minimum order spend requirement" : "Aktifkan jika ingin memberikan gratis ongkir dengan syarat minimal belanja"}
+                    </p>
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-espresso-800 shrink-0">
+                    <input
+                      type="checkbox"
+                      name="freeShippingEnabled"
+                      checked={freeShippingEnabled}
+                      onChange={(e) => setFreeShippingEnabled(e.target.checked)}
+                      className="rounded border-espresso-300 text-caramel-600 focus:ring-caramel-500 h-4 w-4"
+                    />
+                    Aktif
+                  </label>
+                </div>
+
+                {freeShippingEnabled && (
+                  <Field label={isEn ? "Minimum Spend (IDR)" : "Minimal Belanja (IDR)"}>
+                    <Input
+                      name="freeShippingMin"
+                      type="number"
+                      min={1000}
+                      defaultValue={initialSettings.shipping.freeShippingMin || 300000}
+                      placeholder="300000"
+                      required={freeShippingEnabled}
+                    />
+                  </Field>
+                )}
               </div>
 
               <div className="space-y-3">

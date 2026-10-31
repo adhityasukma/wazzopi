@@ -135,7 +135,11 @@ export async function saveShipping(_: FormState, f: FormData): Promise<FormState
   }
   const apiKey = str(f, "binderbyteApiKey");
   await saveSetting("shipping", {
-    originCity: str(f, "originCity"),
+    originCity: str(f, "originCity") || "Tangerang",
+    originProvince: str(f, "originProvince"),
+    originCountry: str(f, "originCountry") || "Indonesia",
+    originPostalCode: str(f, "originPostalCode"),
+    useCustomOrigin: bool(f, "useCustomOrigin"),
     methods,
     freeShippingEnabled: bool(f, "freeShippingEnabled"),
     freeShippingMin: num(f, "freeShippingMin"),

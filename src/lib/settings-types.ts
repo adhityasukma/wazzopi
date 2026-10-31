@@ -46,6 +46,10 @@ export type ShippingMethod = { id: string; name: string; cost: number; etd: stri
 
 export type ShippingSettings = {
   originCity: string;
+  originProvince?: string;
+  originCountry?: string;
+  originPostalCode?: string;
+  useCustomOrigin?: boolean;
   methods: ShippingMethod[];
   freeShippingEnabled: boolean;
   freeShippingMin: number;
@@ -133,6 +137,10 @@ export const DEFAULT_SETTINGS: AllSettings = {
   },
   shipping: {
     originCity: "Tangerang",
+    originProvince: "Banten",
+    originCountry: "Indonesia",
+    originPostalCode: "",
+    useCustomOrigin: false,
     methods: [
       { id: "jne-reg", name: "JNE Reguler", cost: 18000, etd: "2-3 hari", enabled: true },
       { id: "jnt-ez", name: "J&T Express", cost: 17000, etd: "2-3 hari", enabled: true },
