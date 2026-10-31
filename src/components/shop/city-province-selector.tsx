@@ -13,6 +13,7 @@ import {
   INTERNATIONAL_REGIONS,
   getCountryCode,
   getCountryCanonicalName,
+  type CountryItem,
   type CountryRegion,
 } from "@/lib/countries";
 import { cn } from "@/lib/utils";
@@ -81,6 +82,23 @@ export function CityProvinceSelector({
   const countryCode = useMemo(() => getCountryCode(selectedCountry), [selectedCountry]);
   const isIndonesia = countryCode === "ID";
 
+  const getCountryDisplay = (codeOrName: string) => {
+    const c = COUNTRIES.find(
+      (item) => item.name === codeOrName || item.code === codeOrName || item.nameId === codeOrName
+    );
+    if (!c) return codeOrName;
+    return `${isEn ? c.name : c.nameId} (${c.code})`;
+  };
+
+  // State untuk Pencarian Negara (Country Searchable Combobox)
+  const [countryInput, setCountryInput] = useState(() => getCountryDisplay(selectedCountry));
+  const [isCountryOpen, setIsCountryOpen] = useState(false);
+  const [countryHighlightIndex, setCountryHighlightIndex] = useState(0);
+
+  const countryContainerRef = useRef<HTMLDivElement>(null);
+  const countryInputRef = useRef<HTMLInputElement>(null);
+
+  // State untuk Kota & Provinsi
   const [cityInput, setCityInput] = useState(defaultCity || "");
   const [selectedCity, setSelectedCity] = useState(defaultCity || "");
   const [selectedProvince, setSelectedProvince] = useState(() => {
@@ -110,9 +128,35 @@ export function CityProvinceSelector({
       const canonical = getCountryCanonicalName(country);
       if (canonical !== selectedCountry) {
         setSelectedCountry(canonical);
+        setCountryInput(getCountryDisplay(canonical));
       }
     }
-  }, [country, selectedCountry]);
+  }, [country, selectedCountry, isEn]);
+
+  // Filter daftar negara berdasarkan query yang diketik
+  const countrySuggestions = useMemo(() => {
+    const q = countryInput.trim().toLowerCase();
+    if (!q) return COUNTRIES;
+
+    return COUNTRIES.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        c.nameId.toLowerCase().includes(q) ||
+        c.code.toLowerCase().includes(q)
+    );
+  }, [countryInput]);
+
+  // Click outside untuk Country dropdown
+  useEffect(() => {
+    function handleClickOutsideCountry(event: MouseEvent) {
+      if (countryContainerRef.current && !countryContainerRef.current.contains(event.target as Node)) {
+        setIsCountryOpen(false);
+        setCountryInput(getCountryDisplay(selectedCountry));
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutsideCountry);
+    return () => document.removeEventListener("mousedown", handleClickOutsideCountry);
+  }, [selectedCountry, isEn]);
 
   // Sinkronisasi kota jika prop defaultCity berubah
   const prevDefaultCityRef = useRef(defaultCity);
@@ -152,10 +196,13 @@ export function CityProvinceSelector({
       .slice(0, 20);
   }, [cityInput, isIndonesia, countryCode]);
 
-  // Handler pergantian negara (Country Change)
-  const handleCountryChange = (newCountry: string) => {
-    const canonical = getCountryCanonicalName(newCountry);
+  // Handler pemilihan negara dari daftar saran
+  const handleCountrySelect = (c: CountryItem) => {
+    const canonical = c.name;
     setSelectedCountry(canonical);
+    setCountryInput(`${isEn ? c.name : c.nameId} (${c.code})`);
+    setIsCountryOpen(false);
+
     // Reset data kota, provinsi, dan kode pos saat negara berganti
     setCityInput("");
     setSelectedCity("");
@@ -163,15 +210,44 @@ export function CityProvinceSelector({
     setPostalCode("");
     setIsOpen(true);
     setHighlightIndex(0);
+
     setTimeout(() => {
       inputRef.current?.focus();
     }, 50);
+
     onCountryChange?.(canonical);
     onPostalCodeChange?.("");
     onChange?.({ city: "", province: "", postalCode: "", country: canonical });
   };
 
-  // Klik di luar menutup dropdown tanpa menghapus apa yang sudah diketik
+  // Keyboard navigation untuk Country dropdown
+  const handleCountryKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!isCountryOpen) {
+      if (e.key === "ArrowDown" || e.key === "Enter") {
+        setIsCountryOpen(true);
+        e.preventDefault();
+      }
+      return;
+    }
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setCountryHighlightIndex((prev) => (prev + 1) % Math.max(1, countrySuggestions.length));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setCountryHighlightIndex((prev) => (prev - 1 + countrySuggestions.length) % Math.max(1, countrySuggestions.length));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (countrySuggestions[countryHighlightIndex]) {
+        handleCountrySelect(countrySuggestions[countryHighlightIndex]);
+      }
+    } else if (e.key === "Escape") {
+      setIsCountryOpen(false);
+      setCountryInput(getCountryDisplay(selectedCountry));
+    }
+  };
+
+  // Klik di luar menutup dropdown kota tanpa menghapus apa yang sudah diketik
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
@@ -316,32 +392,145 @@ export function CityProvinceSelector({
 
   return (
     <div className="space-y-4">
-      {/* 0. Field Country (Pilihan Negara ala WooCommerce - diletakkan sebelum Kota / Kabupaten) */}
+      {/* 0. Field Country (Pilihan Negara dengan Input Pencarian Mirip City / Regency) */}
       {showCountry && (
-        <div>
+        <div className="relative" ref={countryContainerRef}>
           <label className="mb-1.5 flex items-center justify-between text-xs font-semibold text-espresso-700">
             <span className="flex items-center gap-1.5">
               <Globe className="h-3.5 w-3.5 text-caramel-600" />
               {isEn ? "Country / Region" : "Negara / Wilayah"} {required && <span className="text-rose-500">*</span>}
             </span>
             <span className="text-[11px] font-normal text-espresso-400">
-              {isEn ? "Adapts available cities and provinces" : "Menyesuaikan daftar kota & provinsi"}
+              {isEn ? "Type to search country" : "Ketik untuk mencari negara"}
             </span>
           </label>
+
           <div className="relative">
-            <select
-              name="country"
-              value={selectedCountry}
-              onChange={(e) => handleCountryChange(e.target.value)}
-              className="w-full h-10 rounded-lg border border-espresso-200 bg-white px-3 text-sm font-semibold text-espresso-900 focus:border-caramel-500 focus:outline-none focus:ring-2 focus:ring-caramel-100 transition shadow-2xs"
-            >
-              {COUNTRIES.map((c) => (
-                <option key={c.code} value={c.name}>
-                  {isEn ? c.name : c.nameId} ({c.code})
-                </option>
-              ))}
-            </select>
+            <input
+              ref={countryInputRef}
+              type="text"
+              value={countryInput}
+              onChange={(e) => {
+                const val = e.target.value;
+                setCountryInput(val);
+                setIsCountryOpen(true);
+                setCountryHighlightIndex(0);
+              }}
+              onFocus={() => {
+                setIsCountryOpen(true);
+              }}
+              onKeyDown={handleCountryKeyDown}
+              placeholder={
+                isEn
+                  ? "Search country (e.g. Indonesia, United States, Japan, ID, US)..."
+                  : "Cari negara (cth: Indonesia, Amerika Serikat, Jepang, ID, US)..."
+              }
+              autoComplete="off"
+              className="w-full h-10 rounded-lg border border-espresso-200 bg-white pl-9 pr-16 text-sm font-semibold text-espresso-900 placeholder:text-espresso-300 placeholder:font-normal transition focus:border-caramel-500 focus:outline-none focus:ring-2 focus:ring-caramel-100 shadow-2xs"
+            />
+
+            {/* Ikon Pencarian / Globe */}
+            <Globe className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-caramel-600 pointer-events-none" />
+
+            {/* Tombol Clear & Chevron */}
+            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              {countryInput && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCountryInput("");
+                    setIsCountryOpen(true);
+                    countryInputRef.current?.focus();
+                  }}
+                  className="rounded-full p-1 text-espresso-300 hover:bg-espresso-50 hover:text-espresso-600 transition"
+                  title={isEn ? "Clear input" : "Hapus teks"}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsCountryOpen(!isCountryOpen);
+                  countryInputRef.current?.focus();
+                }}
+                className="p-1 text-espresso-300 hover:text-espresso-600"
+              >
+                <ChevronDown
+                  className={cn(
+                    "h-4 w-4 transition-transform duration-200",
+                    isCountryOpen && "rotate-180"
+                  )}
+                />
+              </button>
+            </div>
           </div>
+
+          {/* Hidden input agar submit form tetap membawa nama negara terpilih */}
+          <input type="hidden" name="country" value={selectedCountry} />
+
+          {/* Dropdown Hasil Pencarian Negara */}
+          {isCountryOpen && (
+            <div className="absolute z-50 mt-1.5 max-h-60 w-full overflow-auto rounded-lg border border-espresso-100 bg-white p-1 shadow-lg">
+              <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-espresso-400 flex items-center justify-between">
+                <span>{isEn ? "Countries / Regions" : "Daftar Negara / Wilayah"}</span>
+                <span className="text-[10px] lowercase font-normal text-espresso-400">
+                  {countrySuggestions.length} {isEn ? "available" : "tersedia"}
+                </span>
+              </div>
+
+              {countrySuggestions.length === 0 ? (
+                <div className="px-3 py-3 text-center text-xs text-espresso-400">
+                  {isEn
+                    ? `No country matching "${countryInput}".`
+                    : `Tidak ada negara yang cocok dengan "${countryInput}".`}
+                </div>
+              ) : (
+                <ul role="listbox" className="space-y-0.5">
+                  {countrySuggestions.map((c, idx) => {
+                    const isSelected = c.name === selectedCountry;
+                    const isHighlighted = idx === countryHighlightIndex;
+                    const displayName = isEn ? c.name : c.nameId;
+
+                    return (
+                      <li
+                        key={c.code}
+                        role="option"
+                        aria-selected={isSelected}
+                        onClick={() => handleCountrySelect(c)}
+                        onMouseEnter={() => setCountryHighlightIndex(idx)}
+                        className={cn(
+                          "flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-xs transition",
+                          isHighlighted
+                            ? "bg-caramel-50 text-espresso-950 font-medium"
+                            : "text-espresso-700 hover:bg-cream/70",
+                          isSelected && "bg-caramel-100/60 font-semibold text-espresso-950"
+                        )}
+                      >
+                        <div className="flex items-center gap-2.5 overflow-hidden">
+                          <Globe className="h-3.5 w-3.5 flex-shrink-0 text-caramel-500" />
+                          <span className="truncate font-medium">{displayName}</span>
+                          {c.name !== c.nameId && (
+                            <span className="text-[11px] text-espresso-400 truncate">
+                              ({isEn ? c.nameId : c.name})
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0 pl-2">
+                          <span className="rounded bg-cream px-1.5 py-0.5 text-[10px] font-mono font-bold text-espresso-600 border border-espresso-100">
+                            {c.code}
+                          </span>
+                          {isSelected && (
+                            <Check className="h-3.5 w-3.5 text-caramel-600" />
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          )}
         </div>
       )}
 

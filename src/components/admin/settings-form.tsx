@@ -38,6 +38,7 @@ import {
 } from "@/actions/settings";
 import { Alert, Button, Field, Input, Select, Textarea } from "@/components/ui";
 import { CityProvinceSelector } from "@/components/shop/city-province-selector";
+import { CurrencyCombobox } from "@/components/admin/currency-combobox";
 import { cn } from "@/lib/utils";
 import { CURRENCIES, formatCurrency, type CurrencyPosition, type CurrencySettings } from "@/lib/currency";
 import { MIDTRANS_CHANNEL_LIST, DEFAULT_MIDTRANS_CHANNELS } from "@/lib/midtrans-channels";
@@ -604,27 +605,21 @@ export function SettingsForm({
 
             <form action={currencyAction} className="mt-6 space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label={isEn ? "Currency Selection" : "Pilihan Mata Uang"}>
-                  <Select
-                    name="code"
+                <Field
+                  label={isEn ? "Currency Selection" : "Pilihan Mata Uang"}
+                  hint={isEn ? "Search and select from 110+ WooCommerce world currencies" : "Cari dan pilih dari 110+ mata uang dunia standar WooCommerce"}
+                >
+                  <CurrencyCombobox
                     value={currencyConfig.code}
-                    onChange={(e) => {
-                      const sel = CURRENCIES.find((c) => c.code === e.target.value);
-                      if (sel) {
-                        setCurrencyConfig((prev) => ({
-                          ...prev,
-                          code: sel.code,
-                          symbol: sel.symbol,
-                        }));
-                      }
+                    onChange={(sel) => {
+                      setCurrencyConfig((prev) => ({
+                        ...prev,
+                        code: sel.code,
+                        symbol: sel.symbol,
+                        decimals: sel.defaultDecimals !== undefined ? sel.defaultDecimals : prev.decimals,
+                      }));
                     }}
-                  >
-                    {CURRENCIES.map((c) => (
-                      <option key={c.code} value={c.code}>
-                        {c.name} ({c.code} - {c.symbol})
-                      </option>
-                    ))}
-                  </Select>
+                  />
                 </Field>
 
                 <Field label={isEn ? "Currency Symbol" : "Simbol Mata Uang"}>
