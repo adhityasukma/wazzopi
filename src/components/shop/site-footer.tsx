@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Clock, Mail, MapPin, MessageCircle, Phone, AtSign, Globe } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { useI18n } from "@/i18n/provider";
+import { getLocalizedCategoryName } from "@/lib/category-i18n";
 import { type AllSettings, getStoreWhatsApp } from "@/lib/settings-types";
 
 export function SiteFooter({ settings, categories }: { settings: AllSettings; categories: { name: string; slug: string }[] }) {
@@ -52,7 +53,9 @@ export function SiteFooter({ settings, categories }: { settings: AllSettings; ca
             <li><Link href="/cerita-kami" className="hover:text-white">{t.common.ourStory}</Link></li>
             {categories.map((c) => (
               <li key={c.slug}>
-                <Link href={`/products?category=${c.slug}`} className="hover:text-white">{c.name}</Link>
+                <Link href={`/products?category=${c.slug}`} className="hover:text-white">
+                  {getLocalizedCategoryName(c.name, c.slug, locale)}
+                </Link>
               </li>
             ))}
             <li className="pt-2 border-t border-espresso-700">

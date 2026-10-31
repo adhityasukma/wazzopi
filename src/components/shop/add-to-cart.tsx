@@ -103,11 +103,19 @@ export function AddToCart({ product }: Props) {
 
       <div className="mt-8 flex flex-wrap items-center gap-3">
         <div className="flex h-12 items-center rounded-lg border border-espresso-100 bg-white">
-          <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="flex h-full w-11 items-center justify-center text-espresso-600 hover:text-espresso-900" aria-label="Kurangi">
+          <button
+            onClick={() => setQty((q) => Math.max(1, q - 1))}
+            className="flex h-full w-11 items-center justify-center text-espresso-600 hover:text-espresso-900"
+            aria-label={locale === "en" ? "Decrease quantity" : "Kurangi"}
+          >
             <Minus className="h-4 w-4" />
           </button>
           <span className="w-10 text-center text-sm font-semibold">{qty}</span>
-          <button onClick={() => setQty((q) => Math.min(stock || 1, q + 1))} className="flex h-full w-11 items-center justify-center text-espresso-600 hover:text-espresso-900" aria-label="Tambah">
+          <button
+            onClick={() => setQty((q) => Math.min(stock || 1, q + 1))}
+            className="flex h-full w-11 items-center justify-center text-espresso-600 hover:text-espresso-900"
+            aria-label={locale === "en" ? "Increase quantity" : "Tambah"}
+          >
             <Plus className="h-4 w-4" />
           </button>
         </div>

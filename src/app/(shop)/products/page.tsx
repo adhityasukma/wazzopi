@@ -10,6 +10,7 @@ import { EmptyState, LinkButton } from "@/components/ui";
 import { getProductCards } from "@/lib/catalog";
 import { prisma } from "@/lib/prisma";
 import { getServerDictionary, getServerLocale } from "@/i18n/server";
+import { getLocalizedCategoryName } from "@/lib/category-i18n";
 import type { Prisma } from "@prisma/client";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -58,7 +59,7 @@ export default async function ProductsPage({ searchParams }: PageProps<"/product
           / <span className="text-espresso-700">{dict.common.allProducts}</span>
         </nav>
         <h1 className="mt-3 text-3xl font-semibold text-espresso-900 md:text-4xl">
-          {activeCat ? activeCat.name : dict.products.pageTitle}
+          {activeCat ? getLocalizedCategoryName(activeCat.name, activeCat.slug, locale) : dict.products.pageTitle}
         </h1>
         <p className="mt-2 max-w-2xl text-espresso-400">
           {activeCat?.description || dict.products.pageSubtitle}

@@ -8,6 +8,7 @@ import { ProductCard } from "@/components/shop/product-card";
 import { getProductCards } from "@/lib/catalog";
 import { prisma } from "@/lib/prisma";
 import { getServerDictionary, getServerLocale } from "@/i18n/server";
+import { getLocalizedCategoryName } from "@/lib/category-i18n";
 
 async function getProduct(slug: string) {
   return prisma.product.findFirst({
@@ -51,7 +52,7 @@ export default async function ProductDetailPage({ params }: PageProps<"/products
             {" "}
             /{" "}
             <Link href={`/products?category=${product.category.slug}`} className="hover:text-caramel-500">
-              {product.category.name}
+              {getLocalizedCategoryName(product.category.name, product.category.slug, locale)}
             </Link>
           </>
         )}{" "}
@@ -75,7 +76,7 @@ export default async function ProductDetailPage({ params }: PageProps<"/products
         <div className="lg:py-4">
           {product.category && (
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-caramel-500">
-              {product.category.name}
+              {getLocalizedCategoryName(product.category.name, product.category.slug, locale)}
             </p>
           )}
           <h1 className="mt-2 text-3xl font-semibold text-espresso-900 md:text-4xl">{product.name}</h1>

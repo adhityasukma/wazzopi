@@ -32,7 +32,8 @@ import {
 import { useLoading } from "@/components/loading-provider";
 import { formatCurrency, type CurrencySettings, DEFAULT_CURRENCY } from "@/lib/currency";
 import { type AllSettings, getStoreWhatsApp } from "@/lib/settings-types";
-import { formatDate, ORDER_STATUS_LABEL, ORDER_STATUS_STYLE } from "@/lib/utils";
+import { useI18n } from "@/i18n/provider";
+import { formatDate, ORDER_STATUS_LABEL, ORDER_STATUS_STYLE, getOrderStatusLabel, getPaymentLabel } from "@/lib/utils";
 import { logout } from "@/actions/auth";
 import { AccountProfileForm } from "@/components/shop/account-profile-form";
 import { AccountPasswordForm } from "@/components/shop/account-password-form";
@@ -97,6 +98,8 @@ export function MemberAreaView({
   initialTab = "dashboard",
 }: MemberAreaViewProps) {
   const { showLoading, hideLoading } = useLoading();
+  const { t, locale } = useI18n();
+  const isEn = locale === "en";
   const [activeTab, setActiveTab] = useState<string>(initialTab);
   const [orderSearch, setOrderSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
@@ -148,7 +151,7 @@ export function MemberAreaView({
 
   const handlePageChange = (newPage: number) => {
     if (newPage < 1 || newPage > totalPages || newPage === validCurrentPage) return;
-    showLoading(`Memuat halaman ${newPage}...`);
+    showLoading(isEn ? `Loading page ${newPage}...` : `Memuat halaman ${newPage}...`);
     setTimeout(() => {
       setCurrentPage(newPage);
       hideLoading();
@@ -157,8 +160,8 @@ export function MemberAreaView({
 
   const handlePageSizeChange = (newSize: string) => {
     if (newSize === pageSize) return;
-    const label = newSize === "ALL" ? "semua" : newSize;
-    showLoading(`Menampilkan ${label} data pesanan...`);
+    const label = newSize === "ALL" ? (isEn ? "all" : "semua") : newSize;
+    showLoading(isEn ? `Showing ${label} orders...` : `Menampilkan ${label} data pesanan...`);
     setTimeout(() => {
       setPageSize(newSize);
       setCurrentPage(1);
@@ -167,7 +170,7 @@ export function MemberAreaView({
   };
 
   const handleResetFilters = () => {
-    showLoading("Mereset filter pesanan...");
+    showLoading(isEn ? "Resetting filters..." : "Mereset filter pesanan...");
     setTimeout(() => {
       setOrderSearch("");
       setStatusFilter("ALL");
@@ -179,7 +182,7 @@ export function MemberAreaView({
 
   const handleStatusFilterChange = (status: string) => {
     if (status === statusFilter) return;
-    showLoading("Menyaring daftar pesanan...");
+    showLoading(isEn ? "Filtering orders..." : "Menyaring daftar pesanan...");
     setTimeout(() => {
       setStatusFilter(status);
       setCurrentPage(1);
@@ -257,17 +260,17 @@ export function MemberAreaView({
               className="inline-flex items-center gap-1.5 rounded-xl bg-caramel-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-caramel-500 transition-colors shadow-xs"
             >
               <ShoppingBag className="h-4 w-4" />
-              Belanja Kopi
+              {isEn ? "Shop Coffee" : "Belanja Kopi"}
             </Link>
 
             <form action={logout}>
               <button
                 type="submit"
-                className="inline-flex items-center gap-1.5 rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-xs font-semibold text-cream hover:bg-rose-500/20 hover:border-rose-400/40 hover:text-white transition-colors"
-                title="Keluar dari akun"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-xs font-semibold text-cream hover:bg-rose-500/20 hover:border-rose-400/40 hover:text-white transition-colors cursor-pointer"
+                title={isEn ? "Log out of account" : "Keluar dari akun"}
               >
                 <LogOut className="h-4 w-4" />
-                Keluar
+                {isEn ? "Log Out" : "Keluar"}
               </button>
             </form>
           </div>
@@ -280,7 +283,7 @@ export function MemberAreaView({
         <aside className="lg:col-span-3">
           <div className="rounded-2xl border border-latte bg-white p-3 shadow-xs sticky top-24">
             <div className="px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-espresso-400 hidden lg:block">
-              Menu Member Area
+              {isEn ? "Member Area Menu" : "Menu Member Area"}
             </div>
 
             <nav className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible pb-1 lg:pb-0 scrollbar-none">
@@ -288,7 +291,7 @@ export function MemberAreaView({
               <button
                 type="button"
                 onClick={() => setActiveTab("dashboard")}
-                className={`flex shrink-0 items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-semibold transition-all ${
+                className={`flex shrink-0 items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-semibold transition-all cursor-pointer ${
                   activeTab === "dashboard"
                     ? "bg-caramel-600 text-white shadow-2xs font-bold"
                     : "text-espresso-700 hover:bg-espresso-50 hover:text-espresso-950"
@@ -302,7 +305,7 @@ export function MemberAreaView({
               <button
                 type="button"
                 onClick={() => setActiveTab("orders")}
-                className={`flex shrink-0 items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 text-xs font-semibold transition-all ${
+                className={`flex shrink-0 items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 text-xs font-semibold transition-all cursor-pointer ${
                   activeTab === "orders"
                     ? "bg-caramel-600 text-white shadow-2xs font-bold"
                     : "text-espresso-700 hover:bg-espresso-50 hover:text-espresso-950"
@@ -310,7 +313,7 @@ export function MemberAreaView({
               >
                 <div className="flex items-center gap-3">
                   <Package className={`h-4 w-4 ${activeTab === "orders" ? "text-white" : "text-caramel-600"}`} />
-                  <span>Pesanan Saya</span>
+                  <span>{isEn ? "My Orders" : "Pesanan Saya"}</span>
                 </div>
                 {pendingOrders.length > 0 && (
                   <span
@@ -329,28 +332,28 @@ export function MemberAreaView({
               <button
                 type="button"
                 onClick={() => setActiveTab("profile")}
-                className={`flex shrink-0 items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-semibold transition-all ${
+                className={`flex shrink-0 items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-semibold transition-all cursor-pointer ${
                   activeTab === "profile"
                     ? "bg-caramel-600 text-white shadow-2xs font-bold"
                     : "text-espresso-700 hover:bg-espresso-50 hover:text-espresso-950"
                 }`}
               >
                 <User className={`h-4 w-4 ${activeTab === "profile" ? "text-white" : "text-caramel-600"}`} />
-                <span>Profil & Alamat</span>
+                <span>{isEn ? "Profile & Address" : "Profil & Alamat"}</span>
               </button>
 
               {/* Menu 4: Keamanan Akun */}
               <button
                 type="button"
                 onClick={() => setActiveTab("security")}
-                className={`flex shrink-0 items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-semibold transition-all ${
+                className={`flex shrink-0 items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-semibold transition-all cursor-pointer ${
                   activeTab === "security"
                     ? "bg-caramel-600 text-white shadow-2xs font-bold"
                     : "text-espresso-700 hover:bg-espresso-50 hover:text-espresso-950"
                 }`}
               >
                 <ShieldCheck className={`h-4 w-4 ${activeTab === "security" ? "text-white" : "text-caramel-600"}`} />
-                <span>Keamanan Akun</span>
+                <span>{isEn ? "Account Security" : "Keamanan Akun"}</span>
               </button>
             </nav>
           </div>
@@ -372,17 +375,17 @@ export function MemberAreaView({
                     setStatusFilter("PENDING");
                     setActiveTab("orders");
                   }}
-                  className="text-left rounded-2xl border border-amber-200 bg-amber-50/60 p-4 transition-all hover:bg-amber-50 hover:border-amber-300 hover:shadow-xs group"
+                  className="text-left rounded-2xl border border-amber-200 bg-amber-50/60 p-4 transition-all hover:bg-amber-50 hover:border-amber-300 hover:shadow-xs group cursor-pointer"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-semibold text-amber-900">Belum Bayar</span>
+                    <span className="text-[11px] font-semibold text-amber-900">{isEn ? "Unpaid" : "Belum Bayar"}</span>
                     <Clock className="h-4 w-4 text-amber-600" />
                   </div>
                   <p className="mt-2 text-2xl font-bold font-display text-amber-950">
                     {pendingOrders.length}
                   </p>
                   <span className="mt-1 inline-block text-[10px] text-amber-700 font-medium group-hover:underline">
-                    {pendingOrders.length > 0 ? "Perlu diselesaikan ->" : "Tidak ada tagihan"}
+                    {pendingOrders.length > 0 ? (isEn ? "Action required →" : "Perlu diselesaikan ->") : (isEn ? "No unpaid orders" : "Tidak ada tagihan")}
                   </span>
                 </button>
 
@@ -393,17 +396,17 @@ export function MemberAreaView({
                     setStatusFilter("PROCESSING");
                     setActiveTab("orders");
                   }}
-                  className="text-left rounded-2xl border border-indigo-200 bg-indigo-50/60 p-4 transition-all hover:bg-indigo-50 hover:border-indigo-300 hover:shadow-xs group"
+                  className="text-left rounded-2xl border border-indigo-200 bg-indigo-50/60 p-4 transition-all hover:bg-indigo-50 hover:border-indigo-300 hover:shadow-xs group cursor-pointer"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-semibold text-indigo-900">Diproses</span>
+                    <span className="text-[11px] font-semibold text-indigo-900">{isEn ? "Processing" : "Diproses"}</span>
                     <RotateCw className="h-4 w-4 text-indigo-600" />
                   </div>
                   <p className="mt-2 text-2xl font-bold font-display text-indigo-950">
                     {processingOrders.length}
                   </p>
                   <span className="mt-1 inline-block text-[10px] text-indigo-700 font-medium group-hover:underline">
-                    Pesanan disiapkan
+                    {isEn ? "Being prepared" : "Pesanan disiapkan"}
                   </span>
                 </button>
 
@@ -414,17 +417,17 @@ export function MemberAreaView({
                     setStatusFilter("SHIPPED");
                     setActiveTab("orders");
                   }}
-                  className="text-left rounded-2xl border border-caramel-200 bg-caramel-50/60 p-4 transition-all hover:bg-caramel-50 hover:border-caramel-300 hover:shadow-xs group"
+                  className="text-left rounded-2xl border border-caramel-200 bg-caramel-50/60 p-4 transition-all hover:bg-caramel-50 hover:border-caramel-300 hover:shadow-xs group cursor-pointer"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-semibold text-caramel-900">Dikirim</span>
+                    <span className="text-[11px] font-semibold text-caramel-900">{isEn ? "Shipped" : "Dikirim"}</span>
                     <Truck className="h-4 w-4 text-caramel-600" />
                   </div>
                   <p className="mt-2 text-2xl font-bold font-display text-caramel-950">
                     {shippedOrders.length}
                   </p>
                   <span className="mt-1 inline-block text-[10px] text-caramel-700 font-medium group-hover:underline">
-                    Diantar kurir
+                    {isEn ? "With courier" : "Diantar kurir"}
                   </span>
                 </button>
 
@@ -435,17 +438,17 @@ export function MemberAreaView({
                     setStatusFilter("COMPLETED");
                     setActiveTab("orders");
                   }}
-                  className="text-left rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 transition-all hover:bg-emerald-50 hover:border-emerald-300 hover:shadow-xs group"
+                  className="text-left rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 transition-all hover:bg-emerald-50 hover:border-emerald-300 hover:shadow-xs group cursor-pointer"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-semibold text-emerald-900">Selesai</span>
+                    <span className="text-[11px] font-semibold text-emerald-900">{isEn ? "Completed" : "Selesai"}</span>
                     <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                   </div>
                   <p className="mt-2 text-2xl font-bold font-display text-emerald-950">
                     {completedOrders.length}
                   </p>
                   <span className="mt-1 inline-block text-[10px] text-emerald-700 font-medium group-hover:underline">
-                    Transaksi sukses
+                    {isEn ? "Successful orders" : "Transaksi sukses"}
                   </span>
                 </button>
               </div>
@@ -471,7 +474,7 @@ export function MemberAreaView({
                           </div>
                           <div>
                             <span className="text-xs font-bold text-espresso-400 uppercase tracking-wider block">
-                              Pesanan Terkini
+                              {isEn ? "Recent Order" : "Pesanan Terkini"}
                             </span>
                             <span className="font-mono text-sm font-bold text-espresso-900">
                               #{latestOrder.orderNo}
@@ -485,10 +488,10 @@ export function MemberAreaView({
                               ORDER_STATUS_STYLE[latestOrder.status] || "bg-latte text-espresso-800"
                             }`}
                           >
-                            {ORDER_STATUS_LABEL[latestOrder.status]}
+                            {getOrderStatusLabel(latestOrder.status, locale)}
                           </span>
                           <span className="text-xs text-espresso-400">
-                            {formatDate(latestOrder.createdAt, true)}
+                            {formatDate(latestOrder.createdAt, true, locale)}
                           </span>
                         </div>
                       </div>
@@ -518,7 +521,9 @@ export function MemberAreaView({
 
                         {latestOrder.items.length > 2 && (
                           <p className="text-[11px] text-espresso-400 pt-2 italic">
-                            + {latestOrder.items.length - 2} produk lainnya dalam pesanan ini
+                            {isEn
+                              ? `+ ${latestOrder.items.length - 2} other products in this order`
+                              : `+ ${latestOrder.items.length - 2} produk lainnya dalam pesanan ini`}
                           </p>
                         )}
                       </div>
@@ -529,7 +534,7 @@ export function MemberAreaView({
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <div>
                               <span className="text-[11px] text-espresso-500">
-                                Ekspedisi Pengiriman: <strong>{effective.courierName}</strong>
+                                {isEn ? "Courier:" : "Ekspedisi Pengiriman:"} <strong>{effective.courierName}</strong>
                               </span>
                               <div className="flex items-center gap-2 mt-0.5">
                                 <span className="font-mono text-xs font-bold text-caramel-700 bg-white px-2 py-0.5 rounded border border-latte">
@@ -538,17 +543,17 @@ export function MemberAreaView({
                                 <button
                                   type="button"
                                   onClick={() => handleCopyResi(latestOrder.trackingNumber!)}
-                                  className="inline-flex items-center gap-1 text-[11px] text-espresso-600 hover:text-caramel-600 transition-colors font-medium"
+                                  className="inline-flex items-center gap-1 text-[11px] text-espresso-600 hover:text-caramel-600 transition-colors font-medium cursor-pointer"
                                 >
                                   {copiedResi === latestOrder.trackingNumber ? (
                                     <>
                                       <Check className="h-3 w-3 text-emerald-600" />
-                                      <span className="text-emerald-600">Disalin</span>
+                                      <span className="text-emerald-600">{isEn ? "Copied" : "Disalin"}</span>
                                     </>
                                   ) : (
                                     <>
                                       <Copy className="h-3 w-3" />
-                                      <span>Salin</span>
+                                      <span>{isEn ? "Copy" : "Salin"}</span>
                                     </>
                                   )}
                                 </button>
@@ -579,7 +584,7 @@ export function MemberAreaView({
 
                           {effective.isCourierSwitched && (
                             <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200/70 rounded-md px-2.5 py-1">
-                              Dialihkan ke {effective.courierName} untuk rute pengantaran yang lebih optimal tanpa biaya tambahan.
+                              {effective.customerNotice || (isEn ? `Routed via ${effective.courierName} for optimal delivery at no extra cost.` : `Dialihkan ke ${effective.courierName} untuk rute pengantaran yang lebih optimal tanpa biaya tambahan.`)}
                             </p>
                           )}
                         </div>
@@ -588,7 +593,7 @@ export function MemberAreaView({
                       {/* Footer Actions */}
                       <div className="pt-4 flex flex-wrap items-center justify-between gap-3">
                         <div>
-                          <span className="text-xs text-espresso-500 block">Total Pembayaran:</span>
+                          <span className="text-xs text-espresso-500 block">{isEn ? "Total Amount:" : "Total Pembayaran:"}</span>
                           <span className="text-base font-bold font-display text-espresso-900">
                             {formatCurrency(latestOrder.total, currencyConfig)}
                           </span>
@@ -598,7 +603,7 @@ export function MemberAreaView({
                           {isMidtransPayment(latestOrder.paymentMethod) && latestOrder.status === "PENDING" && (
                             <MidtransPayButton
                               orderNo={latestOrder.orderNo}
-                              buttonLabel="Bayar Sekarang"
+                              buttonLabel={isEn ? "Pay Now" : "Bayar Sekarang"}
                               variant="secondary"
                               className="py-2 px-3 text-xs"
                             />
@@ -609,7 +614,7 @@ export function MemberAreaView({
                               href={`/checkout/success/${latestOrder.orderNo}`}
                               className="inline-flex items-center gap-1 rounded-lg bg-caramel-50 px-3 py-2 text-xs font-semibold text-caramel-700 border border-caramel-200 hover:bg-caramel-100 transition-colors"
                             >
-                              Petunjuk Bayar &rarr;
+                              {isEn ? "Payment Guide →" : "Petunjuk Bayar →"}
                             </Link>
                           )}
 
@@ -617,7 +622,7 @@ export function MemberAreaView({
                             href={`/checkout/success/${latestOrder.orderNo}`}
                             className="inline-flex items-center gap-1 rounded-lg border border-espresso-200 bg-white px-3.5 py-2 text-xs font-semibold text-espresso-800 hover:bg-espresso-50 transition-colors shadow-2xs"
                           >
-                            <span>Rincian Pesanan</span>
+                            <span>{isEn ? "Order Details" : "Rincian Pesanan"}</span>
                             <ArrowRight className="h-3.5 w-3.5" />
                           </Link>
                         </div>
@@ -630,16 +635,20 @@ export function MemberAreaView({
                   <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-espresso-50 border border-latte text-espresso-400 mb-3">
                     <Package className="h-6 w-6" />
                   </div>
-                  <h3 className="text-sm font-bold text-espresso-900">Belum Ada Riwayat Pesanan</h3>
+                  <h3 className="text-sm font-bold text-espresso-900">
+                    {isEn ? "No Order History Yet" : "Belum Ada Riwayat Pesanan"}
+                  </h3>
                   <p className="mt-1 text-xs text-espresso-500 max-w-sm mx-auto">
-                    Koleksi biji kopi segar dan produk Wazzopi siap dikirimkan ke alamat Anda.
+                    {isEn
+                      ? "Browse our freshly roasted specialty coffees and brewing gear to place your first order."
+                      : "Koleksi biji kopi segar dan produk Wazzopi siap dikirimkan ke alamat Anda."}
                   </p>
                   <Link
                     href="/products"
                     className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-caramel-600 px-4 py-2 text-xs font-semibold text-white hover:bg-caramel-500 transition-colors"
                   >
                     <ShoppingBag className="h-4 w-4" />
-                    Mulai Belanja Kopi
+                    {isEn ? "Start Shopping" : "Mulai Belanja Kopi"}
                   </Link>
                 </div>
               )}
@@ -652,14 +661,14 @@ export function MemberAreaView({
                     <div className="flex items-center justify-between pb-3 border-b border-latte">
                       <h4 className="text-xs font-bold uppercase tracking-wider text-espresso-400 flex items-center gap-1.5">
                         <MapPin className="h-3.5 w-3.5 text-caramel-600" />
-                        Alamat Pengiriman Utama
+                        {isEn ? "Primary Shipping Address" : "Alamat Pengiriman Utama"}
                       </h4>
                       <button
                         type="button"
                         onClick={() => setActiveTab("profile")}
-                        className="text-xs font-semibold text-caramel-700 hover:underline"
+                        className="text-xs font-semibold text-caramel-700 hover:underline cursor-pointer"
                       >
-                        Ubah Alamat
+                        {isEn ? "Edit Address" : "Ubah Alamat"}
                       </button>
                     </div>
 
@@ -675,7 +684,9 @@ export function MemberAreaView({
                         </p>
                       ) : (
                         <p className="text-espresso-400 italic mt-1">
-                          Alamat lengkap belum diatur. Lengkapi untuk mempermudah proses checkout.
+                          {isEn
+                            ? "Street address not set yet. Complete to expedite checkout."
+                            : "Alamat lengkap belum diatur. Lengkapi untuk mempermudah proses checkout."}
                         </p>
                       )}
                     </div>
@@ -685,9 +696,9 @@ export function MemberAreaView({
                     <button
                       type="button"
                       onClick={() => setActiveTab("profile")}
-                      className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-latte bg-espresso-50/50 py-2 text-xs font-semibold text-espresso-700 hover:bg-espresso-100 transition-colors"
+                      className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-latte bg-espresso-50/50 py-2 text-xs font-semibold text-espresso-700 hover:bg-espresso-100 transition-colors cursor-pointer"
                     >
-                      Kelola Alamat Lengkap
+                      {isEn ? "Manage Full Address" : "Kelola Alamat Lengkap"}
                     </button>
                   </div>
                 </div>
@@ -698,24 +709,30 @@ export function MemberAreaView({
                     <div className="flex items-center justify-between pb-3 border-b border-latte">
                       <h4 className="text-xs font-bold uppercase tracking-wider text-espresso-400 flex items-center gap-1.5">
                         <MessageCircle className="h-3.5 w-3.5 text-emerald-600" />
-                        Pusat Bantuan & Layanan
+                        {isEn ? "Customer Support Center" : "Pusat Bantuan & Layanan"}
                       </h4>
                     </div>
 
                     <p className="mt-3 text-xs text-espresso-600 leading-relaxed">
-                      Memiliki pertanyaan seputar pesanan, rute pengiriman, atau ingin berkonsultasi mengenai rekomendasi biji kopi Wazzopi? Tim kami siap membantu.
+                      {isEn
+                        ? "Have questions regarding orders, tracking, or need brewing recommendations? Our team is happy to assist."
+                        : "Memiliki pertanyaan seputar pesanan, rute pengiriman, atau ingin berkonsultasi mengenai rekomendasi biji kopi Wazzopi? Tim kami siap membantu."}
                     </p>
                   </div>
 
                   <div className="mt-4 pt-3 border-t border-latte/60">
                     <a
-                      href={`https://wa.me/${getStoreWhatsApp(settings)}?text=Halo%20Admin%20Wazzopi,%20saya%20${encodeURIComponent(user.name)}%20ingin%20bertanya%20seputar%20pesanan.`}
+                      href={`https://wa.me/${getStoreWhatsApp(settings)}?text=${encodeURIComponent(
+                        isEn
+                          ? `Hello ${settings.general.storeName} Support, I am ${user.name} inquiring about an order.`
+                          : `Halo Admin Wazzopi, saya ${user.name} ingin bertanya seputar pesanan.`
+                      )}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-emerald-600 py-2 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors shadow-2xs"
                     >
                       <MessageCircle className="h-3.5 w-3.5" />
-                      Chat WhatsApp Admin
+                      {isEn ? "Chat WhatsApp Support" : "Chat WhatsApp Admin"}
                     </a>
                   </div>
                 </div>
@@ -733,10 +750,12 @@ export function MemberAreaView({
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
                     <h2 className="text-base font-bold text-espresso-900">
-                      Riwayat Pesanan Saya
+                      {isEn ? "My Order History" : "Riwayat Pesanan Saya"}
                     </h2>
                     <p className="text-xs text-espresso-500">
-                      Kelola dan pantau seluruh status pesanan serta riwayat pengiriman Anda.
+                      {isEn
+                        ? "Manage and track all your order statuses and shipping deliveries."
+                        : "Kelola dan pantau seluruh status pesanan serta riwayat pengiriman Anda."}
                     </p>
                   </div>
 
@@ -750,7 +769,7 @@ export function MemberAreaView({
                           setOrderSearch(e.target.value);
                           setCurrentPage(1);
                         }}
-                        placeholder="Cari No. Pesanan / Produk..."
+                        placeholder={isEn ? "Search Order No. / Product..." : "Cari No. Pesanan / Produk..."}
                         className="w-full rounded-xl border border-latte bg-espresso-50/50 pl-8 pr-3 py-1.5 text-xs text-espresso-900 placeholder:text-espresso-400 focus:bg-white focus:border-caramel-500 focus:outline-hidden"
                       />
                     </div>
@@ -758,8 +777,8 @@ export function MemberAreaView({
                     <button
                       type="button"
                       onClick={handleResetFilters}
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-espresso-200 bg-white px-3 py-1.5 text-xs font-semibold text-espresso-700 hover:bg-espresso-100 hover:text-espresso-900 transition-colors shadow-2xs shrink-0"
-                      title="Reset semua filter dan pencarian"
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-espresso-200 bg-white px-3 py-1.5 text-xs font-semibold text-espresso-700 hover:bg-espresso-100 hover:text-espresso-900 transition-colors shadow-2xs shrink-0 cursor-pointer"
+                      title={isEn ? "Reset search and filters" : "Reset semua filter dan pencarian"}
                     >
                       <RotateCcw className="h-3.5 w-3.5 text-espresso-500" />
                       <span>Reset</span>
@@ -771,18 +790,18 @@ export function MemberAreaView({
                 <div className="flex flex-wrap items-center justify-between gap-3 border-t border-latte pt-3">
                   <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
                     {[
-                      { id: "ALL", label: "Semua", count: orders.length },
-                      { id: "PENDING", label: "Belum Bayar", count: pendingOrders.length },
-                      { id: "PROCESSING", label: "Diproses", count: processingOrders.length },
-                      { id: "SHIPPED", label: "Dikirim", count: shippedOrders.length },
-                      { id: "COMPLETED", label: "Selesai", count: completedOrders.length },
-                      { id: "CANCELLED", label: "Dibatalkan", count: cancelledOrders.length },
+                      { id: "ALL", label: isEn ? "All" : "Semua", count: orders.length },
+                      { id: "PENDING", label: isEn ? "Unpaid" : "Belum Bayar", count: pendingOrders.length },
+                      { id: "PROCESSING", label: isEn ? "Processing" : "Diproses", count: processingOrders.length },
+                      { id: "SHIPPED", label: isEn ? "Shipped" : "Dikirim", count: shippedOrders.length },
+                      { id: "COMPLETED", label: isEn ? "Completed" : "Selesai", count: completedOrders.length },
+                      { id: "CANCELLED", label: isEn ? "Cancelled" : "Dibatalkan", count: cancelledOrders.length },
                     ].map((tab) => (
                       <button
                         key={tab.id}
                         type="button"
                         onClick={() => handleStatusFilterChange(tab.id)}
-                        className={`inline-flex items-center gap-1.5 shrink-0 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all ${
+                        className={`inline-flex items-center gap-1.5 shrink-0 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
                           statusFilter === tab.id
                             ? "bg-espresso-900 text-white shadow-2xs"
                             : "bg-espresso-50 text-espresso-600 hover:bg-espresso-100"
@@ -824,12 +843,16 @@ export function MemberAreaView({
                     <Package className="h-6 w-6" />
                   </div>
                   <h3 className="text-sm font-bold text-espresso-900">
-                    Tidak Ditemukan Pesanan
+                    {isEn ? "No Orders Found" : "Tidak Ditemukan Pesanan"}
                   </h3>
                   <p className="mt-1 text-xs text-espresso-500 max-w-sm mx-auto">
                     {orderSearch
-                      ? `Tidak ada pesanan yang sesuai dengan kata kunci "${orderSearch}".`
-                      : "Belum ada pesanan pada kategori status ini."}
+                      ? (isEn
+                          ? `No orders matching query "${orderSearch}".`
+                          : `Tidak ada pesanan yang sesuai dengan kata kunci "${orderSearch}".`)
+                      : (isEn
+                          ? "No orders found under this status filter."
+                          : "Belum ada pesanan pada kategori status ini.")}
                   </p>
                   {(orderSearch || statusFilter !== "ALL") && (
                     <button
@@ -838,9 +861,9 @@ export function MemberAreaView({
                         setOrderSearch("");
                         setStatusFilter("ALL");
                       }}
-                      className="mt-3 text-xs font-semibold text-caramel-700 hover:underline"
+                      className="mt-3 text-xs font-semibold text-caramel-700 hover:underline cursor-pointer"
                     >
-                      Reset Filter
+                      {isEn ? "Reset Filter" : "Reset Filter"}
                     </button>
                   )}
                 </div>
@@ -869,7 +892,7 @@ export function MemberAreaView({
                             </span>
                             <span className="text-xs text-espresso-400">•</span>
                             <span className="text-xs text-espresso-500">
-                              {formatDate(order.createdAt, true)}
+                              {formatDate(order.createdAt, true, locale)}
                             </span>
                           </div>
 
@@ -879,7 +902,7 @@ export function MemberAreaView({
                                 ORDER_STATUS_STYLE[order.status] || "bg-latte text-espresso-800"
                               }`}
                             >
-                              {ORDER_STATUS_LABEL[order.status]}
+                              {getOrderStatusLabel(order.status, locale)}
                             </span>
                           </div>
                         </div>
@@ -924,7 +947,7 @@ export function MemberAreaView({
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <div>
                               <span className="text-espresso-500 block text-[11px]">
-                                Kurir Pengiriman: {order.shippingMethod}
+                                {isEn ? "Courier:" : "Kurir Pengiriman:"} {order.shippingMethod}
                               </span>
                               {order.trackingNumber && effective && (
                                 <div className="flex items-center gap-2 mt-1">
@@ -937,17 +960,17 @@ export function MemberAreaView({
                                   <button
                                     type="button"
                                     onClick={() => handleCopyResi(order.trackingNumber!)}
-                                    className="inline-flex items-center gap-1 text-[11px] text-espresso-600 hover:text-caramel-600 transition-colors font-medium ml-1"
+                                    className="inline-flex items-center gap-1 text-[11px] text-espresso-600 hover:text-caramel-600 transition-colors font-medium ml-1 cursor-pointer"
                                   >
                                     {copiedResi === order.trackingNumber ? (
                                       <>
                                         <Check className="h-3 w-3 text-emerald-600" />
-                                        <span className="text-emerald-600">Disalin</span>
+                                        <span className="text-emerald-600">{isEn ? "Copied" : "Disalin"}</span>
                                       </>
                                     ) : (
                                       <>
                                         <Copy className="h-3 w-3" />
-                                        <span>Salin</span>
+                                        <span>{isEn ? "Copy" : "Salin"}</span>
                                       </>
                                     )}
                                   </button>
@@ -981,7 +1004,7 @@ export function MemberAreaView({
 
                           {effective?.isCourierSwitched && (
                             <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200/70 rounded px-2 py-0.5 mt-1 inline-block">
-                              Dialihkan ke {effective.courierName} untuk rute pengantaran lebih optimal.
+                              {effective.customerNotice || (isEn ? `Routed via ${effective.courierName} for optimal delivery.` : `Dialihkan ke ${effective.courierName} untuk rute pengantaran lebih optimal.`)}
                             </p>
                           )}
                         </div>
@@ -989,7 +1012,7 @@ export function MemberAreaView({
                         {/* Footer & Tombol Aksi */}
                         <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
                           <div>
-                            <span className="text-xs text-espresso-500">Total Pesanan: </span>
+                            <span className="text-xs text-espresso-500">{isEn ? "Total Amount: " : "Total Pesanan: "}</span>
                             <span className="font-display font-bold text-sm text-espresso-900">
                               {formatCurrency(order.total, currencyConfig)}
                             </span>
@@ -999,7 +1022,7 @@ export function MemberAreaView({
                             {isMidtransPayment(order.paymentMethod) && order.status === "PENDING" && (
                               <MidtransPayButton
                                 orderNo={order.orderNo}
-                                buttonLabel="Lanjutkan Pembayaran"
+                                buttonLabel={isEn ? "Pay Now" : "Lanjutkan Pembayaran"}
                                 variant="secondary"
                                 className="py-2 px-3 text-xs shadow-xs"
                               />
@@ -1010,7 +1033,7 @@ export function MemberAreaView({
                                 href={`/checkout/success/${order.orderNo}`}
                                 className="inline-flex items-center gap-1 rounded-lg bg-caramel-50 px-3 py-2 text-xs font-semibold text-caramel-700 border border-caramel-200 hover:bg-caramel-100 transition-colors"
                               >
-                                Petunjuk Transfer &rarr;
+                                {isEn ? "Bank Instructions →" : "Petunjuk Transfer →"}
                               </Link>
                             )}
 
@@ -1018,7 +1041,7 @@ export function MemberAreaView({
                               href={`/checkout/success/${order.orderNo}`}
                               className="inline-flex items-center gap-1 rounded-lg border border-espresso-200 bg-white px-3.5 py-2 text-xs font-semibold text-espresso-800 hover:bg-espresso-50 transition-colors"
                             >
-                              <span>Rincian Pesanan</span>
+                              <span>{isEn ? "Order Details" : "Rincian Pesanan"}</span>
                               <ArrowRight className="h-3.5 w-3.5" />
                             </Link>
                           </div>
@@ -1035,9 +1058,19 @@ export function MemberAreaView({
                   {/* Keterangan & Show Data di footer */}
                   <div className="flex flex-wrap items-center gap-3 text-xs text-espresso-600">
                     <span>
-                      Menampilkan <strong>{filteredOrders.length > 0 ? startIndex + 1 : 0}</strong> –{" "}
-                      <strong>{Math.min(startIndex + effectivePageSize, filteredOrders.length)}</strong> dari total{" "}
-                      <strong>{filteredOrders.length}</strong> pesanan
+                      {isEn ? (
+                        <>
+                          Showing <strong>{filteredOrders.length > 0 ? startIndex + 1 : 0}</strong> –{" "}
+                          <strong>{Math.min(startIndex + effectivePageSize, filteredOrders.length)}</strong> of{" "}
+                          <strong>{filteredOrders.length}</strong> orders
+                        </>
+                      ) : (
+                        <>
+                          Menampilkan <strong>{filteredOrders.length > 0 ? startIndex + 1 : 0}</strong> –{" "}
+                          <strong>{Math.min(startIndex + effectivePageSize, filteredOrders.length)}</strong> dari total{" "}
+                          <strong>{filteredOrders.length}</strong> pesanan
+                        </>
+                      )}
                     </span>
                     <span className="text-espresso-300">|</span>
                     <div className="flex items-center gap-1.5">
@@ -1064,7 +1097,7 @@ export function MemberAreaView({
                         onClick={() => handlePageChange(validCurrentPage - 1)}
                         disabled={validCurrentPage <= 1}
                         className="flex h-8 w-8 items-center justify-center rounded-lg border border-latte bg-white text-espresso-600 hover:bg-espresso-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                        title="Halaman sebelumnya"
+                        title={isEn ? "Previous page" : "Halaman sebelumnya"}
                       >
                         <ChevronLeft className="h-4 w-4" />
                       </button>
@@ -1100,7 +1133,7 @@ export function MemberAreaView({
                         onClick={() => handlePageChange(validCurrentPage + 1)}
                         disabled={validCurrentPage >= totalPages}
                         className="flex h-8 w-8 items-center justify-center rounded-lg border border-latte bg-white text-espresso-600 hover:bg-espresso-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                        title="Halaman selanjutnya"
+                        title={isEn ? "Next page" : "Halaman selanjutnya"}
                       >
                         <ChevronRight className="h-4 w-4" />
                       </button>
@@ -1119,10 +1152,12 @@ export function MemberAreaView({
               <div className="border-b border-latte pb-4">
                 <h2 className="text-base font-bold text-espresso-900 flex items-center gap-2">
                   <User className="h-5 w-5 text-caramel-600" />
-                  Profil & Alamat Pengiriman Utama
+                  {isEn ? "Profile & Primary Delivery Address" : "Profil & Alamat Pengiriman Utama"}
                 </h2>
                 <p className="mt-1 text-xs text-espresso-500">
-                  Data ini digunakan sebagai alamat tujuan default ketika Anda melakukan pemesanan di Wazzopi.
+                  {isEn
+                    ? "This information is used as your default shipping destination when placing orders at Wazzopi."
+                    : "Data ini digunakan sebagai alamat tujuan default ketika Anda melakukan pemesanan di Wazzopi."}
                 </p>
               </div>
 
@@ -1147,10 +1182,12 @@ export function MemberAreaView({
               <div className="border-b border-latte pb-4">
                 <h2 className="text-base font-bold text-espresso-900 flex items-center gap-2">
                   <ShieldCheck className="h-5 w-5 text-caramel-600" />
-                  Keamanan & Kata Sandi Akun
+                  {isEn ? "Account Security & Password" : "Keamanan & Kata Sandi Akun"}
                 </h2>
                 <p className="mt-1 text-xs text-espresso-500">
-                  Pastikan kata sandi Anda kuat dan tidak dibagikan kepada siapa pun demi keamanan akun belanja Anda.
+                  {isEn
+                    ? "Ensure your password is strong and kept confidential to protect your shopping account."
+                    : "Pastikan kata sandi Anda kuat dan tidak dibagikan kepada siapa pun demi keamanan akun belanja Anda."}
                 </p>
               </div>
 
@@ -1159,10 +1196,24 @@ export function MemberAreaView({
               </div>
 
               <div className="rounded-xl border border-espresso-100 bg-espresso-50/50 p-4 text-xs text-espresso-600 space-y-1.5">
-                <span className="font-bold text-espresso-800 block">Tips Keamanan Akun:</span>
-                <p>• Gunakan minimal 8 karakter dengan kombinasi huruf besar, huruf kecil, dan angka.</p>
-                <p>• Hindari menggunakan tanggal lahir atau kata yang mudah ditebak.</p>
-                <p>• Segera perbarui kata sandi jika Anda merasa ada aktivitas mencurigakan pada akun Anda.</p>
+                <span className="font-bold text-espresso-800 block">
+                  {isEn ? "Account Security Tips:" : "Tips Keamanan Akun:"}
+                </span>
+                <p>
+                  {isEn
+                    ? "• Use at least 8 characters with a mix of uppercase, lowercase letters, and numbers."
+                    : "• Gunakan minimal 8 karakter dengan kombinasi huruf besar, huruf kecil, dan angka."}
+                </p>
+                <p>
+                  {isEn
+                    ? "• Avoid using birthdates or easily guessed words."
+                    : "• Hindari menggunakan tanggal lahir atau kata yang mudah ditebak."}
+                </p>
+                <p>
+                  {isEn
+                    ? "• Update your password immediately if you notice any suspicious activity on your account."
+                    : "• Segera perbarui kata sandi jika Anda merasa ada aktivitas mencurigakan pada akun Anda."}
+                </p>
               </div>
             </div>
           )}

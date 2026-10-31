@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { useAppLoading } from "@/components/loading-provider";
 import { useI18n } from "@/i18n/provider";
+import { getLocalizedCategoryName } from "@/lib/category-i18n";
 import { cn } from "@/lib/utils";
 
 type CategoryItem = {
@@ -54,7 +55,8 @@ export function ProductCategoryFilter({
 }) {
   const router = useRouter();
   const { startTransitionLoading } = useAppLoading();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const isEn = locale === "en";
 
   const handleSelect = (slug?: string, name?: string) => {
     if (slug === activeCategory) return;
@@ -63,7 +65,9 @@ export function ProductCategoryFilter({
       q: currentQuery,
       sort: currentSort,
     });
-    const message = slug ? `Memuat produk ${name}...` : "Memuat semua produk...";
+    const message = slug
+      ? (isEn ? `Loading ${name}...` : `Memuat produk ${name}...`)
+      : (isEn ? "Loading all products..." : "Memuat semua produk...");
     startTransitionLoading(() => {
       router.push(url);
     }, message);
@@ -83,21 +87,24 @@ export function ProductCategoryFilter({
       >
         {t.common.allProducts}
       </button>
-      {categories.map((c) => (
-        <button
-          key={c.id}
-          type="button"
-          onClick={() => handleSelect(c.slug, c.name)}
-          className={cn(
-            "cursor-pointer rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors",
-            activeCategory === c.slug
-              ? "bg-espresso-700 text-cream"
-              : "bg-white text-espresso-700 hover:bg-latte lg:bg-transparent"
-          )}
-        >
-          {c.name}
-        </button>
-      ))}
+      {categories.map((c) => {
+        const localizedName = getLocalizedCategoryName(c.name, c.slug, locale);
+        return (
+          <button
+            key={c.id}
+            type="button"
+            onClick={() => handleSelect(c.slug, localizedName)}
+            className={cn(
+              "cursor-pointer rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors",
+              activeCategory === c.slug
+                ? "bg-espresso-700 text-cream"
+                : "bg-white text-espresso-700 hover:bg-latte lg:bg-transparent"
+            )}
+          >
+            {localizedName}
+          </button>
+        );
+      })}
     </div>
   );
 }

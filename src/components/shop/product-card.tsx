@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Check, ShoppingBag, SlidersHorizontal } from "lucide-react";
 import { useMoney } from "@/components/currency-provider";
 import { useI18n } from "@/i18n/provider";
+import { getLocalizedCategoryName } from "@/lib/category-i18n";
 import { useCart } from "@/store/cart";
 
 export type ProductCardData = {
@@ -47,7 +48,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
     <div className="group flex flex-col">
       <Link
         href={`/products/${product.slug}`}
-        data-loading-message={`Membuka ${product.name}...`}
+        data-loading-message={locale === "en" ? `Opening ${product.name}...` : `Membuka ${product.name}...`}
         className="relative block aspect-square overflow-hidden rounded-xl bg-latte"
       >
         {product.image && (
@@ -72,10 +73,14 @@ export function ProductCard({ product }: { product: ProductCardData }) {
         )}
       </Link>
       <div className="mt-4 flex flex-1 flex-col">
-        {product.category && <p className="text-xs font-medium uppercase tracking-wider text-caramel-500">{product.category}</p>}
+        {product.category && (
+          <p className="text-xs font-medium uppercase tracking-wider text-caramel-500">
+            {getLocalizedCategoryName(product.category, undefined, locale)}
+          </p>
+        )}
         <Link
           href={`/products/${product.slug}`}
-          data-loading-message={`Membuka ${product.name}...`}
+          data-loading-message={locale === "en" ? `Opening ${product.name}...` : `Membuka ${product.name}...`}
           className="mt-1 line-clamp-2 font-display text-base font-medium text-espresso-900 hover:text-caramel-600"
         >
           {product.name}

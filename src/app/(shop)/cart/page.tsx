@@ -68,7 +68,9 @@ export default function CartPage() {
                     {item.name}
                   </Link>
                   {item.variantName && (
-                    <p className="text-xs text-espresso-400">Varian: {item.variantName}</p>
+                    <p className="text-xs text-espresso-400">
+                      {locale === "en" ? "Variant:" : "Varian:"} {item.variantName}
+                    </p>
                   )}
                   <p className="mt-1 text-sm font-semibold text-espresso-800">{money(item.price)}</p>
                 </div>
@@ -77,7 +79,7 @@ export default function CartPage() {
                     <button
                       onClick={() => setQty(item.key, item.quantity - 1)}
                       className="flex h-full w-8 items-center justify-center text-espresso-600 hover:text-espresso-900"
-                      aria-label="Kurangi"
+                      aria-label={locale === "en" ? "Decrease quantity" : "Kurangi"}
                     >
                       <Minus className="h-3.5 w-3.5" />
                     </button>
@@ -85,7 +87,7 @@ export default function CartPage() {
                     <button
                       onClick={() => setQty(item.key, item.quantity + 1)}
                       className="flex h-full w-8 items-center justify-center text-espresso-600 hover:text-espresso-900"
-                      aria-label="Tambah"
+                      aria-label={locale === "en" ? "Increase quantity" : "Tambah"}
                     >
                       <Plus className="h-3.5 w-3.5" />
                     </button>
@@ -96,7 +98,7 @@ export default function CartPage() {
                   <button
                     onClick={() => remove(item.key)}
                     className="rounded-lg p-2 text-espresso-400 hover:bg-rose-50 hover:text-rose-600"
-                    aria-label="Hapus item"
+                    aria-label={locale === "en" ? "Remove item" : "Hapus item"}
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>

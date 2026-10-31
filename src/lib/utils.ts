@@ -21,9 +21,9 @@ export function generateOrderNo(prefix = "WZ") {
   return `${prefix}${ymd}-${rand}`;
 }
 
-export function formatDate(date: Date | string, withTime = false) {
+export function formatDate(date: Date | string, withTime = false, locale: string = "id") {
   const d = typeof date === "string" ? new Date(date) : date;
-  return d.toLocaleDateString("id-ID", {
+  return d.toLocaleDateString(locale === "en" ? "en-US" : "id-ID", {
     timeZone: "Asia/Jakarta",
     day: "2-digit",
     month: "short",
@@ -43,6 +43,20 @@ export const ORDER_STATUS_LABEL: Record<string, string> = {
   COMPLETED: "Selesai",
   CANCELLED: "Dibatalkan",
 };
+
+export const ORDER_STATUS_LABEL_EN: Record<string, string> = {
+  PENDING: "Pending Payment",
+  PAID: "Paid",
+  PROCESSING: "Processing",
+  SHIPPED: "Shipped",
+  COMPLETED: "Completed",
+  CANCELLED: "Cancelled",
+};
+
+export function getOrderStatusLabel(status: string, locale: string = "id"): string {
+  if (locale === "en") return ORDER_STATUS_LABEL_EN[status] || ORDER_STATUS_LABEL[status] || status;
+  return ORDER_STATUS_LABEL[status] || status;
+}
 
 export const ORDER_STATUS_STYLE: Record<string, string> = {
   PENDING: "bg-amber-50 text-amber-800 ring-amber-200",
@@ -73,6 +87,32 @@ export const PAYMENT_LABEL: Record<string, string> = {
   midtrans_credit_card: "Kartu Kredit / Debit",
   midtrans_alfamart: "Gerai Alfamart",
   midtrans_indomaret: "Gerai Indomaret",
-  stripe: "Stripe (International Cards)",
+  stripe: "Kartu Kredit Internasional (Stripe)",
   paypal: "PayPal",
 };
+
+export const PAYMENT_LABEL_EN: Record<string, string> = {
+  bank_transfer: "Manual Bank Transfer",
+  cod: "Cash on Delivery (COD)",
+  midtrans: "Instant Online Payment",
+  midtrans_qris: "QRIS",
+  midtrans_gopay: "GoPay / GoPay Later",
+  midtrans_shopeepay: "ShopeePay / SPayLater",
+  midtrans_bca_va: "BCA Virtual Account",
+  midtrans_mandiri_va: "Mandiri Virtual Account",
+  midtrans_bni_va: "BNI Virtual Account",
+  midtrans_bri_va: "BRI Virtual Account",
+  midtrans_permata_va: "Permata Virtual Account",
+  midtrans_cimb_va: "CIMB Niaga Virtual Account",
+  midtrans_other_va: "Other Banks (Virtual Account)",
+  midtrans_credit_card: "Credit / Debit Card",
+  midtrans_alfamart: "Alfamart Outlet",
+  midtrans_indomaret: "Indomaret Outlet",
+  stripe: "Credit / Debit Card (Stripe)",
+  paypal: "PayPal Checkout",
+};
+
+export function getPaymentLabel(method: string, locale: string = "id"): string {
+  if (locale === "en") return PAYMENT_LABEL_EN[method] || PAYMENT_LABEL[method] || method;
+  return PAYMENT_LABEL[method] || method;
+}

@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 import { formatCurrency } from "@/lib/currency";
 import { getServerDictionary, getServerLocale } from "@/i18n/server";
+import { getLocalizedCategoryName } from "@/lib/category-i18n";
 
 export default async function HomePage() {
   const [slides, featured, latest, categories, settings, dict, locale] = await Promise.all([
@@ -118,7 +119,9 @@ export default async function HomePage() {
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-espresso-900/80 via-espresso-900/10 to-transparent" />
               <div className="absolute inset-x-0 bottom-0 p-4 text-cream">
-                <p className="font-display text-lg font-medium">{c.name}</p>
+                <p className="font-display text-lg font-medium">
+                  {getLocalizedCategoryName(c.name, c.slug, locale)}
+                </p>
                 <p className="mt-0.5 flex items-center gap-1 text-xs text-espresso-100">
                   {c._count.products} {dict.home.itemsCount} <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-1" />
                 </p>

@@ -9,6 +9,7 @@ import { useHydrated } from "@/components/currency-provider";
 import { useAppLoading } from "@/components/loading-provider";
 import { LanguageSwitcher } from "@/components/shop/language-switcher";
 import { useI18n } from "@/i18n/provider";
+import { getLocalizedCategoryName } from "@/lib/category-i18n";
 import { cartCount, useCart } from "@/store/cart";
 import { cn } from "@/lib/utils";
 
@@ -28,7 +29,8 @@ export function SiteHeader({ user, categories, announcement }: Props) {
   const count = hydrated ? cartCount(items) : 0;
 
   const { startTransitionLoading } = useAppLoading();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const isEn = locale === "en";
 
   const nav = [
     { href: "/", label: t.common.home },
@@ -43,7 +45,7 @@ export function SiteHeader({ user, categories, announcement }: Props) {
     setSearchOpen(false);
     startTransitionLoading(() => {
       router.push(`/products?q=${encodeURIComponent(query)}`);
-    }, query ? `Mencari "${query}"...` : "Memuat semua produk...");
+    }, query ? (isEn ? `Searching "${query}"...` : `Mencari "${query}"...`) : (isEn ? "Loading all products..." : "Memuat semua produk..."));
   }
 
   return (
@@ -57,7 +59,7 @@ export function SiteHeader({ user, categories, announcement }: Props) {
       <div className="border-b border-latte bg-cream/95 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 lg:h-20">
           <div className="flex items-center gap-2">
-            <button className="rounded-lg p-2 text-espresso-700 hover:bg-latte lg:hidden" onClick={() => setOpen(true)} aria-label="Buka menu">
+            <button className="rounded-lg p-2 text-espresso-700 hover:bg-latte lg:hidden" onClick={() => setOpen(true)} aria-label={isEn ? "Open menu" : "Buka menu"}>
               <Menu className="h-5 w-5" />
             </button>
             <Logo size="md" />
@@ -68,7 +70,7 @@ export function SiteHeader({ user, categories, announcement }: Props) {
               <Link
                 key={n.href}
                 href={n.href}
-                data-loading-message={`Membuka ${n.label}...`}
+                data-loading-message={isEn ? `Opening ${n.label}...` : `Membuka ${n.label}...`}
                 className={cn(
                   "text-sm font-medium transition-colors hover:text-caramel-500",
                   pathname === n.href ? "text-caramel-500" : "text-espresso-700",
@@ -79,52 +81,55 @@ export function SiteHeader({ user, categories, announcement }: Props) {
             ))}
             <div className="group relative">
               <button className="flex items-center gap-1 text-sm font-medium text-espresso-700 hover:text-caramel-500">
-                Kategori <ChevronDown className="h-4 w-4" />
+                {isEn ? "Categories" : "Kategori"} <ChevronDown className="h-4 w-4" />
               </button>
               <div className="invisible absolute left-1/2 top-full w-56 -translate-x-1/2 pt-3 opacity-0 transition-all group-hover:visible group-hover:opacity-100">
                 <div className="rounded-xl border border-latte bg-white p-2 shadow-lg shadow-espresso-900/5">
-                  {categories.map((c) => (
-                    <Link
-                      key={c.slug}
-                      href={`/products?category=${c.slug}`}
-                      data-loading-message={`Memuat produk ${c.name}...`}
-                      className="block rounded-lg px-3 py-2 text-sm text-espresso-700 hover:bg-cream"
-                    >
-                      {c.name}
-                    </Link>
-                  ))}
+                  {categories.map((c) => {
+                    const localizedCategory = getLocalizedCategoryName(c.name, c.slug, locale);
+                    return (
+                      <Link
+                        key={c.slug}
+                        href={`/products?category=${c.slug}`}
+                        data-loading-message={isEn ? `Loading ${localizedCategory}...` : `Memuat produk ${localizedCategory}...`}
+                        className="block rounded-lg px-3 py-2 text-sm text-espresso-700 hover:bg-cream"
+                      >
+                        {localizedCategory}
+                      </Link>
+                    );
+                  })}
                 </div>
               </div>
             </div>
           </nav>
 
           <div className="flex items-center gap-1">
-            <button onClick={() => setSearchOpen((v) => !v)} className="rounded-lg p-2.5 text-espresso-700 hover:bg-latte" aria-label="Cari">
+            <button onClick={() => setSearchOpen((v) => !v)} className="rounded-lg p-2.5 text-espresso-700 hover:bg-latte" aria-label={isEn ? "Search" : "Cari"}>
               <Search className="h-5 w-5" />
             </button>
             {user && user.role !== "CUSTOMER" ? (
               <Link
                 href="/admin"
-                data-loading-message="Membuka Dashboard Admin..."
+                data-loading-message={isEn ? "Opening Admin Dashboard..." : "Membuka Dashboard Admin..."}
                 className="rounded-lg p-2.5 text-espresso-700 hover:bg-latte"
-                aria-label="Admin panel"
+                aria-label={isEn ? "Admin panel" : "Panel admin"}
               >
                 <LayoutDashboard className="h-5 w-5" />
               </Link>
             ) : (
               <Link
                 href={user ? "/account" : "/login"}
-                data-loading-message={user ? "Membuka Akun Saya..." : "Membuka Halaman Masuk..."}
+                data-loading-message={user ? (isEn ? "Opening My Account..." : "Membuka Akun Saya...") : (isEn ? "Opening Login Page..." : "Membuka Halaman Masuk...")}
                 className="flex items-center gap-2 rounded-lg p-2.5 text-espresso-700 hover:bg-latte"
-                aria-label="Akun"
+                aria-label={isEn ? "Account" : "Akun"}
               >
                 <User className="h-5 w-5" />
-                <span className="hidden max-w-28 truncate text-sm font-medium xl:inline">{user ? user.name.split(" ")[0] : "Masuk"}</span>
+                <span className="hidden max-w-28 truncate text-sm font-medium xl:inline">{user ? user.name.split(" ")[0] : (isEn ? "Log In" : "Masuk")}</span>
               </Link>
             )}
             <Link
               href="/cart"
-              data-loading-message={t.cart.pageTitle ? `Membuka ${t.common.cart}...` : "Opening Cart..."}
+              data-loading-message={isEn ? "Opening Cart..." : "Membuka Keranjang..."}
               className="relative rounded-lg p-2.5 text-espresso-700 hover:bg-latte"
               aria-label={t.common.cart}
             >
@@ -149,10 +154,10 @@ export function SiteHeader({ user, categories, announcement }: Props) {
               <input
                 name="q"
                 autoFocus
-                placeholder="Cari kopi, alat seduh, atau merchandise..."
+                placeholder={isEn ? "Search coffee, brewing gear, or merchandise..." : "Cari kopi, alat seduh, atau merchandise..."}
                 className="flex-1 bg-transparent text-base text-espresso-900 placeholder:text-espresso-300 focus:outline-none"
               />
-              <button type="button" onClick={() => setSearchOpen(false)} className="rounded-lg p-2 hover:bg-latte" aria-label="Tutup">
+              <button type="button" onClick={() => setSearchOpen(false)} className="rounded-lg p-2 hover:bg-latte" aria-label={isEn ? "Close" : "Tutup"}>
                 <X className="h-4 w-4" />
               </button>
             </form>
@@ -167,7 +172,7 @@ export function SiteHeader({ user, categories, announcement }: Props) {
           <div className="absolute inset-y-0 left-0 flex w-80 max-w-[85%] flex-col bg-cream p-5">
             <div className="mb-6 flex items-center justify-between">
               <Logo size="sm" />
-              <button onClick={() => setOpen(false)} className="rounded-lg p-2 hover:bg-latte" aria-label="Tutup menu">
+              <button onClick={() => setOpen(false)} className="rounded-lg p-2 hover:bg-latte" aria-label={isEn ? "Close menu" : "Tutup menu"}>
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -176,28 +181,35 @@ export function SiteHeader({ user, categories, announcement }: Props) {
                 <Link
                   key={n.href}
                   href={n.href}
-                  data-loading-message={`Membuka ${n.label}...`}
+                  data-loading-message={isEn ? `Opening ${n.label}...` : `Membuka ${n.label}...`}
                   onClick={() => setOpen(false)}
                   className="block rounded-lg px-3 py-2.5 font-medium text-espresso-800 hover:bg-latte"
                 >
                   {n.label}
                 </Link>
               ))}
-              <p className="px-3 pb-1 pt-4 text-xs font-semibold uppercase tracking-wider text-espresso-400">Kategori</p>
-              {categories.map((c) => (
-                <Link
-                  key={c.slug}
-                  href={`/products?category=${c.slug}`}
-                  data-loading-message={`Memuat produk ${c.name}...`}
-                  onClick={() => setOpen(false)}
-                  className="block rounded-lg px-3 py-2 text-sm text-espresso-700 hover:bg-latte"
-                >
-                  {c.name}
-                </Link>
-              ))}
+              <p className="px-3 pb-1 pt-4 text-xs font-semibold uppercase tracking-wider text-espresso-400">
+                {isEn ? "Categories" : "Kategori"}
+              </p>
+              {categories.map((c) => {
+                const localizedCategory = getLocalizedCategoryName(c.name, c.slug, locale);
+                return (
+                  <Link
+                    key={c.slug}
+                    href={`/products?category=${c.slug}`}
+                    data-loading-message={isEn ? `Loading ${localizedCategory}...` : `Memuat produk ${localizedCategory}...`}
+                    onClick={() => setOpen(false)}
+                    className="block rounded-lg px-3 py-2 text-sm text-espresso-700 hover:bg-latte"
+                  >
+                    {localizedCategory}
+                  </Link>
+                );
+              })}
 
               <div className="pt-4 mt-4 border-t border-latte">
-                <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-espresso-400">Language / Bahasa</p>
+                <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-espresso-400">
+                  {isEn ? "Language" : "Bahasa"}
+                </p>
                 <div className="px-3">
                   <LanguageSwitcher />
                 </div>
