@@ -11,6 +11,7 @@ const profileSchema = z.object({
   name: z.string().trim().min(2, "Nama minimal 2 karakter"),
   phone: z.string().trim().optional(),
   address: z.string().trim().optional(),
+  country: z.string().trim().optional(),
   city: z.string().trim().optional(),
   province: z.string().trim().optional(),
   postalCode: z.string().trim().optional(),
@@ -20,7 +21,17 @@ export async function updateProfile(_: FormState, formData: FormData): Promise<F
   const session = await requireCustomer();
   const parsed = profileSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
-  const user = await prisma.user.update({ where: { id: session.id }, data: parsed.data });
+  const { country, ...userData } = parsed.data;
+  const effectiveProvince = country && country !== "Indonesia" && userData.province
+    ? `${userData.province}, ${country}`
+    : userData.province;
+  const user = await prisma.user.update({
+    where: { id: session.id },
+    data: {
+      ...userData,
+      province: effectiveProvince,
+    },
+  });
   await createSession({ ...session, name: user.name });
   revalidatePath("/account");
   return { success: "Profil berhasil diperbarui" };

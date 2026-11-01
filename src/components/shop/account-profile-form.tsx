@@ -43,6 +43,7 @@ export function AccountProfileForm({ user }: { user: UserProps }) {
 
       <div>
         <CityProvinceSelector
+          showCountry={true}
           defaultCity={user.city || ""}
           defaultProvince={user.province || ""}
           defaultPostalCode={user.postalCode || ""}

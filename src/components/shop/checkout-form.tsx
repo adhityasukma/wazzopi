@@ -72,6 +72,7 @@ export function CheckoutForm({
     email: customer?.email || "",
     phone: customer?.phone || "",
     address: customer?.address || "",
+    country: "Indonesia",
     city: customer?.city || "",
     province: customer?.province || "",
     postalCode: customer?.postalCode || "",
@@ -103,13 +104,14 @@ export function CheckoutForm({
   );
 
   // Handler saat pemilihan kota berubah di CityProvinceSelector
-  const handleDestinationChange = (data: { city: string; province: string; postalCode?: string }) => {
-    setDestination(data);
+  const handleDestinationChange = (data: { city: string; province: string; postalCode?: string; country?: string }) => {
+    setDestination({ city: data.city, province: data.province });
     setFormData((prev) => ({
       ...prev,
       city: data.city,
       province: data.province,
       postalCode: data.postalCode ?? prev.postalCode,
+      country: data.country ?? prev.country,
     }));
     if (data.city && data.city.trim()) {
       // Auto-select kurir pertama otomatis jika bukan pickup
@@ -324,6 +326,7 @@ export function CheckoutForm({
                 </p>
                 <p className="font-semibold text-espresso-800">
                   {formData.city}, {formData.province} {formData.postalCode}
+                  {formData.country && formData.country !== "Indonesia" ? ` (${formData.country})` : ""}
                 </p>
                 <p className="text-[11px] text-espresso-400 pt-0.5">
                   {isLoggedIn ? (isEn ? "Account Email:" : "Email akun:") : "Email:"} {customer?.email || formData.email}
@@ -335,6 +338,7 @@ export function CheckoutForm({
               <input type="hidden" name="customerEmail" value={customer?.email || formData.email} />
               <input type="hidden" name="customerPhone" value={formData.phone} />
               <input type="hidden" name="address" value={formData.address} />
+              <input type="hidden" name="country" value={formData.country || "Indonesia"} />
               <input type="hidden" name="city" value={formData.city} />
               <input type="hidden" name="province" value={formData.province} />
               <input type="hidden" name="postalCode" value={formData.postalCode} />
@@ -414,6 +418,8 @@ export function CheckoutForm({
                 </Field>
                 <div className="sm:col-span-2">
                   <CityProvinceSelector
+                    showCountry={true}
+                    defaultCountry={formData.country || "Indonesia"}
                     defaultCity={formData.city}
                     defaultProvince={formData.province}
                     defaultPostalCode={formData.postalCode}
@@ -421,6 +427,7 @@ export function CheckoutForm({
                     postalCodeRequired={true}
                     required
                     onChange={handleDestinationChange}
+                    onCountryChange={(c) => setFormData((prev) => ({ ...prev, country: c }))}
                     onPostalCodeChange={(code) => setFormData((prev) => ({ ...prev, postalCode: code }))}
                   />
                 </div>

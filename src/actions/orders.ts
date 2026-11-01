@@ -28,6 +28,7 @@ const checkoutSchema = z.object({
   customerEmail: z.string().trim().email("Email tidak valid"),
   customerPhone: z.string().trim().min(8, "Nomor telepon tidak valid"),
   address: z.string().trim().min(5, "Alamat wajib diisi"),
+  country: z.string().trim().optional(),
   city: z.string().trim().min(2, "Kota wajib diisi"),
   province: z.string().trim().min(2, "Provinsi wajib diisi"),
   postalCode: z.string().trim().min(4, "Kode pos wajib diisi"),
@@ -140,6 +141,9 @@ export async function placeOrder(_: FormState, formData: FormData): Promise<Form
 
   const orderNo = generateOrderNo(settings.other.orderPrefix || "WZ");
   const userLocale = await getServerLocale();
+  const effectiveProvince = d.country && d.country !== "Indonesia"
+    ? `${d.province}, ${d.country}`
+    : d.province;
   const baseNotes = [d.notes, codFee ? `Biaya COD: ${codFee}` : "", tax ? `Pajak: ${tax}` : ""].filter(Boolean).join(" | ");
   const extraNotes = baseNotes ? `${baseNotes}\n[LANG:${userLocale}]` : `[LANG:${userLocale}]`;
 
@@ -184,7 +188,7 @@ export async function placeOrder(_: FormState, formData: FormData): Promise<Form
           phone: d.customerPhone,
           address: d.address,
           city: d.city,
-          province: d.province,
+          province: effectiveProvince,
           postalCode: d.postalCode,
         },
       });
@@ -215,7 +219,7 @@ export async function placeOrder(_: FormState, formData: FormData): Promise<Form
         customerPhone: d.customerPhone,
         address: d.address,
         city: d.city,
-        province: d.province,
+        province: effectiveProvince,
         postalCode: d.postalCode,
         notes: extraNotes || null,
         shippingMethod: shippingName,
@@ -244,7 +248,7 @@ export async function placeOrder(_: FormState, formData: FormData): Promise<Form
         data: {
           address: d.address,
           city: d.city,
-          province: d.province,
+          province: effectiveProvince,
           postalCode: d.postalCode,
           phone: user.phone || d.customerPhone,
         },
@@ -298,7 +302,7 @@ export async function placeOrder(_: FormState, formData: FormData): Promise<Form
         total: l.total,
       })),
       totalAmount: total,
-      shippingAddress: `${d.address}, ${d.city}, ${d.province} ${d.postalCode}`,
+      shippingAddress: `${d.address}, ${d.city}, ${effectiveProvince} ${d.postalCode}`,
       shippingMethod: shippingName,
       paymentMethod: d.paymentMethod,
       bankAccounts: settings.payment.bankTransfer.accounts,
@@ -325,7 +329,7 @@ export async function placeOrder(_: FormState, formData: FormData): Promise<Form
         total: l.total,
       })),
       totalAmount: total,
-      shippingAddress: `${d.address}, ${d.city}, ${d.province} ${d.postalCode}`,
+      shippingAddress: `${d.address}, ${d.city}, ${effectiveProvince} ${d.postalCode}`,
       shippingMethod: shippingName,
       paymentMethod: d.paymentMethod,
       storeName: settings.general.storeName,
