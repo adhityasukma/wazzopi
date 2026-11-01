@@ -42,7 +42,21 @@ export type PaymentSettings = {
   };
 };
 
-export type ShippingMethod = { id: string; name: string; cost: number; etd: string; enabled: boolean };
+export type ShippingCountryScope = "ALL" | "DOMESTIC" | "INTERNATIONAL" | "SPECIFIC";
+export type ShippingCityScope = "ALL" | "SAME_CITY" | "SPECIFIC";
+
+export type ShippingMethod = {
+  id: string;
+  name: string;
+  cost: number;
+  etd: string;
+  enabled: boolean;
+  countryScope?: ShippingCountryScope;
+  targetCountry?: string;
+  cityScope?: ShippingCityScope;
+  targetCity?: string;
+  targetProvince?: string;
+};
 
 export type ShippingSettings = {
   originCity: string;
@@ -142,10 +156,11 @@ export const DEFAULT_SETTINGS: AllSettings = {
     originPostalCode: "",
     useCustomOrigin: false,
     methods: [
-      { id: "jne-reg", name: "JNE Reguler", cost: 18000, etd: "2-3 hari", enabled: true },
-      { id: "jnt-ez", name: "J&T Express", cost: 17000, etd: "2-3 hari", enabled: true },
-      { id: "sicepat-best", name: "SiCepat BEST", cost: 25000, etd: "1 hari", enabled: true },
-      { id: "gosend", name: "GoSend Same Day", cost: 30000, etd: "Hari yang sama", enabled: false },
+      { id: "jne-reg", name: "JNE Reguler", cost: 18000, etd: "2-3 hari", enabled: true, countryScope: "DOMESTIC", cityScope: "ALL" },
+      { id: "jnt-ez", name: "J&T Express", cost: 17000, etd: "2-3 hari", enabled: true, countryScope: "DOMESTIC", cityScope: "ALL" },
+      { id: "sicepat-best", name: "SiCepat BEST", cost: 25000, etd: "1 hari", enabled: true, countryScope: "DOMESTIC", cityScope: "ALL" },
+      { id: "gosend", name: "GoSend Same Day", cost: 30000, etd: "Hari yang sama", enabled: false, countryScope: "DOMESTIC", cityScope: "SAME_CITY" },
+      { id: "dhl-express", name: "DHL Express International", cost: 350000, etd: "3-5 days", enabled: true, countryScope: "INTERNATIONAL", cityScope: "ALL" },
     ],
     freeShippingEnabled: true,
     freeShippingMin: 300000,

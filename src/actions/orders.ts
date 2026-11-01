@@ -125,7 +125,11 @@ export async function placeOrder(_: FormState, formData: FormData): Promise<Form
       settings.shipping.methods,
       d.city,
       d.province,
-      lines.map((l) => ({ name: l.productName, variantName: l.variantName, quantity: l.quantity }))
+      lines.map((l) => ({ name: l.productName, variantName: l.variantName, quantity: l.quantity })),
+      {
+        destinationCountry: d.country,
+        originCity: settings.shipping.originCity,
+      }
     );
     const m = dynamicMethods.find((x) => x.id === d.shippingMethod && x.enabled);
     if (!m) return { error: "Metode pengiriman tidak tersedia" };
@@ -140,7 +144,11 @@ export async function placeOrder(_: FormState, formData: FormData): Promise<Form
   const total = subtotal + shippingCost + codFee + tax;
 
   const orderNo = generateOrderNo(settings.other.orderPrefix || "WZ");
-  const userLocale = await getServerLocale();
+  const rawLocale = String(formData.get("locale") || "").trim().toLowerCase();
+  const userLocale: "en" | "id" =
+    rawLocale === "en" || rawLocale === "id"
+      ? (rawLocale as "en" | "id")
+      : await getServerLocale();
   const effectiveProvince = d.country && d.country !== "Indonesia"
     ? `${d.province}, ${d.country}`
     : d.province;

@@ -194,18 +194,130 @@ export function getShippingZone(
   };
 }
 
+export type ShippingCalculationOptions = {
+  destinationCountry?: string;
+  originCity?: string;
+};
+
 /**
- * Menghitung tarif kurir dinamis berdasarkan kota tujuan dan berat belanjaan
+ * Memeriksa apakah suatu metode kurir melayani negara tujuan
+ */
+export function isCourierEligibleForCountry(
+  m: ShippingMethod,
+  destinationCountry?: string
+): boolean {
+  const normCountry = (destinationCountry || "Indonesia").toLowerCase().trim();
+  const isDomestic =
+    normCountry === "indonesia" ||
+    normCountry === "id" ||
+    normCountry === "" ||
+    normCountry === "indonesian";
+
+  const scope = m.countryScope || "DOMESTIC";
+
+  if (scope === "ALL") return true;
+  if (scope === "DOMESTIC") return isDomestic;
+  if (scope === "INTERNATIONAL") return !isDomestic;
+  if (scope === "SPECIFIC") {
+    if (!m.targetCountry || !m.targetCountry.trim()) return true;
+    const target = m.targetCountry.toLowerCase().trim();
+    return normCountry.includes(target) || target.includes(normCountry);
+  }
+  return true;
+}
+
+/**
+ * Memeriksa apakah suatu metode kurir melayani kota / provinsi tujuan
+ */
+export function isCourierEligibleForCity(
+  m: ShippingMethod,
+  destinationCity?: string,
+  destinationProvince?: string,
+  originCity?: string
+): boolean {
+  const scope = m.cityScope || "ALL";
+  if (scope === "ALL") return true;
+
+  const normCity = (destinationCity || "").toLowerCase().trim();
+  const normProv = (destinationProvince || "").toLowerCase().trim();
+  const normOrigin = (originCity || "Bandung").toLowerCase().trim();
+
+  // Jika kota belum dipilih sama sekali di form checkout, jangan langsung tolak agar tetap terlihat
+  if (!normCity) return true;
+
+  if (scope === "SAME_CITY") {
+    // Jika kota asal Bandung, mencakup Bandung Raya & Cimahi
+    if (normOrigin.includes("bandung") || !normOrigin) {
+      return normCity.includes("bandung") || normCity.includes("cimahi");
+    }
+    return normCity.includes(normOrigin) || normOrigin.includes(normCity);
+  }
+
+  if (scope === "SPECIFIC") {
+    let matches = true;
+    if (m.targetCity && m.targetCity.trim()) {
+      const targetCity = m.targetCity.toLowerCase().trim();
+      matches = matches && (normCity.includes(targetCity) || targetCity.includes(normCity));
+    }
+    if (m.targetProvince && m.targetProvince.trim()) {
+      const targetProv = m.targetProvince.toLowerCase().trim();
+      matches = matches && (normProv.includes(targetProv) || targetProv.includes(normProv));
+    }
+    return matches;
+  }
+
+  return true;
+}
+
+/**
+ * Menghitung tarif kurir dinamis berdasarkan negara, kota tujuan, dan berat belanjaan
  */
 export function calculateDynamicRates(
   methods: ShippingMethod[],
   destinationCity: string,
   destinationProvince: string,
-  items: CartItemWeightLike[]
+  items: CartItemWeightLike[],
+  options?: ShippingCalculationOptions
 ): CalculatedRate[] {
-  // Jika kota belum dipilih sama sekali, gunakan tarif default admin
+  const destCountry = options?.destinationCountry || "Indonesia";
+  const originCity = options?.originCity || "";
+  const normCountry = destCountry.toLowerCase().trim();
+  const isDomestic =
+    normCountry === "indonesia" ||
+    normCountry === "id" ||
+    normCountry === "" ||
+    normCountry === "indonesian";
+
+  // Filter metode kurir berdasarkan cakupan negara & kota/provinsi tujuan
+  const eligibleMethods = (methods || []).filter((m) => {
+    const countryOk = isCourierEligibleForCountry(m, destCountry);
+    const cityOk = isCourierEligibleForCity(m, destinationCity, destinationProvince, originCity);
+    return countryOk && cityOk;
+  });
+
+  const { chargeableKg } = estimateCartWeight(items);
+
+  // Jika pengiriman internasional (ke luar Indonesia)
+  if (!isDomestic) {
+    return eligibleMethods.map((m) => {
+      const baseRate = m.cost > 0 ? m.cost : 350000;
+      const totalCost = baseRate * chargeableKg;
+      return {
+        id: m.id,
+        name: m.name,
+        cost: totalCost,
+        baseRatePerKg: baseRate,
+        etd: m.etd || "3-7 business days",
+        isDynamic: true,
+        enabled: m.enabled,
+        zoneLabel: `International (${destCountry})`,
+      };
+    });
+  }
+
+  // Jika pengiriman domestik tetapi kota belum dipilih sama sekali, gunakan tarif default admin
   if (!destinationCity || !destinationCity.trim()) {
-    return methods.map((m) => ({
+    return eligibleMethods.map((m) => ({
       id: m.id,
       name: m.name,
       cost: m.cost,
@@ -217,10 +329,9 @@ export function calculateDynamicRates(
     }));
   }
 
-  const { chargeableKg } = estimateCartWeight(items);
   const zone = getShippingZone(destinationCity, destinationProvince);
 
-  return methods.map((m) => {
+  return eligibleMethods.map((m) => {
     const idLower = m.id.toLowerCase();
     const nameLower = m.name.toLowerCase();
 

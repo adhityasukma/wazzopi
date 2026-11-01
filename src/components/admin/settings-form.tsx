@@ -180,7 +180,18 @@ export function SettingsForm({
   function addShippingMethod() {
     setShippingMethods((prev) => [
       ...prev,
-      { id: `method-${Date.now()}`, name: "", cost: 20000, etd: "2-3 hari", enabled: true },
+      {
+        id: `method-${Date.now()}`,
+        name: "",
+        cost: 20000,
+        etd: "2-3 hari",
+        enabled: true,
+        countryScope: "DOMESTIC",
+        targetCountry: "",
+        cityScope: "ALL",
+        targetCity: "",
+        targetProvince: "",
+      },
     ]);
   }
 
@@ -1964,48 +1975,127 @@ export function SettingsForm({
                 </label>
 
                 {shippingMethods.map((m, i) => (
-                  <div key={m.id} className="flex flex-wrap items-center gap-2 rounded-lg bg-cream/40 p-3">
-                    <div className="flex-1 min-w-36">
-                      <Input
-                        placeholder={isEn ? "Courier Name (JNE Regular)" : "Nama Kurir (JNE Reguler)"}
-                        value={m.name}
-                        onChange={(e) => updateShippingField(i, "name", e.target.value)}
-                        className="h-8 text-xs"
-                      />
+                  <div key={m.id} className="rounded-xl border border-latte/80 bg-cream/40 p-3.5 space-y-3">
+                    {/* Baris Atas: Nama Kurir, Tarif, Estimasi, Checkbox Aktif, Tombol Hapus */}
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <div className="flex-1 min-w-44">
+                        <Input
+                          placeholder={isEn ? "Courier Name (e.g. JNE Reguler / DHL Express)" : "Nama Kurir (cth: JNE Reguler / DHL Express)"}
+                          value={m.name}
+                          onChange={(e) => updateShippingField(i, "name", e.target.value)}
+                          className="h-8.5 text-xs font-medium"
+                        />
+                      </div>
+                      <div className="w-32">
+                        <Input
+                          placeholder={isEn ? "Fee / Base (IDR)" : "Tarif / Dasar (IDR)"}
+                          type="number"
+                          value={m.cost}
+                          onChange={(e) => updateShippingField(i, "cost", Number(e.target.value))}
+                          className="h-8.5 text-xs"
+                        />
+                      </div>
+                      <div className="w-32">
+                        <Input
+                          placeholder={isEn ? "Estimate (e.g. 2-3 days)" : "Estimasi (cth: 2-3 hari)"}
+                          value={m.etd}
+                          onChange={(e) => updateShippingField(i, "etd", e.target.value)}
+                          className="h-8.5 text-xs"
+                        />
+                      </div>
+                      <label className="flex items-center gap-1.5 text-xs font-semibold text-espresso-700 cursor-pointer bg-white/70 px-2.5 py-1.5 rounded-lg border border-latte/60">
+                        <input
+                          type="checkbox"
+                          checked={m.enabled}
+                          onChange={(e) => updateShippingField(i, "enabled", e.target.checked)}
+                          className="rounded border-espresso-300 text-caramel-600 focus:ring-caramel-500 h-3.5 w-3.5"
+                        />
+                        {isEn ? "Active" : "Aktif"}
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => removeShippingMethod(i)}
+                        className="rounded-lg p-1.5 text-rose-500 hover:bg-rose-50 hover:text-rose-700 transition-colors"
+                        title={isEn ? "Delete Courier" : "Hapus Kurir"}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
-                    <div className="w-28">
-                      <Input
-                        placeholder={isEn ? "Fee (IDR)" : "Tarif (IDR)"}
-                        type="number"
-                        value={m.cost}
-                        onChange={(e) => updateShippingField(i, "cost", Number(e.target.value))}
-                        className="h-8 text-xs"
-                      />
+
+                    {/* Baris Bawah: Pengaturan Filter Jangkauan Wilayah (Country, City, Province Scope) */}
+                    <div className="pt-2 border-t border-latte/60 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 bg-white/60 p-2.5 rounded-lg">
+                      <div>
+                        <label className="text-[10px] font-bold text-espresso-600 uppercase tracking-wider block mb-1">
+                          {isEn ? "Country Scope" : "Jangkauan Negara"}
+                        </label>
+                        <select
+                          value={m.countryScope || "DOMESTIC"}
+                          onChange={(e) => updateShippingField(i, "countryScope", e.target.value)}
+                          className="w-full h-8 text-xs rounded-md border border-latte bg-white px-2 py-1 text-espresso-800 focus:outline-hidden focus:ring-1 focus:ring-caramel-500 font-medium"
+                        >
+                          <option value="DOMESTIC">{isEn ? "Domestic (Indonesia Only)" : "Domestik (Indonesia Saja)"}</option>
+                          <option value="INTERNATIONAL">{isEn ? "International (Outside Indonesia)" : "Internasional (Luar Indonesia)"}</option>
+                          <option value="ALL">{isEn ? "All Countries (Global)" : "Semua Negara (Global)"}</option>
+                          <option value="SPECIFIC">{isEn ? "Specific Country" : "Negara Tertentu"}</option>
+                        </select>
+                      </div>
+
+                      {m.countryScope === "SPECIFIC" && (
+                        <div>
+                          <label className="text-[10px] font-bold text-espresso-600 uppercase tracking-wider block mb-1">
+                            {isEn ? "Target Country" : "Nama Negara Target"}
+                          </label>
+                          <Input
+                            placeholder={isEn ? "e.g. Singapore, Malaysia" : "cth: Singapore, Malaysia"}
+                            value={m.targetCountry || ""}
+                            onChange={(e) => updateShippingField(i, "targetCountry", e.target.value)}
+                            className="h-8 text-xs"
+                          />
+                        </div>
+                      )}
+
+                      <div>
+                        <label className="text-[10px] font-bold text-espresso-600 uppercase tracking-wider block mb-1">
+                          {isEn ? "City / Zone Scope" : "Jangkauan Kota"}
+                        </label>
+                        <select
+                          value={m.cityScope || "ALL"}
+                          onChange={(e) => updateShippingField(i, "cityScope", e.target.value)}
+                          className="w-full h-8 text-xs rounded-md border border-latte bg-white px-2 py-1 text-espresso-800 focus:outline-hidden focus:ring-1 focus:ring-caramel-500 font-medium"
+                        >
+                          <option value="ALL">{isEn ? "All Cities (Nationwide / Any)" : "Semua Kota (Bebas / Nasional)"}</option>
+                          <option value="SAME_CITY">{isEn ? "Same City Only (Instant / Sameday)" : "Satu Kota Saja (Instant / Sameday)"}</option>
+                          <option value="SPECIFIC">{isEn ? "Specific City / Province" : "Kota / Provinsi Tertentu"}</option>
+                        </select>
+                      </div>
+
+                      {m.cityScope === "SPECIFIC" && (
+                        <>
+                          <div>
+                            <label className="text-[10px] font-bold text-espresso-600 uppercase tracking-wider block mb-1">
+                              {isEn ? "Target City" : "Target Kota"}
+                            </label>
+                            <Input
+                              placeholder={isEn ? "e.g. Bandung / Tangerang" : "cth: Bandung / Tangerang"}
+                              value={m.targetCity || ""}
+                              onChange={(e) => updateShippingField(i, "targetCity", e.target.value)}
+                              className="h-8 text-xs"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold text-espresso-600 uppercase tracking-wider block mb-1">
+                              {isEn ? "Target Province (Optional)" : "Target Provinsi (Opsional)"}
+                            </label>
+                            <Input
+                              placeholder={isEn ? "e.g. Jawa Barat" : "cth: Jawa Barat"}
+                              value={m.targetProvince || ""}
+                              onChange={(e) => updateShippingField(i, "targetProvince", e.target.value)}
+                              className="h-8 text-xs"
+                            />
+                          </div>
+                        </>
+                      )}
                     </div>
-                    <div className="w-28">
-                      <Input
-                        placeholder={isEn ? "Estimate (2-3 days)" : "Estimasi (2-3 hari)"}
-                        value={m.etd}
-                        onChange={(e) => updateShippingField(i, "etd", e.target.value)}
-                        className="h-8 text-xs"
-                      />
-                    </div>
-                    <label className="flex items-center gap-1.5 text-xs text-espresso-700 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={m.enabled}
-                        onChange={(e) => updateShippingField(i, "enabled", e.target.checked)}
-                        className="rounded border-espresso-300 text-caramel-600 focus:ring-caramel-500 h-3.5 w-3.5"
-                      />
-                      Aktif
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => removeShippingMethod(i)}
-                      className="rounded p-1 text-rose-500 hover:bg-rose-50"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
                   </div>
                 ))}
 

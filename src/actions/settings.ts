@@ -129,7 +129,16 @@ export async function saveShipping(_: FormState, f: FormData): Promise<FormState
   try {
     methods = (JSON.parse(String(f.get("methods") || "[]")) as ShippingMethod[])
       .filter((m) => m.name)
-      .map((m) => ({ ...m, id: m.id || m.name.toLowerCase().replace(/[^a-z0-9]+/g, "-"), cost: Number(m.cost) || 0 }));
+      .map((m) => ({
+        ...m,
+        id: m.id || m.name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+        cost: Number(m.cost) || 0,
+        countryScope: m.countryScope || "DOMESTIC",
+        targetCountry: m.targetCountry || "",
+        cityScope: m.cityScope || "ALL",
+        targetCity: m.targetCity || "",
+        targetProvince: m.targetProvince || "",
+      }));
   } catch {
     return { error: "Data kurir tidak valid" };
   }

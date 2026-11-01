@@ -92,9 +92,20 @@ export function CheckoutForm({
       settings.shipping.methods,
       destination.city,
       destination.province,
-      items
+      items,
+      {
+        destinationCountry: formData.country || "Indonesia",
+        originCity: settings.shipping.originCity,
+      }
     );
-  }, [settings.shipping.methods, destination.city, destination.province, items]);
+  }, [
+    settings.shipping.methods,
+    destination.city,
+    destination.province,
+    items,
+    formData.country,
+    settings.shipping.originCity,
+  ]);
 
   const enabledShippings = dynamicShippings.filter((m) => m.enabled);
 
@@ -106,12 +117,13 @@ export function CheckoutForm({
   // Handler saat pemilihan kota berubah di CityProvinceSelector
   const handleDestinationChange = (data: { city: string; province: string; postalCode?: string; country?: string }) => {
     setDestination({ city: data.city, province: data.province });
+    const targetCountry = data.country ?? formData.country ?? "Indonesia";
     setFormData((prev) => ({
       ...prev,
       city: data.city,
       province: data.province,
       postalCode: data.postalCode ?? prev.postalCode,
-      country: data.country ?? prev.country,
+      country: targetCountry,
     }));
     if (data.city && data.city.trim()) {
       // Auto-select kurir pertama otomatis jika bukan pickup
@@ -119,7 +131,11 @@ export function CheckoutForm({
         settings.shipping.methods,
         data.city,
         data.province,
-        items
+        items,
+        {
+          destinationCountry: targetCountry,
+          originCity: settings.shipping.originCity,
+        }
       );
       const firstEnabled = rates.find((m) => m.enabled);
       if (firstEnabled && selectedShipping !== "pickup") {
@@ -133,15 +149,15 @@ export function CheckoutForm({
     }
   };
 
-  // Jika opsi kurir berubah dan kurir yang dipilih tidak tersedia (cth: GoSend di luar kota)
+  // Jika opsi kurir berubah dan kurir yang dipilih tidak tersedia (cth: GoSend di luar kota / kurir non-internasional)
   useEffect(() => {
-    if (hasSelectedCity && selectedShipping && selectedShipping !== "pickup") {
+    if (selectedShipping && selectedShipping !== "pickup") {
       const exists = enabledShippings.some((m) => m.id === selectedShipping);
-      if (!exists && enabledShippings.length > 0) {
-        setSelectedShipping(enabledShippings[0].id);
+      if (!exists) {
+        setSelectedShipping(enabledShippings[0]?.id || "");
       }
     }
-  }, [enabledShippings, selectedShipping, hasSelectedCity]);
+  }, [enabledShippings, selectedShipping]);
 
   const paymentOptions = useMemo(() => {
     const list: Array<{
@@ -270,7 +286,8 @@ export function CheckoutForm({
 
   return (
     <form action={formAction}>
-      {/* Hidden input data items cart */}
+      {/* Hidden input data items cart & locale */}
+      <input type="hidden" name="locale" value={locale} />
       <input
         type="hidden"
         name="items"
