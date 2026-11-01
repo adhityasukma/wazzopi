@@ -59,11 +59,12 @@ export function estimateCartWeight(items: CartItemWeightLike[]): {
 export type ShippingZoneInfo = {
   zoneKey: string;
   label: string;
+  labelEn: string;
   multiplier: number;
 };
 
 /**
- * Menentukan zona pengiriman dari Kota Asal (Bandung) ke Kota Tujuan
+ * Menentukan zona pengiriman dari Kota Asal ke Kota Tujuan
  */
 export function getShippingZone(
   destinationCity: string,
@@ -80,6 +81,7 @@ export function getShippingZone(
     return {
       zoneKey: "LOCAL",
       label: "Lokal Bandung Raya & Cimahi",
+      labelEn: "Local Bandung Area & Cimahi",
       multiplier: 1.0,
     };
   }
@@ -93,6 +95,7 @@ export function getShippingZone(
     return {
       zoneKey: "JABAR_JABODETABEK",
       label: "Jawa Barat, Banten & Jabodetabek",
+      labelEn: "West Java, Banten & Greater Jakarta",
       multiplier: 1.25,
     };
   }
@@ -105,6 +108,7 @@ export function getShippingZone(
     return {
       zoneKey: "JATENG_DIY",
       label: "Jawa Tengah & D.I. Yogyakarta",
+      labelEn: "Central Java & Yogyakarta",
       multiplier: 1.9,
     };
   }
@@ -114,6 +118,7 @@ export function getShippingZone(
     return {
       zoneKey: "JATIM",
       label: "Jawa Timur",
+      labelEn: "East Java",
       multiplier: 2.1,
     };
   }
@@ -123,6 +128,7 @@ export function getShippingZone(
     return {
       zoneKey: "BALI_NTB",
       label: "Bali & Nusa Tenggara Barat",
+      labelEn: "Bali & West Nusa Tenggara",
       multiplier: 2.9,
     };
   }
@@ -138,6 +144,7 @@ export function getShippingZone(
     return {
       zoneKey: "SUMATERA_SELATAN",
       label: "Sumatera Bagian Selatan",
+      labelEn: "Southern Sumatra",
       multiplier: 2.4,
     };
   }
@@ -151,6 +158,7 @@ export function getShippingZone(
     return {
       zoneKey: "SUMATERA_UTARA",
       label: "Sumatera Bagian Tengah & Utara",
+      labelEn: "Central & Northern Sumatra",
       multiplier: 3.8,
     };
   }
@@ -160,6 +168,7 @@ export function getShippingZone(
     return {
       zoneKey: "KALIMANTAN",
       label: "Pulau Kalimantan",
+      labelEn: "Kalimantan (Borneo)",
       multiplier: 4.0,
     };
   }
@@ -169,6 +178,7 @@ export function getShippingZone(
     return {
       zoneKey: "SULAWESI",
       label: "Pulau Sulawesi",
+      labelEn: "Sulawesi (Celebes)",
       multiplier: 4.2,
     };
   }
@@ -182,6 +192,7 @@ export function getShippingZone(
     return {
       zoneKey: "EAST_INDONESIA",
       label: "Indonesia Bagian Timur",
+      labelEn: "Eastern Indonesia",
       multiplier: 7.5,
     };
   }
@@ -190,6 +201,7 @@ export function getShippingZone(
   return {
     zoneKey: "DEFAULT",
     label: "Antar Kota Domestik",
+    labelEn: "Intercity Domestic",
     multiplier: 2.0,
   };
 }
@@ -197,6 +209,7 @@ export function getShippingZone(
 export type ShippingCalculationOptions = {
   destinationCountry?: string;
   originCity?: string;
+  locale?: "en" | "id";
 };
 
 /**
@@ -281,6 +294,7 @@ export function calculateDynamicRates(
 ): CalculatedRate[] {
   const destCountry = options?.destinationCountry || "Indonesia";
   const originCity = options?.originCity || "";
+  const isEn = (options?.locale || "id") === "en";
   const normCountry = destCountry.toLowerCase().trim();
   const isDomestic =
     normCountry === "indonesia" ||
@@ -307,10 +321,10 @@ export function calculateDynamicRates(
         name: m.name,
         cost: totalCost,
         baseRatePerKg: baseRate,
-        etd: m.etd || "3-7 business days",
+        etd: m.etd || (isEn ? "3-7 business days" : "3-7 hari kerja"),
         isDynamic: true,
         enabled: m.enabled,
-        zoneLabel: `International (${destCountry})`,
+        zoneLabel: isEn ? `International (${destCountry})` : `Internasional (${destCountry})`,
       };
     });
   }
@@ -325,7 +339,7 @@ export function calculateDynamicRates(
       etd: m.etd,
       isDynamic: false,
       enabled: m.enabled,
-      zoneLabel: "Tarif Standar",
+      zoneLabel: isEn ? "Standard Rate" : "Tarif Standar",
     }));
   }
 
@@ -343,139 +357,139 @@ export function calculateDynamicRates(
       switch (zone.zoneKey) {
         case "LOCAL":
           baseRate = 9000;
-          etd = "1-2 hari";
+          etd = isEn ? "1-2 days" : "1-2 hari";
           break;
         case "JABAR_JABODETABEK":
           baseRate = 11000;
-          etd = "1-2 hari";
+          etd = isEn ? "1-2 days" : "1-2 hari";
           break;
         case "JATENG_DIY":
           baseRate = 18000;
-          etd = "2-3 hari";
+          etd = isEn ? "2-3 days" : "2-3 hari";
           break;
         case "JATIM":
           baseRate = 20000;
-          etd = "2-3 hari";
+          etd = isEn ? "2-3 days" : "2-3 hari";
           break;
         case "SUMATERA_SELATAN":
           baseRate = 22000;
-          etd = "2-4 hari";
+          etd = isEn ? "2-4 days" : "2-4 hari";
           break;
         case "BALI_NTB":
           baseRate = 28000;
-          etd = "2-4 hari";
+          etd = isEn ? "2-4 days" : "2-4 hari";
           break;
         case "SUMATERA_UTARA":
           baseRate = 35000;
-          etd = "3-5 hari";
+          etd = isEn ? "3-5 days" : "3-5 hari";
           break;
         case "KALIMANTAN":
           baseRate = 38000;
-          etd = "3-5 hari";
+          etd = isEn ? "3-5 days" : "3-5 hari";
           break;
         case "SULAWESI":
           baseRate = 40000;
-          etd = "3-5 hari";
+          etd = isEn ? "3-5 days" : "3-5 hari";
           break;
         case "EAST_INDONESIA":
           baseRate = 75000;
-          etd = "4-7 hari";
+          etd = isEn ? "4-7 days" : "4-7 hari";
           break;
         default:
           baseRate = 18000;
-          etd = "2-3 hari";
+          etd = isEn ? "2-3 days" : "2-3 hari";
       }
     } else if (idLower.includes("jnt") || nameLower.includes("j&t") || nameLower.includes("jnt")) {
       switch (zone.zoneKey) {
         case "LOCAL":
           baseRate = 9000;
-          etd = "1-2 hari";
+          etd = isEn ? "1-2 days" : "1-2 hari";
           break;
         case "JABAR_JABODETABEK":
           baseRate = 11000;
-          etd = "1-2 hari";
+          etd = isEn ? "1-2 days" : "1-2 hari";
           break;
         case "JATENG_DIY":
           baseRate = 17000;
-          etd = "2-3 hari";
+          etd = isEn ? "2-3 days" : "2-3 hari";
           break;
         case "JATIM":
           baseRate = 19000;
-          etd = "2-3 hari";
+          etd = isEn ? "2-3 days" : "2-3 hari";
           break;
         case "SUMATERA_SELATAN":
           baseRate = 21000;
-          etd = "2-4 hari";
+          etd = isEn ? "2-4 days" : "2-4 hari";
           break;
         case "BALI_NTB":
           baseRate = 27000;
-          etd = "2-4 hari";
+          etd = isEn ? "2-4 days" : "2-4 hari";
           break;
         case "SUMATERA_UTARA":
           baseRate = 34000;
-          etd = "3-5 hari";
+          etd = isEn ? "3-5 days" : "3-5 hari";
           break;
         case "KALIMANTAN":
           baseRate = 37000;
-          etd = "3-5 hari";
+          etd = isEn ? "3-5 days" : "3-5 hari";
           break;
         case "SULAWESI":
           baseRate = 39000;
-          etd = "3-5 hari";
+          etd = isEn ? "3-5 days" : "3-5 hari";
           break;
         case "EAST_INDONESIA":
           baseRate = 72000;
-          etd = "4-7 hari";
+          etd = isEn ? "4-7 days" : "4-7 hari";
           break;
         default:
           baseRate = 17000;
-          etd = "2-3 hari";
+          etd = isEn ? "2-3 days" : "2-3 hari";
       }
     } else if (idLower.includes("sicepat") || nameLower.includes("sicepat")) {
       switch (zone.zoneKey) {
         case "LOCAL":
           baseRate = 10000;
-          etd = "1 hari";
+          etd = isEn ? "1 day" : "1 hari";
           break;
         case "JABAR_JABODETABEK":
           baseRate = 14000;
-          etd = "1-2 hari";
+          etd = isEn ? "1-2 days" : "1-2 hari";
           break;
         case "JATENG_DIY":
           baseRate = 24000;
-          etd = "1-2 hari";
+          etd = isEn ? "1-2 days" : "1-2 hari";
           break;
         case "JATIM":
           baseRate = 26000;
-          etd = "1-2 hari";
+          etd = isEn ? "1-2 days" : "1-2 hari";
           break;
         case "SUMATERA_SELATAN":
           baseRate = 27000;
-          etd = "2-3 hari";
+          etd = isEn ? "2-3 days" : "2-3 hari";
           break;
         case "BALI_NTB":
           baseRate = 32000;
-          etd = "2-3 hari";
+          etd = isEn ? "2-3 days" : "2-3 hari";
           break;
         case "SUMATERA_UTARA":
           baseRate = 40000;
-          etd = "2-4 hari";
+          etd = isEn ? "2-4 days" : "2-4 hari";
           break;
         case "KALIMANTAN":
           baseRate = 42000;
-          etd = "2-4 hari";
+          etd = isEn ? "2-4 days" : "2-4 hari";
           break;
         case "SULAWESI":
           baseRate = 45000;
-          etd = "2-4 hari";
+          etd = isEn ? "2-4 days" : "2-4 hari";
           break;
         case "EAST_INDONESIA":
           baseRate = 85000;
-          etd = "3-6 hari";
+          etd = isEn ? "3-6 days" : "3-6 hari";
           break;
         default:
           baseRate = 25000;
-          etd = "1-2 hari";
+          etd = isEn ? "1-2 days" : "1-2 hari";
       }
     } else if (idLower.includes("gosend") || nameLower.includes("gosend") || nameLower.includes("instant")) {
       // GoSend hanya bisa di area lokal (Bandung & Cimahi)
@@ -485,10 +499,14 @@ export function calculateDynamicRates(
         name: m.name,
         cost: isLocal ? 25000 : 0,
         baseRatePerKg: 25000,
-        etd: isLocal ? "Hari yang sama (Instant)" : "Hanya Area Bandung/Cimahi",
+        etd: isLocal
+          ? (isEn ? "Same day (Instant)" : "Hari yang sama (Instant)")
+          : (isEn ? "Bandung/Cimahi Area Only" : "Hanya Area Bandung/Cimahi"),
         isDynamic: true,
         enabled: m.enabled && isLocal,
-        zoneLabel: isLocal ? "Area Terjangkau" : "Luar Jangkauan Instant",
+        zoneLabel: isLocal
+          ? (isEn ? "Reachable Area" : "Area Terjangkau")
+          : (isEn ? "Out of Instant Range" : "Luar Jangkauan Instant"),
       };
     } else {
       // Kurir kustom lainnya
@@ -505,7 +523,7 @@ export function calculateDynamicRates(
       etd,
       isDynamic: true,
       enabled: m.enabled,
-      zoneLabel: zone.label,
+      zoneLabel: isEn ? zone.labelEn : zone.label,
     };
   });
 }

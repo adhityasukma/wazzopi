@@ -96,6 +96,7 @@ export function CheckoutForm({
       {
         destinationCountry: formData.country || "Indonesia",
         originCity: settings.shipping.originCity,
+        locale,
       }
     );
   }, [
@@ -105,6 +106,7 @@ export function CheckoutForm({
     items,
     formData.country,
     settings.shipping.originCity,
+    locale,
   ]);
 
   const enabledShippings = dynamicShippings.filter((m) => m.enabled);
@@ -135,6 +137,7 @@ export function CheckoutForm({
         {
           destinationCountry: targetCountry,
           originCity: settings.shipping.originCity,
+          locale,
         }
       );
       const firstEnabled = rates.find((m) => m.enabled);

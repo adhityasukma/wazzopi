@@ -113,6 +113,13 @@ export async function placeOrder(_: FormState, formData: FormData): Promise<Form
   }
   const subtotal = lines.reduce((a, l) => a + l.total, 0);
 
+  // Deteksi locale pengguna
+  const rawLocale = String(formData.get("locale") || "").trim().toLowerCase();
+  const userLocale: "en" | "id" =
+    rawLocale === "en" || rawLocale === "id"
+      ? (rawLocale as "en" | "id")
+      : await getServerLocale();
+
   // Ongkir
   let shippingName: string;
   let shippingCost = 0;
@@ -129,6 +136,7 @@ export async function placeOrder(_: FormState, formData: FormData): Promise<Form
       {
         destinationCountry: d.country,
         originCity: settings.shipping.originCity,
+        locale: userLocale,
       }
     );
     const m = dynamicMethods.find((x) => x.id === d.shippingMethod && x.enabled);
@@ -144,11 +152,6 @@ export async function placeOrder(_: FormState, formData: FormData): Promise<Form
   const total = subtotal + shippingCost + codFee + tax;
 
   const orderNo = generateOrderNo(settings.other.orderPrefix || "WZ");
-  const rawLocale = String(formData.get("locale") || "").trim().toLowerCase();
-  const userLocale: "en" | "id" =
-    rawLocale === "en" || rawLocale === "id"
-      ? (rawLocale as "en" | "id")
-      : await getServerLocale();
   const effectiveProvince = d.country && d.country !== "Indonesia"
     ? `${d.province}, ${d.country}`
     : d.province;

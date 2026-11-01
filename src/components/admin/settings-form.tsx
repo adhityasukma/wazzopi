@@ -1951,7 +1951,7 @@ export function SettingsForm({
                       onChange={(e) => setFreeShippingEnabled(e.target.checked)}
                       className="rounded border-espresso-300 text-caramel-600 focus:ring-caramel-500 h-4 w-4"
                     />
-                    Aktif
+                    {isEn ? "Active" : "Aktif"}
                   </label>
                 </div>
 
