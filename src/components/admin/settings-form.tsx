@@ -27,6 +27,7 @@ import {
   Trash2,
   Truck,
   Wallet,
+  X,
 } from "lucide-react";
 import { useAppLoading } from "@/components/loading-provider";
 import { useI18n } from "@/i18n/provider";
@@ -42,6 +43,7 @@ import {
 import { Alert, Button, Field, Input, Select, Textarea } from "@/components/ui";
 import { CityProvinceSelector } from "@/components/shop/city-province-selector";
 import { CurrencyCombobox } from "@/components/admin/currency-combobox";
+import { ZoneCountryCombobox, ZoneCityCombobox } from "@/components/admin/zone-target-combobox";
 import { cn } from "@/lib/utils";
 import { CURRENCIES, formatCurrency, type CurrencyPosition, type CurrencySettings } from "@/lib/currency";
 import { MIDTRANS_CHANNEL_LIST, DEFAULT_MIDTRANS_CHANNELS } from "@/lib/midtrans-channels";
@@ -2045,11 +2047,10 @@ export function SettingsForm({
                           <label className="text-[10px] font-bold text-espresso-600 uppercase tracking-wider block mb-1">
                             {isEn ? "Target Country" : "Nama Negara Target"}
                           </label>
-                          <Input
-                            placeholder={isEn ? "e.g. Singapore, Malaysia" : "cth: Singapore, Malaysia"}
+                          <ZoneCountryCombobox
                             value={m.targetCountry || ""}
-                            onChange={(e) => updateShippingField(i, "targetCountry", e.target.value)}
-                            className="h-8 text-xs"
+                            onChange={(country) => updateShippingField(i, "targetCountry", country)}
+                            isEn={isEn}
                           />
                         </div>
                       )}
@@ -2075,23 +2076,43 @@ export function SettingsForm({
                             <label className="text-[10px] font-bold text-espresso-600 uppercase tracking-wider block mb-1">
                               {isEn ? "Target City" : "Target Kota"}
                             </label>
-                            <Input
-                              placeholder={isEn ? "e.g. Bandung / Tangerang" : "cth: Bandung / Tangerang"}
+                            <ZoneCityCombobox
                               value={m.targetCity || ""}
-                              onChange={(e) => updateShippingField(i, "targetCity", e.target.value)}
-                              className="h-8 text-xs"
+                              onChange={(city, province) => {
+                                updateShippingField(i, "targetCity", city);
+                                updateShippingField(i, "targetProvince", province);
+                              }}
+                              countryContext={
+                                m.countryScope === "SPECIFIC" && m.targetCountry
+                                  ? m.targetCountry
+                                  : "Indonesia"
+                              }
+                              isEn={isEn}
                             />
                           </div>
                           <div>
                             <label className="text-[10px] font-bold text-espresso-600 uppercase tracking-wider block mb-1">
                               {isEn ? "Target Province (Optional)" : "Target Provinsi (Opsional)"}
                             </label>
-                            <Input
-                              placeholder={isEn ? "e.g. Jawa Barat" : "cth: Jawa Barat"}
-                              value={m.targetProvince || ""}
-                              onChange={(e) => updateShippingField(i, "targetProvince", e.target.value)}
-                              className="h-8 text-xs"
-                            />
+                            <div className="relative">
+                              <input
+                                type="text"
+                                placeholder={isEn ? "Auto-filled on city select" : "Otomatis saat pilih kota"}
+                                value={m.targetProvince || ""}
+                                onChange={(e) => updateShippingField(i, "targetProvince", e.target.value)}
+                                className="w-full h-8 rounded-md border border-latte bg-white px-2.5 pr-7 text-xs text-espresso-800 placeholder:text-espresso-300 focus:outline-none focus:ring-1 focus:ring-caramel-500 font-medium"
+                              />
+                              {m.targetProvince && (
+                                <button
+                                  type="button"
+                                  onClick={() => updateShippingField(i, "targetProvince", "")}
+                                  className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-espresso-300 hover:bg-espresso-50 hover:text-espresso-600 transition"
+                                  title={isEn ? "Clear province" : "Hapus provinsi"}
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              )}
+                            </div>
                           </div>
                         </>
                       )}
