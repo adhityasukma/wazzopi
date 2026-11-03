@@ -20,6 +20,8 @@ type Props = {
     comparePrice: number | null;
     stock: number;
     hasVariants: boolean;
+    isDigital?: boolean;
+    isDownloadable?: boolean;
     variants: Variant[];
   };
 };
@@ -50,6 +52,8 @@ export function AddToCart({ product }: Props) {
         image: product.image,
         price,
         maxStock: stock,
+        isDigital: product.isDigital,
+        isDownloadable: product.isDownloadable,
       },
       qty,
     );

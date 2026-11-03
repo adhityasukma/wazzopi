@@ -14,6 +14,8 @@ export type CartItem = {
   price: number;
   quantity: number;
   maxStock: number;
+  isDigital?: boolean;
+  isDownloadable?: boolean;
 };
 
 type CartState = {

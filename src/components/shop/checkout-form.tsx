@@ -85,6 +85,9 @@ export function CheckoutForm({
 
   const hasSelectedCity = Boolean(destination.city && destination.city.trim());
 
+  // Deteksi apakah semua item di keranjang adalah produk digital (tidak butuh ongkir)
+  const isAllDigital = items.length > 0 && items.every((it) => it.isDigital && it.isDownloadable);
+
   const cartWeight = useMemo(() => estimateCartWeight(items), [items]);
 
   const dynamicShippings = useMemo(() => {
@@ -112,8 +115,9 @@ export function CheckoutForm({
   const enabledShippings = dynamicShippings.filter((m) => m.enabled);
 
   // Jika awalnya sudah ada data kota tersimpan (misal customer login), kurir pertama otomatis dipilih
+  // Jika semua item digital, auto-set ke "digital"
   const [selectedShipping, setSelectedShipping] = useState<string>(
-    hasSelectedCity ? (enabledShippings[0]?.id || "") : ""
+    isAllDigital ? "digital" : (hasSelectedCity ? (enabledShippings[0]?.id || "") : "")
   );
 
   // Handler saat pemilihan kota berubah di CityProvinceSelector
@@ -256,7 +260,9 @@ export function CheckoutForm({
 
   // Hitung ongkir
   let shippingCost = 0;
-  if (selectedShipping === "pickup") {
+  if (isAllDigital || selectedShipping === "digital") {
+    shippingCost = 0;
+  } else if (selectedShipping === "pickup") {
     shippingCost = 0;
   } else if (hasSelectedCity && selectedShipping) {
     const method = enabledShippings.find((m) => m.id === selectedShipping);
@@ -467,7 +473,32 @@ export function CheckoutForm({
             </div>
           )}
 
-          {/* Pilihan Pengiriman */}
+          {/* Pilihan Pengiriman -- Disembunyikan jika semua item produk digital */}
+          {isAllDigital ? (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-6 shadow-sm">
+              <input type="hidden" name="shippingMethod" value="digital" />
+              <div className="flex items-center gap-3 mb-2">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+                  <Zap className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-espresso-900">
+                    {isEn ? "Digital Delivery" : "Pengiriman Digital"}
+                  </h2>
+                  <p className="text-xs text-emerald-700 font-medium">
+                    {isEn
+                      ? "All items are digital products -- no shipping required"
+                      : "Semua item adalah produk digital -- tidak perlu ongkir"}
+                  </p>
+                </div>
+              </div>
+              <p className="text-xs text-espresso-500 mt-2 pl-13">
+                {isEn
+                  ? "Download links will be available in your account after payment is confirmed."
+                  : "Link download akan tersedia di akun Anda setelah pembayaran dikonfirmasi."}
+              </p>
+            </div>
+          ) : (
           <div className="rounded-xl border border-latte bg-white p-6 shadow-sm">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-espresso-100 pb-3">
               <div>
@@ -634,6 +665,7 @@ export function CheckoutForm({
               />
             </div>
           </div>
+          )}
 
           {/* Pilihan Pembayaran */}
           <div className="rounded-xl border border-latte bg-white p-6 shadow-sm">
@@ -753,7 +785,9 @@ export function CheckoutForm({
               </div>
               <div className="flex justify-between items-center text-espresso-600">
                 <span>{isEn ? "Shipping Fee" : "Biaya Pengiriman"}</span>
-                {selectedShipping === "pickup" ? (
+                {isAllDigital ? (
+                  <span className="font-medium text-emerald-700">{isEn ? "Free (Digital)" : "Gratis (Digital)"}</span>
+                ) : selectedShipping === "pickup" ? (
                   <span className="font-medium text-emerald-700">{isEn ? "Free (Store Pickup)" : "Gratis (Ambil di Toko)"}</span>
                 ) : hasSelectedCity && selectedShipping ? (
                   <span className="font-medium text-espresso-900">
@@ -790,7 +824,7 @@ export function CheckoutForm({
               </div>
             </div>
 
-            {!hasSelectedCity && selectedShipping !== "pickup" && (
+            {!isAllDigital && !hasSelectedCity && selectedShipping !== "pickup" && (
               <p className="mt-4 text-center text-xs text-caramel-800 bg-caramel-50/80 py-2.5 px-3 rounded-lg border border-caramel-200">
                 {isEn
                   ? "Please select your City / Region in shipping address above to proceed"
@@ -800,7 +834,7 @@ export function CheckoutForm({
 
             <Button
               type="submit"
-              disabled={isPending || (!hasSelectedCity && selectedShipping !== "pickup")}
+              disabled={isPending || (!isAllDigital && !hasSelectedCity && selectedShipping !== "pickup")}
               className="mt-4 w-full justify-center h-12 text-base font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isPending

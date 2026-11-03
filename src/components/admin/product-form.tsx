@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Download, FileDown, Monitor } from "lucide-react";
 import { createProduct, updateProduct } from "@/actions/products";
 import { Alert, Button, Field, Input, Select, Switch, Textarea } from "@/components/ui";
 import { ImageUpload } from "@/components/admin/image-upload";
@@ -33,6 +33,9 @@ type Props = {
     status: string;
     featured: boolean;
     hasVariants: boolean;
+    isDigital: boolean;
+    isDownloadable: boolean;
+    digitalFileUrl: string | null;
     variants: VariantItem[];
   };
   categories: { id: string; name: string }[];
@@ -64,6 +67,9 @@ export function ProductForm({ product, categories, isStaffKaryawan }: Props) {
   }, [isPending, isEditing, showLoading, hideLoading, isEn]);
 
   const [hasVariants, setHasVariants] = useState(product?.hasVariants ?? false);
+  const [isDigital, setIsDigital] = useState(product?.isDigital ?? false);
+  const [isDownloadable, setIsDownloadable] = useState(product?.isDownloadable ?? false);
+  const [digitalFileUrl, setDigitalFileUrl] = useState(product?.digitalFileUrl || "");
   const [variants, setVariants] = useState<VariantItem[]>(
     product?.variants ?? [
       { name: isEn ? "250g - Whole Bean" : "250g - Biji Utuh", sku: "", price: 95000, stock: 20 },
@@ -139,11 +145,95 @@ export function ProductForm({ product, categories, isStaffKaryawan }: Props) {
                 <Input
                   name="weight"
                   type="number"
-                  defaultValue={product?.weight ?? 250}
+                  defaultValue={isDigital ? 0 : (product?.weight ?? 250)}
+                  value={isDigital ? 0 : undefined}
                   placeholder="250"
+                  disabled={isDigital}
+                  className={isDigital ? "bg-espresso-50 cursor-not-allowed" : ""}
                 />
+                {isDigital && (
+                  <p className="mt-1 text-[11px] text-espresso-400">
+                    {isEn ? "Weight is 0 for digital products (no physical shipping)" : "Berat 0 untuk produk digital (tanpa pengiriman fisik)"}
+                  </p>
+                )}
               </Field>
             </div>
+          </div>
+
+          {/* Tipe Produk: Digital / Downloadable */}
+          <div className="rounded-xl border border-latte bg-white p-6 shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-latte pb-3">
+              <div>
+                <h2 className="text-base font-bold text-espresso-900">{isEn ? "Product Type" : "Tipe Produk"}</h2>
+                <p className="text-xs text-espresso-400">
+                  {isEn
+                    ? "Enable if this product is digital (e.g. e-book, preset, template). Digital products skip shipping."
+                    : "Aktifkan jika produk ini digital (e-book, preset, template). Produk digital tidak perlu ongkir."}
+                </p>
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-espresso-800">
+                <input
+                  type="checkbox"
+                  name="isDigital"
+                  checked={isDigital}
+                  onChange={(e) => {
+                    setIsDigital(e.target.checked);
+                    if (!e.target.checked) {
+                      setIsDownloadable(false);
+                      setDigitalFileUrl("");
+                    }
+                  }}
+                  className="rounded border-espresso-300 text-caramel-600 focus:ring-caramel-500 h-4 w-4"
+                />
+                <Monitor className="h-4 w-4 text-caramel-600" />
+                {isEn ? "Digital Product" : "Produk Digital"}
+              </label>
+            </div>
+
+            {isDigital && (
+              <div className="space-y-4 bg-cream/30 rounded-lg p-4 border border-latte/60">
+                <label className="flex items-center gap-2 cursor-pointer text-sm font-medium text-espresso-800">
+                  <input
+                    type="checkbox"
+                    name="isDownloadable"
+                    checked={isDownloadable}
+                    onChange={(e) => {
+                      setIsDownloadable(e.target.checked);
+                      if (!e.target.checked) setDigitalFileUrl("");
+                    }}
+                    className="rounded border-espresso-300 text-caramel-600 focus:ring-caramel-500 h-4 w-4"
+                  />
+                  <Download className="h-4 w-4 text-caramel-600" />
+                  {isEn ? "Downloadable" : "Dapat Diunduh"}
+                </label>
+                <p className="text-[11px] text-espresso-400 -mt-2 pl-6">
+                  {isEn
+                    ? "Customer can download the file after order is paid"
+                    : "Customer bisa download file setelah pesanan lunas"}
+                </p>
+
+                {isDownloadable && (
+                  <div className="space-y-3 pl-6">
+                    <Field label={isEn ? "Download File URL" : "URL File Download"}>
+                      <div className="flex items-center gap-2">
+                        <FileDown className="h-4 w-4 text-caramel-600 shrink-0" />
+                        <Input
+                          name="digitalFileUrl"
+                          value={digitalFileUrl}
+                          onChange={(e) => setDigitalFileUrl(e.target.value)}
+                          placeholder={isEn ? "e.g. /downloads/ebook.pdf or https://drive.google.com/..." : "cth: /downloads/ebook.pdf atau https://drive.google.com/..."}
+                        />
+                      </div>
+                    </Field>
+                    <p className="text-[11px] text-espresso-400">
+                      {isEn
+                        ? "Enter the file path or external URL. Supports local path (/downloads/file.pdf) or external link (Google Drive, Dropbox, etc)."
+                        : "Masukkan path file atau URL eksternal. Mendukung path lokal (/downloads/file.pdf) atau link eksternal (Google Drive, Dropbox, dll)."}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Pengaturan Varian */}

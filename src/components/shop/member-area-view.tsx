@@ -28,6 +28,7 @@ import {
   ChevronLeft,
   ChevronRight,
   RotateCcw,
+  Download,
 } from "lucide-react";
 import { useLoading } from "@/components/loading-provider";
 import { formatCurrency, type CurrencySettings, DEFAULT_CURRENCY } from "@/lib/currency";
@@ -52,6 +53,9 @@ export type OrderItemType = {
   product?: {
     image?: string | null;
     slug?: string | null;
+    isDigital?: boolean;
+    isDownloadable?: boolean;
+    digitalFileUrl?: string | null;
   } | null;
 };
 
@@ -935,6 +939,17 @@ export function MemberAreaView({
                                   <span className="text-[11px] text-espresso-500">
                                     {it.variantName ? `${it.variantName} • ` : ""}Qty: {it.quantity} x {formatCurrency(it.price, currencyConfig)}
                                   </span>
+                                  {it.product?.isDownloadable && it.product?.digitalFileUrl && ["PAID", "PROCESSING", "SHIPPED", "COMPLETED"].includes(order.status) && (
+                                    <a
+                                      href={it.product.digitalFileUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="mt-1 inline-flex items-center gap-1 rounded-md bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors"
+                                    >
+                                      <Download className="h-3 w-3" />
+                                      {isEn ? "Download" : "Unduh File"}
+                                    </a>
+                                  )}
                                 </div>
                               </div>
 

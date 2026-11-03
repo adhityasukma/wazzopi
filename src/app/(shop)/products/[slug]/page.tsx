@@ -91,6 +91,8 @@ export default async function ProductDetailPage({ params }: PageProps<"/products
               comparePrice: product.comparePrice,
               stock: product.stock,
               hasVariants: product.hasVariants,
+              isDigital: product.isDigital,
+              isDownloadable: product.isDownloadable,
               variants: product.variants.map((v) => ({ id: v.id, name: v.name, price: v.price, stock: v.stock })),
             }}
           />

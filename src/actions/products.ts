@@ -29,6 +29,9 @@ const productSchema = z.object({
   status: z.enum(["PUBLISHED", "DRAFT"]).default("PUBLISHED"),
   featured: z.boolean().default(false),
   hasVariants: z.boolean().default(false),
+  isDigital: z.boolean().default(false),
+  isDownloadable: z.boolean().default(false),
+  digitalFileUrl: z.string().optional(),
   variants: z.array(variantSchema).default([]),
 });
 
@@ -53,6 +56,9 @@ function parseProduct(formData: FormData) {
     status: formData.get("status") || "PUBLISHED",
     featured: formData.get("featured") === "on",
     hasVariants: formData.get("hasVariants") === "on",
+    isDigital: formData.get("isDigital") === "on",
+    isDownloadable: formData.get("isDownloadable") === "on",
+    digitalFileUrl: formData.get("digitalFileUrl") || undefined,
     variants,
   });
 }
@@ -88,10 +94,13 @@ export async function createProduct(_: FormState, formData: FormData): Promise<F
       comparePrice: d.comparePrice || null,
       stock: d.hasVariants ? d.variants.reduce((a, v) => a + v.stock, 0) : d.stock,
       sku: d.sku,
-      weight: d.weight,
+      weight: d.isDigital ? 0 : d.weight,
       status: d.status,
       featured: session.role === "ADMIN" ? d.featured : false,
       hasVariants: d.hasVariants,
+      isDigital: d.isDigital,
+      isDownloadable: d.isDigital && d.isDownloadable,
+      digitalFileUrl: d.isDigital && d.isDownloadable ? (d.digitalFileUrl || null) : null,
       variants: d.hasVariants
         ? { create: d.variants.map((v) => ({ name: v.name, sku: v.sku, price: v.price, stock: v.stock })) }
         : undefined,
@@ -126,10 +135,13 @@ export async function updateProduct(id: string, _: FormState, formData: FormData
         comparePrice: d.comparePrice || null,
         stock: d.hasVariants ? d.variants.reduce((a, v) => a + v.stock, 0) : d.stock,
         sku: d.sku,
-        weight: d.weight,
+        weight: d.isDigital ? 0 : d.weight,
         status: d.status,
         featured: d.featured,
         hasVariants: d.hasVariants,
+        isDigital: d.isDigital,
+        isDownloadable: d.isDigital && d.isDownloadable,
+        digitalFileUrl: d.isDigital && d.isDownloadable ? (d.digitalFileUrl || null) : null,
       },
     });
     const keepIds = d.hasVariants ? d.variants.filter((v) => v.id).map((v) => v.id!) : [];

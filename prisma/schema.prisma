@@ -52,6 +52,9 @@ model Product {
   sku         String?
   weight      Int              @default(250)
   hasVariants Boolean          @default(false)
+  isDigital       Boolean      @default(false)
+  isDownloadable  Boolean      @default(false)
+  digitalFileUrl  String?
   status      String           @default("PUBLISHED")
   featured    Boolean          @default(false)
   categoryId  String?

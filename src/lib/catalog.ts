@@ -22,6 +22,8 @@ export function toCard(p: ProductWithCard): ProductCardData {
     hasVariants: p.hasVariants,
     category: p.category?.name ?? null,
     maxPrice: p.hasVariants && p.variants.length ? Math.max(...p.variants.map((v) => v.price)) : p.price,
+    isDigital: p.isDigital,
+    isDownloadable: p.isDownloadable,
   };
 }
 

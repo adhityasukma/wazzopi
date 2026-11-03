@@ -32,6 +32,9 @@ export default async function AccountPage({
               select: {
                 image: true,
                 slug: true,
+                isDigital: true,
+                isDownloadable: true,
+                digitalFileUrl: true,
               },
             },
           },

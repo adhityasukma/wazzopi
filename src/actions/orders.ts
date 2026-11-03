@@ -123,7 +123,11 @@ export async function placeOrder(_: FormState, formData: FormData): Promise<Form
   // Ongkir
   let shippingName: string;
   let shippingCost = 0;
-  if (d.shippingMethod === "pickup") {
+  if (d.shippingMethod === "digital") {
+    // Semua item produk digital -- tidak perlu ongkir
+    shippingName = userLocale === "en" ? "Digital Delivery" : "Pengiriman Digital";
+    shippingCost = 0;
+  } else if (d.shippingMethod === "pickup") {
     if (!settings.shipping.pickupEnabled) return { error: "Ambil di toko tidak tersedia" };
     shippingName = "Ambil di Toko";
   } else {

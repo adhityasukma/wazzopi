@@ -18,6 +18,8 @@ export type ProductCardData = {
   comparePrice: number | null;
   stock: number;
   hasVariants: boolean;
+  isDigital?: boolean;
+  isDownloadable?: boolean;
   category: string | null;
   maxPrice?: number;
 };
@@ -39,6 +41,8 @@ export function ProductCard({ product }: { product: ProductCardData }) {
       image: product.image,
       price: product.price,
       maxStock: product.stock,
+      isDigital: product.isDigital,
+      isDownloadable: product.isDownloadable,
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);
